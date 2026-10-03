@@ -305,7 +305,7 @@
               <ScrollViewer>
                 <StackPanel Margin="12" Spacing="12">
                   <Grid ColumnDefinitions="150,*,150,*"
-                        RowDefinitions="Auto,Auto,Auto,Auto">
+                        RowDefinitions="Auto,Auto,Auto,Auto,Auto">
                     <TextBlock Text="IED" FontWeight="SemiBold" />
                     <TextBlock Grid.Column="1" Text="{Binding SelectedIedWorkspace.Name}" />
                     <TextBlock Grid.Column="2" Text="Manufacturer" FontWeight="SemiBold" />
@@ -344,6 +344,70 @@
                       <TextBlock Text="{Binding SelectedIedWorkspace.GooseCount, StringFormat='GOOSE {0}'}" />
                       <TextBlock Text="{Binding SelectedIedWorkspace.SettingGroupCount, StringFormat='SG {0}'}" />
                     </StackPanel>
+
+                    <TextBlock Grid.Row="4"
+                               Text="Sampled Values"
+                               Margin="0,8,0,0" />
+                    <TextBlock Grid.Row="4"
+                               Grid.Column="1"
+                               Text="{Binding SelectedIedWorkspace.SampledValueCount}"
+                               Margin="0,8,0,0" />
+                    <TextBlock Grid.Row="4"
+                               Grid.Column="2"
+                               Text="Declared Services"
+                               Margin="0,8,0,0" />
+                    <TextBlock Grid.Row="4"
+                               Grid.Column="3"
+                               Text="{Binding SelectedIedWorkspace.ServiceCapabilityCount}"
+                               Margin="0,8,0,0" />
+                  </Grid>
+
+                  <Grid RowDefinitions="28,*"
+                        MaxHeight="165">
+                    <Grid
+                      Background="{DynamicResource ThemeControlLowBrush}"
+                      ColumnDefinitions="150,*,65">
+                      <TextBlock Text="Declared service"
+                                 Margin="6,5"
+                                 FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="1"
+                                 Text="Parameters"
+                                 Margin="6,5"
+                                 FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="2"
+                                 Text="Nested"
+                                 Margin="6,5"
+                                 FontWeight="SemiBold" />
+                    </Grid>
+                    <ListBox
+                      Grid.Row="1"
+                      ItemsSource="{Binding ServiceCapabilityRows}"
+                      SelectedItem="{Binding SelectedServiceCapability, Mode=TwoWay}"
+                      BorderThickness="0">
+                      <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <VirtualizingStackPanel />
+                        </ItemsPanelTemplate>
+                      </ListBox.ItemsPanel>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="nav:SclServiceCapabilityProjection">
+                          <Grid ColumnDefinitions="150,*,65"
+                                Height="27">
+                            <TextBlock Text="{Binding Name}"
+                                       Margin="6,4"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding Parameters}"
+                                       Margin="6,4"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding NestedElementCount}"
+                                       Margin="6,4"
+                                       HorizontalAlignment="Right" />
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
                   </Grid>
 
                   <Border
