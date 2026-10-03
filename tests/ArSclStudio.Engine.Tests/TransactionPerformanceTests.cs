@@ -47,14 +47,26 @@ public sealed class TransactionPerformanceTests
     }
 
     [TestMethod]
-    public async Task PatchHistoryDoesNotRetainOldSyntaxSnapshots()
+    public void PatchHistoryDoesNotRetainOldSyntaxSnapshots()
     {
-        await using var f = await EditingFixture.CreateAsync();
-        var weak = EditAndCapturePrevious(f.Session);
-        Collect();
-        Assert.IsFalse(HasTarget(weak), "Undo history retained an entire old syntax document.");
-        Assert.IsTrue(f.Session.CanUndo);
-        Assert.IsTrue((await f.Session.UndoAsync(f.Session.CurrentRevision)).Succeeded);
+        // Keep fixture creation outside an async completion continuation: an inline parent
+        // continuation can legitimately keep its OpenResult alive on the stack during GC.
+        var (fixture, weak) = CreateEditedFixture();
+        try
+        {
+            Collect();
+            Assert.IsFalse(HasTarget(weak), "Undo history retained an entire old syntax document.");
+            Assert.IsTrue(fixture.Session.CanUndo);
+            Assert.IsTrue(fixture.Session.UndoAsync(fixture.Session.CurrentRevision).GetAwaiter().GetResult().Succeeded);
+        }
+        finally { fixture.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static (EditingFixture Fixture, WeakReference<SclSyntaxDocument> Weak) CreateEditedFixture()
+    {
+        var fixture = EditingFixture.CreateAsync().GetAwaiter().GetResult();
+        return (fixture, EditAndCapturePrevious(fixture.Session));
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

@@ -266,7 +266,7 @@
           <Grid
             Grid.Row="2"
             ColumnDefinitions="150,*"
-            RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
             Margin="16">
             <TextBlock Text="Source" FontWeight="SemiBold" />
             <TextBlock
@@ -310,7 +310,10 @@
               <TextBlock Text="{Binding DocumentDisplayName}" />
               <TextBlock Text="{Binding DocumentNamespace}" Opacity="0.65" />
             </StackPanel>
-            <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Margin="0,16,0,0"
+            <TextBlock Grid.Row="4" Text="Description" Margin="0,12,0,0" />
+            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding AttributeDescription}"
+                       Margin="0,12,0,0" TextWrapping="Wrap" />
+            <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="0,16,0,0"
                         Spacing="6" IsVisible="{Binding IsEditing}">
               <TextBlock Text="IED description" />
               <TextBlock Text="{Binding EditingTargetName}" Opacity="0.7" />
@@ -530,7 +533,7 @@
                   <Grid ColumnDefinitions="65,65,90,*,*" Height="28">
                     <TextBlock Text="{Binding Revision}" Margin="8,4" />
                     <TextBlock Grid.Column="1" Text="{Binding Action}" Margin="8,4" />
-                    <TextBlock Grid.Column="2" Text="{Binding Target}" Margin="8,4" />
+                    <TextBlock Grid.Column="2" Text="{Binding Target}" Margin="8,4" TextTrimming="CharacterEllipsis" />
                     <TextBlock Grid.Column="3" Text="{Binding Before}" Margin="8,4" TextTrimming="CharacterEllipsis" />
                     <TextBlock Grid.Column="4" Text="{Binding After}" Margin="8,4" TextTrimming="CharacterEllipsis" />
                   </Grid>

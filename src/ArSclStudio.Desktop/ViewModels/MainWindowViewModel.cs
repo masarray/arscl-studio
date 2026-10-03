@@ -160,7 +160,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         DocumentDisplayName = state.DisplayName;
         IsDirty = _session.IsDirty;
         ChangeRows = _session.ChangeJournal.SelectMany(entry => entry.Changes.Select(change =>
-            new ChangeRow(entry.Revision.ToString(), entry.Action, change.Target.ToString(),
+            new ChangeRow(entry.Revision.ToString(), entry.Action,
+                state.SemanticIndex.TryGetNode(change.Target, out var node) && node is not null
+                    ? node.DisplayName : change.Target.ToString(),
                 change.Before ?? "(absent)", change.After ?? "(absent)"))).Reverse().ToArray();
         SelectionChanged(this, new SclSelectionChangedEventArgs(_selectionService.SelectedNode));
         RefreshEditCommands();
@@ -239,6 +241,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     [ObservableProperty]
     private string _detailNamespace = string.Empty;
+
+    [ObservableProperty]
+    private string _attributeDescription = string.Empty;
 
     [ObservableProperty]
     private string _detailValue = string.Empty;
@@ -624,6 +629,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 : details.NamespaceUri;
             DetailValue = details.Value ?? string.Empty;
             DetailDescription = details.Description;
+            AttributeDescription = state.Syntax.TryGetAttributeValue(args.SelectedNode, "desc", out var description)
+                ? description ?? string.Empty : "(not set)";
 
             var whereUsed = SclReferenceProjector.BuildWhereUsed(
                 state,

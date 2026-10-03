@@ -62,7 +62,11 @@ public sealed partial class SclDocumentSession : IAsyncDisposable
 
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        var openSequence = Interlocked.Increment(ref _openSequence);
+        long openSequence;
+        lock (_stateGate)
+        {
+            openSequence = ++_openSequence;
+        }
         try
         {
             var loader = new SclDocumentLoader();
@@ -109,7 +113,7 @@ public sealed partial class SclDocumentSession : IAsyncDisposable
                             token.ThrowIfCancellationRequested();
                             ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposeStarted) != 0, this);
                             if (workResult.SourceRevision != CurrentRevision ||
-                                openSequence != Interlocked.Read(ref _openSequence))
+                                openSequence != _openSequence)
                             {
                                 return Task.FromResult(new SclOpenResult(SclOpenStatus.Superseded, null, []));
                             }
