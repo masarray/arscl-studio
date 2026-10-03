@@ -193,6 +193,157 @@ public sealed class SclEngineeringWorkspaceProjectorTests
         }
     }
 
+    [TestMethod]
+    public async Task GooseWorkspaceJoinsEndpointDataSetAndSubscribersAndKeepsGsseDistinct()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <Communication>
+                <SubNetwork name="StationLAN" type="8-MMS">
+                  <ConnectedAP iedName="PUB" apName="P1">
+                    <Address>
+                      <P type="IP">10.0.0.1</P>
+                    </Address>
+                    <GSE ldInst="CTRL" cbName="GOOSE_CB">
+                      <Address>
+                        <P type="MAC-Address">01-0C-CD-01-00-01</P>
+                        <P type="APPID">1001</P>
+                        <P type="VLAN-ID">001</P>
+                        <P type="VLAN-PRIORITY">4</P>
+                      </Address>
+                      <MinTime unit="s" multiplier="m">10</MinTime>
+                      <MaxTime unit="s" multiplier="m">2000</MaxTime>
+                    </GSE>
+                  </ConnectedAP>
+                </SubNetwork>
+              </Communication>
+
+              <IED name="PUB">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="CTRL">
+                      <LN0 lnClass="LLN0" inst="">
+                        <DataSet name="GooseDs">
+                          <FCDA ldInst="CTRL" lnClass="XSWI" lnInst="1"
+                                doName="Pos" daName="stVal" fc="ST" />
+                          <FCDA ldInst="CTRL" lnClass="XSWI" lnInst="1"
+                                doName="Pos" daName="q" fc="ST" />
+                        </DataSet>
+                        <GSEControl name="GOOSE_CB"
+                                    type="GOOSE"
+                                    datSet="GooseDs"
+                                    appID="PUB/CTRL/LLN0/GOOSE_CB"
+                                    confRev="7" />
+                        <GSEControl name="GSSE_CB"
+                                    type="GSSE"
+                                    appID="LEGACY_GSSE" />
+                      </LN0>
+                      <LN lnClass="XSWI" inst="1" />
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <IED name="SUB">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="">
+                        <Inputs>
+                          <ExtRef iedName="PUB"
+                                  ldInst="CTRL"
+                                  lnClass="XSWI"
+                                  lnInst="1"
+                                  doName="Pos"
+                                  daName="stVal"
+                                  intAddr="RxPos/stVal" />
+                        </Inputs>
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var pub = SclIedWorkspaceProjector
+                .Build(open.State)
+                .Single(row => row.Name == "PUB");
+
+            var controls = SclGooseWorkspaceProjector.BuildCatalog(
+                open.State,
+                pub.Handle);
+
+            Assert.AreEqual(2, controls.Length);
+
+            var goose = controls.Single(row => row.Name == "GOOSE_CB");
+            Assert.AreEqual("GOOSE", goose.ServiceType);
+            Assert.AreEqual("P1", goose.AccessPoint);
+            Assert.AreEqual("CTRL", goose.LogicalDevice);
+            Assert.AreEqual("GooseDs", goose.DataSet);
+            Assert.AreEqual("PUB/CTRL/LLN0/GOOSE_CB", goose.ControlAppId);
+            Assert.AreEqual("7", goose.ConfigurationRevision);
+            Assert.AreEqual("01-0C-CD-01-00-01", goose.MacAddress);
+            Assert.AreEqual("1001", goose.NetworkAppId);
+            Assert.AreEqual("001", goose.VlanId);
+            Assert.AreEqual("4", goose.VlanPriority);
+            Assert.AreEqual("10 ms", goose.MinTime);
+            Assert.AreEqual("2000 ms", goose.MaxTime);
+            Assert.AreEqual(2, goose.MemberCount);
+            Assert.AreEqual(1, goose.SubscriberCount);
+            Assert.AreEqual(1, goose.SubscriberIedCount);
+            Assert.AreEqual("Bound", goose.EndpointStatus);
+
+            var incoming = open.State.SemanticIndex.References
+                .GetIncoming(goose.Handle);
+
+            Assert.IsTrue(incoming.Any(edge =>
+                edge.Kind ==
+                    ArSclStudio.Scl.Semantics.SclReferenceKind
+                        .CommunicationControlBinding));
+
+            var signals = SclGooseWorkspaceProjector.BuildSignals(
+                open.State,
+                goose.Handle);
+
+            Assert.AreEqual(2, signals.Length);
+            Assert.AreEqual("CTRL/XSWI1/Pos.stVal", signals[0].Reference);
+            Assert.AreEqual(1, signals[0].SubscriberCount);
+            Assert.AreEqual("CTRL/XSWI1/Pos.q", signals[1].Reference);
+            Assert.AreEqual(0, signals[1].SubscriberCount);
+
+            var subscribers = SclGooseWorkspaceProjector.BuildSubscribers(
+                open.State,
+                goose.Handle);
+
+            Assert.AreEqual(1, subscribers.Length);
+            Assert.AreEqual("SUB", subscribers[0].SubscriberIed);
+            Assert.AreEqual("LD0", subscribers[0].SubscriberLogicalDevice);
+            Assert.AreEqual("LLN0", subscribers[0].SubscriberLogicalNode);
+            Assert.AreEqual("RxPos/stVal", subscribers[0].InternalAddress);
+            Assert.AreEqual(
+                "PUB/CTRL/XSWI1/Pos.stVal",
+                subscribers[0].SourceReference);
+
+            var gsse = controls.Single(row => row.Name == "GSSE_CB");
+            Assert.AreEqual("GSSE", gsse.ServiceType);
+            Assert.AreEqual("Not applicable", gsse.EndpointStatus);
+            Assert.AreEqual(string.Empty, gsse.MacAddress);
+            Assert.AreEqual(0, gsse.MemberCount);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
