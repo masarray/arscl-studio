@@ -486,6 +486,7 @@
                   </Grid>
 
                   <ListBox
+                  Classes="engineeringGrid"
                     Grid.Row="1"
                     ItemsSource="{Binding ServiceCapabilityRows}"
                     SelectedItem="{Binding SelectedServiceCapability, Mode=TwoWay}"
@@ -573,6 +574,7 @@
                   <TextBlock Grid.Column="6" Text="Gateway" Margin="7,5" FontWeight="SemiBold" />
                 </Grid>
                 <ListBox
+                  Classes="engineeringGrid"
                   Grid.Row="1"
                   ItemsSource="{Binding NetworkWorkspaceRows}"
                   SelectedItem="{Binding SelectedNetworkWorkspaceRow, Mode=TwoWay}"
@@ -618,6 +620,7 @@
                 </Grid>
 
                 <ListBox
+                  Classes="engineeringGrid"
                   Grid.Row="1"
                   ItemsSource="{Binding GooseWorkspaceRows}"
                   SelectedItem="{Binding SelectedGooseWorkspace, Mode=TwoWay}"
@@ -678,6 +681,7 @@
                     </Grid>
 
                     <ListBox
+                  Classes="engineeringGrid"
                       Grid.Row="1"
                       ItemsSource="{Binding GooseSignalRows}"
                       SelectedItem="{Binding SelectedGooseSignal, Mode=TwoWay}"
@@ -723,6 +727,7 @@
                     </Grid>
 
                     <ListBox
+                  Classes="engineeringGrid"
                       Grid.Row="1"
                       ItemsSource="{Binding GooseSubscriberRows}"
                       SelectedItem="{Binding SelectedGooseSubscriber, Mode=TwoWay}"
@@ -855,6 +860,7 @@
                     <TextBlock Grid.Column="4" Text="Used" Margin="3,5" FontWeight="SemiBold" />
                   </Grid>
                   <ListBox
+                  Classes="engineeringGrid"
                     Grid.Row="1"
                     ItemsSource="{Binding DataSetWorkspaceRows}"
                     SelectedItem="{Binding SelectedDataSetWorkspace, Mode=TwoWay}"
@@ -897,6 +903,7 @@
                     <TextBlock Grid.Column="5" Text="Reference" Margin="6,5" FontWeight="SemiBold" />
                   </Grid>
                   <ListBox
+                  Classes="engineeringGrid"
                     Grid.Row="1"
                     ItemsSource="{Binding DataSetMemberRows}"
                     SelectedItem="{Binding SelectedDataSetMember, Mode=TwoWay}"
@@ -941,6 +948,7 @@
                   <TextBlock Grid.Column="5" Text="Optional fields" Margin="6,5" FontWeight="SemiBold" />
                 </Grid>
                 <ListBox
+                  Classes="engineeringGrid"
                   Grid.Row="1"
                   ItemsSource="{Binding ReportWorkspaceRows}"
                   SelectedItem="{Binding SelectedReportWorkspace, Mode=TwoWay}"
@@ -1029,6 +1037,7 @@
                   </Grid>
 
                   <ListBox
+                  Classes="engineeringGrid"
                     Grid.Row="1"
                     ItemsSource="{Binding DataModelLogicalNodes}"
                     SelectedItem="{Binding SelectedDataModelLogicalNode, Mode=TwoWay}"
@@ -1084,6 +1093,7 @@
                   </Grid>
 
                   <ListBox
+                  Classes="engineeringGrid"
                     Grid.Row="1"
                     ItemsSource="{Binding DataModelRows}"
                     SelectedItem="{Binding SelectedDataModelRow, Mode=TwoWay}"
@@ -1207,6 +1217,7 @@
                   </Grid>
 
                   <ListBox
+                  Classes="engineeringGrid"
                     Grid.Row="1"
                     ItemsSource="{Binding SettingGroupControls}"
                     SelectedItem="{Binding SelectedSettingGroupControl, Mode=TwoWay}"
@@ -1258,6 +1269,7 @@
                   </Grid>
 
                   <ListBox
+                  Classes="engineeringGrid"
                     Grid.Row="1"
                     ItemsSource="{Binding SettingGroupSettings}"
                     SelectedItem="{Binding SelectedSettingGroupSetting, Mode=TwoWay}"
@@ -1611,7 +1623,7 @@
                   Grid.Column="2"
                   MinHeight="25"
                   Margin="5,0,0,0"
-                  Watermark="Filter code, object, message or source..."
+                  PlaceholderText="Filter code, object, message or source..."
                   Text="{Binding ProblemFilterText, Mode=TwoWay}" />
                 <TextBlock
                   Grid.Column="3"
