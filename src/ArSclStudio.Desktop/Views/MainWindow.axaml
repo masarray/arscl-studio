@@ -445,6 +445,7 @@
             <ListBox
               Grid.Row="1"
               ItemsSource="{Binding Problems}"
+              SelectedItem="{Binding SelectedProblemRow, Mode=TwoWay}"
               BorderThickness="0">
               <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>

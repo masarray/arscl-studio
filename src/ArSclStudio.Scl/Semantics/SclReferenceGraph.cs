@@ -5,20 +5,31 @@ namespace ArSclStudio.Scl.Semantics;
 public sealed class SclReferenceGraph
 {
     private static readonly SclReferenceEdge[] EmptyEdges = [];
+    private static readonly SclReferenceIssue[] EmptyIssues = [];
 
     private readonly Dictionary<SclNodeHandle, SclReferenceEdge[]> _incoming;
     private readonly Dictionary<SclNodeHandle, SclReferenceEdge[]> _outgoing;
+    private readonly SclReferenceIssue[] _issues;
 
-    internal SclReferenceGraph(IReadOnlyList<SclReferenceEdge> edges)
+    internal SclReferenceGraph(
+        IReadOnlyList<SclReferenceEdge> edges,
+        IReadOnlyList<SclReferenceIssue>? issues = null)
     {
         ArgumentNullException.ThrowIfNull(edges);
 
         _incoming = BuildIndex(edges, incoming: true);
         _outgoing = BuildIndex(edges, incoming: false);
+        _issues = issues is null or { Count: 0 }
+            ? EmptyIssues
+            : [.. issues];
         EdgeCount = edges.Count;
     }
 
     public int EdgeCount { get; }
+
+    public int IssueCount => _issues.Length;
+
+    public IReadOnlyList<SclReferenceIssue> Issues => _issues;
 
     public IReadOnlyList<SclReferenceEdge> GetIncoming(SclNodeHandle target) =>
         _incoming.GetValueOrDefault(target) ?? EmptyEdges;

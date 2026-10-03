@@ -13,6 +13,7 @@ internal static class SclReferenceGraphBuilder
         ArgumentNullException.ThrowIfNull(index);
 
         var edges = new List<SclReferenceEdge>();
+        var issues = new List<SclReferenceIssue>();
         var typeDefinitions = new UniqueHandleIndex<TypeKey>();
         var ieds = new UniqueHandleIndex<string>(StringComparer.Ordinal);
         var accessPoints = new UniqueHandleIndex<AccessPointKey>();
@@ -64,7 +65,8 @@ internal static class SclReferenceGraphBuilder
                         syntax,
                         node,
                         typeDefinitions,
-                        edges);
+                        edges,
+                        issues);
                     break;
 
                 case SclSemanticKind.DataObjectDefinition:
@@ -74,7 +76,8 @@ internal static class SclReferenceGraphBuilder
                         node,
                         SclSemanticKind.DataObjectType,
                         typeDefinitions,
-                        edges);
+                        edges,
+                        issues);
                     break;
 
                 case SclSemanticKind.DataAttributeDefinition:
@@ -83,7 +86,8 @@ internal static class SclReferenceGraphBuilder
                         syntax,
                         node,
                         typeDefinitions,
-                        edges);
+                        edges,
+                        issues);
                     break;
 
                 case SclSemanticKind.ReportControl:
@@ -95,7 +99,8 @@ internal static class SclReferenceGraphBuilder
                         index,
                         node,
                         dataSets,
-                        edges);
+                        edges,
+                        issues);
                     break;
 
                 case SclSemanticKind.ConnectedAccessPoint:
@@ -104,7 +109,8 @@ internal static class SclReferenceGraphBuilder
                         node,
                         ieds,
                         accessPoints,
-                        edges);
+                        edges,
+                        issues);
                     break;
 
                 case SclSemanticKind.Fcda:
@@ -113,7 +119,8 @@ internal static class SclReferenceGraphBuilder
                         index,
                         node,
                         logicalNodes,
-                        edges);
+                        edges,
+                        issues);
                     break;
 
                 case SclSemanticKind.ExternalReference:
@@ -121,12 +128,13 @@ internal static class SclReferenceGraphBuilder
                         syntax,
                         node,
                         logicalNodes,
-                        edges);
+                        edges,
+                        issues);
                     break;
             }
         }
 
-        return new SclReferenceGraph(edges);
+        return new SclReferenceGraph(edges, issues);
     }
 
     private static void AddTypeDefinition(
@@ -259,7 +267,8 @@ internal static class SclReferenceGraphBuilder
         SclSyntaxDocument syntax,
         SclSemanticNode node,
         UniqueHandleIndex<TypeKey> typeDefinitions,
-        List<SclReferenceEdge> edges)
+        List<SclReferenceEdge> edges,
+        List<SclReferenceIssue> issues)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "lnType", out var typeId) ||
             string.IsNullOrWhiteSpace(typeId))
@@ -272,7 +281,8 @@ internal static class SclReferenceGraphBuilder
             SclSemanticKind.LogicalNodeType,
             typeId,
             typeDefinitions,
-            edges);
+            edges,
+            issues);
     }
 
     private static void AddTypeReference(
@@ -280,7 +290,8 @@ internal static class SclReferenceGraphBuilder
         SclSemanticNode node,
         SclSemanticKind targetKind,
         UniqueHandleIndex<TypeKey> typeDefinitions,
-        List<SclReferenceEdge> edges)
+        List<SclReferenceEdge> edges,
+        List<SclReferenceIssue> issues)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "type", out var typeId) ||
             string.IsNullOrWhiteSpace(typeId))
@@ -293,14 +304,16 @@ internal static class SclReferenceGraphBuilder
             targetKind,
             typeId,
             typeDefinitions,
-            edges);
+            edges,
+            issues);
     }
 
     private static void AddDataAttributeTypeReference(
         SclSyntaxDocument syntax,
         SclSemanticNode node,
         UniqueHandleIndex<TypeKey> typeDefinitions,
-        List<SclReferenceEdge> edges)
+        List<SclReferenceEdge> edges,
+        List<SclReferenceIssue> issues)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "type", out var typeId) ||
             string.IsNullOrWhiteSpace(typeId) ||
@@ -324,7 +337,8 @@ internal static class SclReferenceGraphBuilder
                 targetKind.Value,
                 typeId,
                 typeDefinitions,
-                edges);
+                edges,
+                issues);
         }
     }
 
@@ -333,18 +347,30 @@ internal static class SclReferenceGraphBuilder
         SclSemanticKind targetKind,
         string typeId,
         UniqueHandleIndex<TypeKey> typeDefinitions,
-        List<SclReferenceEdge> edges)
+        List<SclReferenceEdge> edges,
+        List<SclReferenceIssue> issues)
     {
-        if (typeDefinitions.TryGetValue(
-                new TypeKey(targetKind, typeId),
-                out var target))
+        var resolution = typeDefinitions.Resolve(
+            new TypeKey(targetKind, typeId),
+            out var target);
+
+        if (resolution == HandleResolutionStatus.Unique)
         {
             edges.Add(new SclReferenceEdge(
                 source,
                 target,
                 SclReferenceKind.TypeDefinition,
                 typeId));
+            return;
         }
+
+        AddReferenceIssue(
+            issues,
+            source,
+            SclReferenceKind.TypeDefinition,
+            resolution,
+            typeId,
+            targetKind);
     }
 
     private static void AddDataSetBinding(
@@ -352,7 +378,8 @@ internal static class SclReferenceGraphBuilder
         SclSemanticIndex index,
         SclSemanticNode node,
         UniqueHandleIndex<DataSetKey> dataSets,
-        List<SclReferenceEdge> edges)
+        List<SclReferenceEdge> edges,
+        List<SclReferenceIssue> issues)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "datSet", out var dataSetName) ||
             string.IsNullOrWhiteSpace(dataSetName) ||
@@ -361,16 +388,27 @@ internal static class SclReferenceGraphBuilder
             return;
         }
 
-        if (dataSets.TryGetValue(
-                new DataSetKey(logicalNode.Handle, dataSetName),
-                out var target))
+        var resolution = dataSets.Resolve(
+            new DataSetKey(logicalNode.Handle, dataSetName),
+            out var target);
+
+        if (resolution == HandleResolutionStatus.Unique)
         {
             edges.Add(new SclReferenceEdge(
                 node.Handle,
                 target,
                 SclReferenceKind.DataSetBinding,
                 dataSetName));
+            return;
         }
+
+        AddReferenceIssue(
+            issues,
+            node.Handle,
+            SclReferenceKind.DataSetBinding,
+            resolution,
+            dataSetName,
+            SclSemanticKind.DataSet);
     }
 
     private static void AddCommunicationBindings(
@@ -378,7 +416,8 @@ internal static class SclReferenceGraphBuilder
         SclSemanticNode node,
         UniqueHandleIndex<string> ieds,
         UniqueHandleIndex<AccessPointKey> accessPoints,
-        List<SclReferenceEdge> edges)
+        List<SclReferenceEdge> edges,
+        List<SclReferenceIssue> issues)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "iedName", out var iedName) ||
             string.IsNullOrWhiteSpace(iedName))
@@ -386,27 +425,53 @@ internal static class SclReferenceGraphBuilder
             return;
         }
 
-        if (ieds.TryGetValue(iedName, out var iedTarget))
+        var iedResolution = ieds.Resolve(iedName, out var iedTarget);
+        if (iedResolution != HandleResolutionStatus.Unique)
         {
-            edges.Add(new SclReferenceEdge(
+            AddReferenceIssue(
+                issues,
                 node.Handle,
-                iedTarget,
                 SclReferenceKind.CommunicationBinding,
-                iedName));
+                iedResolution,
+                iedName,
+                SclSemanticKind.Ied);
+            return;
         }
 
-        if (syntax.TryGetAttributeValue(node.Handle, "apName", out var apName) &&
-            !string.IsNullOrWhiteSpace(apName) &&
-            accessPoints.TryGetValue(
-                new AccessPointKey(iedName, apName),
-                out var apTarget))
+        edges.Add(new SclReferenceEdge(
+            node.Handle,
+            iedTarget,
+            SclReferenceKind.CommunicationBinding,
+            iedName));
+
+        if (!syntax.TryGetAttributeValue(node.Handle, "apName", out var apName) ||
+            string.IsNullOrWhiteSpace(apName))
+        {
+            return;
+        }
+
+        var accessPointText = string.Concat(iedName, "/", apName);
+        var apResolution = accessPoints.Resolve(
+            new AccessPointKey(iedName, apName),
+            out var apTarget);
+
+        if (apResolution == HandleResolutionStatus.Unique)
         {
             edges.Add(new SclReferenceEdge(
                 node.Handle,
                 apTarget,
                 SclReferenceKind.CommunicationBinding,
-                string.Concat(iedName, "/", apName)));
+                accessPointText));
+            return;
         }
+
+        AddReferenceIssue(
+            issues,
+            node.Handle,
+            SclReferenceKind.CommunicationBinding,
+            apResolution,
+            accessPointText,
+            SclSemanticKind.AccessPoint);
     }
 
     private static void AddFcdaBinding(
@@ -414,7 +479,8 @@ internal static class SclReferenceGraphBuilder
         SclSemanticIndex index,
         SclSemanticNode node,
         UniqueHandleIndex<LogicalNodeKey> logicalNodes,
-        List<SclReferenceEdge> edges)
+        List<SclReferenceEdge> edges,
+        List<SclReferenceIssue> issues)
     {
         if (!TryGetAncestorAttribute(
                 syntax,
@@ -428,27 +494,42 @@ internal static class SclReferenceGraphBuilder
                 node.Handle,
                 iedName,
                 out var key,
-                requireIedName: false) ||
-            !logicalNodes.TryGetValue(key, out var target))
+                requireIedName: false))
         {
             return;
         }
 
         syntax.TryGetAttributeValue(node.Handle, "doName", out var doName);
         syntax.TryGetAttributeValue(node.Handle, "daName", out var daName);
+        var dataReference = CreateDataReference(doName, daName);
+        var referenceText = CreateLogicalNodeReference(key, dataReference);
+        var resolution = logicalNodes.Resolve(key, out var target);
 
-        edges.Add(new SclReferenceEdge(
+        if (resolution == HandleResolutionStatus.Unique)
+        {
+            edges.Add(new SclReferenceEdge(
+                node.Handle,
+                target,
+                SclReferenceKind.DataSetMember,
+                dataReference));
+            return;
+        }
+
+        AddReferenceIssue(
+            issues,
             node.Handle,
-            target,
             SclReferenceKind.DataSetMember,
-            CreateDataReference(doName, daName)));
+            resolution,
+            referenceText,
+            SclSemanticKind.LogicalNode);
     }
 
     private static void AddExtRefBinding(
         SclSyntaxDocument syntax,
         SclSemanticNode node,
         UniqueHandleIndex<LogicalNodeKey> logicalNodes,
-        List<SclReferenceEdge> edges)
+        List<SclReferenceEdge> edges,
+        List<SclReferenceIssue> issues)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "iedName", out var iedName) ||
             string.IsNullOrWhiteSpace(iedName) ||
@@ -457,20 +538,75 @@ internal static class SclReferenceGraphBuilder
                 node.Handle,
                 iedName,
                 out var key,
-                requireIedName: true) ||
-            !logicalNodes.TryGetValue(key, out var target))
+                requireIedName: true))
         {
             return;
         }
 
         syntax.TryGetAttributeValue(node.Handle, "doName", out var doName);
         syntax.TryGetAttributeValue(node.Handle, "daName", out var daName);
+        var dataReference = CreateDataReference(doName, daName);
+        var referenceText = CreateLogicalNodeReference(key, dataReference);
+        var resolution = logicalNodes.Resolve(key, out var target);
 
-        edges.Add(new SclReferenceEdge(
+        if (resolution == HandleResolutionStatus.Unique)
+        {
+            edges.Add(new SclReferenceEdge(
+                node.Handle,
+                target,
+                SclReferenceKind.ExternalSource,
+                dataReference));
+            return;
+        }
+
+        AddReferenceIssue(
+            issues,
             node.Handle,
-            target,
             SclReferenceKind.ExternalSource,
-            CreateDataReference(doName, daName)));
+            resolution,
+            referenceText,
+            SclSemanticKind.LogicalNode);
+    }
+
+    private static void AddReferenceIssue(
+        List<SclReferenceIssue> issues,
+        SclNodeHandle source,
+        SclReferenceKind kind,
+        HandleResolutionStatus resolution,
+        string referenceText,
+        SclSemanticKind? expectedTargetKind)
+    {
+        if (resolution == HandleResolutionStatus.Unique)
+        {
+            return;
+        }
+
+        issues.Add(new SclReferenceIssue(
+            source,
+            kind,
+            resolution == HandleResolutionStatus.Ambiguous
+                ? SclReferenceResolutionStatus.Ambiguous
+                : SclReferenceResolutionStatus.Unresolved,
+            referenceText,
+            expectedTargetKind));
+    }
+
+    private static string CreateLogicalNodeReference(
+        LogicalNodeKey key,
+        string? dataReference)
+    {
+        var logicalNode = string.Concat(
+            key.IedName,
+            "/",
+            key.LdInst,
+            "/",
+            key.Prefix,
+            key.LnClass,
+            key.LnInst);
+
+        return string.IsNullOrWhiteSpace(dataReference)
+            ? logicalNode
+            : string.Concat(logicalNode, ":", dataReference);
     }
 
     private static bool TryBuildReferencedLogicalNodeKey(
@@ -578,6 +714,13 @@ internal static class SclReferenceGraphBuilder
     }
 
 
+    private enum HandleResolutionStatus
+    {
+        Missing = 0,
+        Unique,
+        Ambiguous
+    }
+
     private sealed class UniqueHandleIndex<TKey>
         where TKey : notnull
     {
@@ -607,10 +750,24 @@ internal static class SclReferenceGraphBuilder
             return false;
         }
 
-        public bool TryGetValue(
+        public HandleResolutionStatus Resolve(
             TKey key,
-            out SclNodeHandle handle) =>
-            _unique.TryGetValue(key, out handle);
+            out SclNodeHandle handle)
+        {
+            if (_ambiguous.Contains(key))
+            {
+                handle = SclNodeHandle.None;
+                return HandleResolutionStatus.Ambiguous;
+            }
+
+            if (_unique.TryGetValue(key, out handle))
+            {
+                return HandleResolutionStatus.Unique;
+            }
+
+            handle = SclNodeHandle.None;
+            return HandleResolutionStatus.Missing;
+        }
     }
 
     private readonly record struct TypeKey(

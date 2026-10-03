@@ -24,6 +24,7 @@ public sealed record ExplorerRow(
 }
 
 public sealed record ProblemRow(
+    SclNodeHandle Node,
     string Severity,
     string Code,
     string Domain,
@@ -31,7 +32,9 @@ public sealed record ProblemRow(
     string Message,
     string Source)
 {
-    public static ProblemRow FromDiagnostic(Diagnostic diagnostic)
+    public static ProblemRow FromDiagnostic(
+        Diagnostic diagnostic,
+        string? objectName = null)
     {
         ArgumentNullException.ThrowIfNull(diagnostic);
 
@@ -46,12 +49,13 @@ public sealed record ProblemRow(
             : sourceName;
 
         return new ProblemRow(
+            diagnostic.Node,
             diagnostic.Severity.ToString(),
             diagnostic.Code,
             diagnostic.Domain.ToString(),
-            diagnostic.Node.IsNone
-                ? "Document"
-                : diagnostic.Node.ToString(),
+            string.IsNullOrWhiteSpace(objectName)
+                ? diagnostic.Node.IsNone ? "Document" : diagnostic.Node.ToString()
+                : objectName,
             diagnostic.Message,
             source);
     }
