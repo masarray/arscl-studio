@@ -11,11 +11,22 @@ The product direction combines:
 
 ## Status
 
-**M0 Foundation — active**
+**M1A Real Document Workspace — complete**
 
-Current implementation branch: `foundation/m0-architecture`.
+The application can now open real SCL files through a secure, cancellable document session and project the same authoritative SCL source into synchronized Engineering and XML views.
 
-The first cross-platform CI baseline has passed on Windows, Ubuntu, and macOS.
+Current implemented viewer coverage:
+- Header
+- Substation
+- Communication
+- IED identities
+- DataTypeTemplates
+- Private/vendor extensions
+- XML root/first-level syntax
+- source line/column
+- structured open/parse diagnostics
+
+The next milestone is **M1B — Deep IEC Semantic Browser & Lazy Tree**.
 
 ## Architecture
 
@@ -35,7 +46,7 @@ Key rules:
 - large models use lazy/virtualized projections
 - background work is cancellable, bounded, coalesced, and revision-aware
 - target compatibility is separate from IEC validity
-- unknown/vendor XML must survive round trips
+- unknown/vendor XML must survive engineering round trips
 - save/export will be transactional
 
 Read **[AGENTS.md](AGENTS.md)** before making code changes.
@@ -61,7 +72,7 @@ dotnet build ArSclStudio.sln --configuration Release
 dotnet test ArSclStudio.sln --configuration Release
 ```
 
-Run the desktop shell:
+Run the desktop application:
 
 ```bash
 dotnet run --project src/ArSclStudio.Desktop
@@ -75,6 +86,6 @@ dotnet run --project src/ArSclStudio.Cli -- probe path/to/station.scd
 
 ## Engineering quality
 
-This repository intentionally treats performance, cancellation, memory ownership, round-trip fidelity, and deterministic IEC semantics as implementation requirements rather than late-stage cleanup.
+The repository treats cancellation, worker coalescing, memory ownership, secure XML handling, round-trip fidelity, source traceability, large-model virtualization, and deterministic IEC semantics as implementation requirements rather than late-stage cleanup.
 
-See `AGENTS.md` for the full contract.
+See `AGENTS.md` for the full engineering contract.
