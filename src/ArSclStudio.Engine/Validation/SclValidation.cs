@@ -1,5 +1,6 @@
 using ArSclStudio.Engine.Diagnostics;
 using ArSclStudio.Engine.Documents;
+using ArSclStudio.Engine.Navigation;
 using ArSclStudio.Scl.Identity;
 using ArSclStudio.Scl.Semantics;
 using ArSclStudio.Scl.Source;
@@ -91,6 +92,7 @@ internal static class SclValidationEngine
             state.SemanticIndex.References.IssueCount + 1);
 
         AppendReferenceDiagnostics(state, diagnostics, cancellationToken);
+        AppendEngineeringDiagnostics(state, diagnostics, cancellationToken);
 
         var schemaStatus = await schemaProvider
             .GetStatusAsync(state, cancellationToken)
@@ -122,6 +124,7 @@ internal static class SclValidationEngine
             state.SemanticIndex.References.IssueCount + 4);
 
         AppendReferenceDiagnostics(state, diagnostics, cancellationToken);
+        AppendEngineeringDiagnostics(state, diagnostics, cancellationToken);
 
         var schemaStatus = await schemaProvider
             .GetStatusAsync(state, cancellationToken)
@@ -193,6 +196,276 @@ internal static class SclValidationEngine
                 state.Revision));
         }
     }
+
+    private static void AppendEngineeringDiagnostics(
+        SclDocumentState state,
+        List<Diagnostic> diagnostics,
+        CancellationToken cancellationToken)
+    {
+        foreach (var node in state.SemanticIndex.Nodes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            switch (node.Kind)
+            {
+                case SclSemanticKind.GseControl:
+                    AppendGooseDiagnostics(
+                        state,
+                        node,
+                        diagnostics);
+                    break;
+
+                case SclSemanticKind.Doi:
+                    AppendDataModelInstanceDiagnostics(
+                        state,
+                        node,
+                        diagnostics);
+                    break;
+            }
+        }
+    }
+
+    private static void AppendGooseDiagnostics(
+        SclDocumentState state,
+        SclSemanticNode control,
+        List<Diagnostic> diagnostics)
+    {
+        var serviceType = SclWorkspaceSyntaxReader.Attribute(
+            state.Syntax,
+            control.Handle,
+            "type");
+
+        if (!string.Equals(
+                serviceType,
+                "GOOSE",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var endpoint = FindIncomingCommunicationEndpoint(
+            state,
+            control.Handle);
+
+        if (endpoint.IsNone)
+        {
+            diagnostics.Add(CreateDiagnostic(
+                state,
+                "SCL-ENG-GOOSE-0001",
+                DiagnosticSeverity.Warning,
+                DiagnosticDomain.Engineering,
+                control.Handle,
+                $"GOOSE control '{control.DisplayName}' has no Communication/GSE endpoint.",
+                "The publisher exists in the IED model but has no resolved Ethernet endpoint. Check ConnectedAP/GSE ldInst and cbName before deployment."));
+            return;
+        }
+
+        if (!SclWorkspaceSyntaxReader.TryFindDirectElement(
+                state.Syntax,
+                endpoint,
+                "Address",
+                out var address))
+        {
+            diagnostics.Add(CreateDiagnostic(
+                state,
+                "SCL-ENG-GOOSE-0002",
+                DiagnosticSeverity.Warning,
+                DiagnosticDomain.Engineering,
+                endpoint,
+                $"GOOSE endpoint for '{control.DisplayName}' has no Address element.",
+                "Destination MAC and network APPID cannot be established from this endpoint."));
+            return;
+        }
+
+        var parameters = SclWorkspaceSyntaxReader.ReadPValues(
+            state.Syntax,
+            address);
+
+        if (!parameters.TryGetValue(
+                "MAC-Address",
+                out var macAddress) ||
+            string.IsNullOrWhiteSpace(macAddress))
+        {
+            diagnostics.Add(CreateDiagnostic(
+                state,
+                "SCL-ENG-GOOSE-0003",
+                DiagnosticSeverity.Warning,
+                DiagnosticDomain.Engineering,
+                endpoint,
+                $"GOOSE endpoint for '{control.DisplayName}' has no destination MAC address.",
+                "A deployable GOOSE Ethernet endpoint normally requires a destination multicast MAC address."));
+        }
+
+        if (!parameters.TryGetValue(
+                "APPID",
+                out var networkAppId) ||
+            string.IsNullOrWhiteSpace(networkAppId))
+        {
+            diagnostics.Add(CreateDiagnostic(
+                state,
+                "SCL-ENG-GOOSE-0004",
+                DiagnosticSeverity.Warning,
+                DiagnosticDomain.Engineering,
+                endpoint,
+                $"GOOSE endpoint for '{control.DisplayName}' has no network APPID.",
+                "The GSEControl appID and the Communication/GSE network APPID are different SCL properties; ARSCL does not substitute one for the other."));
+        }
+    }
+
+    private static void AppendDataModelInstanceDiagnostics(
+        SclDocumentState state,
+        SclSemanticNode doi,
+        List<Diagnostic> diagnostics)
+    {
+        if (!state.SemanticIndex.TryFindAncestor(
+                doi.Handle,
+                SclSemanticKind.LogicalNodeZero,
+                out var logicalNode) ||
+            logicalNode is null)
+        {
+            if (!state.SemanticIndex.TryFindAncestor(
+                    doi.Handle,
+                    SclSemanticKind.LogicalNode,
+                    out logicalNode) ||
+                logicalNode is null)
+            {
+                return;
+            }
+        }
+
+        var logicalNodeType = FindOutgoingTarget(
+            state,
+            logicalNode.Handle,
+            SclReferenceKind.TypeDefinition,
+            SclSemanticKind.LogicalNodeType);
+
+        if (logicalNodeType.IsNone)
+        {
+            // Reference diagnostics already explain an unresolved/ambiguous
+            // lnType. Do not duplicate that root-cause finding here.
+            return;
+        }
+
+        var instanceName = SclWorkspaceSyntaxReader.Attribute(
+            state.Syntax,
+            doi.Handle,
+            "name");
+
+        if (string.IsNullOrWhiteSpace(instanceName))
+        {
+            return;
+        }
+
+        var definitions = state.SemanticIndex.GetChildren(
+            logicalNodeType);
+
+        for (var i = 0; i < definitions.Count; i++)
+        {
+            var definition = definitions[i];
+
+            if (definition.Kind ==
+                    SclSemanticKind.DataObjectDefinition &&
+                string.Equals(
+                    SclWorkspaceSyntaxReader.Attribute(
+                        state.Syntax,
+                        definition.Handle,
+                        "name"),
+                    instanceName,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+        }
+
+        diagnostics.Add(CreateDiagnostic(
+            state,
+            "SCL-SEM-MODEL-0001",
+            DiagnosticSeverity.Warning,
+            DiagnosticDomain.Semantic,
+            doi.Handle,
+            $"DOI '{instanceName}' is not declared by resolved LNodeType '{logicalNode.DisplayName}'.",
+            "The instance is preserved, but it cannot be projected as a typed IEC 61850 data object from the resolved logical-node template."));
+    }
+
+    private static SclNodeHandle FindIncomingCommunicationEndpoint(
+        SclDocumentState state,
+        SclNodeHandle control)
+    {
+        var incoming = state.SemanticIndex.References.GetIncoming(
+            control);
+
+        for (var i = 0; i < incoming.Count; i++)
+        {
+            var edge = incoming[i];
+
+            if (edge.Kind !=
+                SclReferenceKind.CommunicationControlBinding)
+            {
+                continue;
+            }
+
+            if (state.SemanticIndex.TryGetNode(
+                    edge.Source,
+                    out var source) &&
+                source is not null &&
+                source.Kind == SclSemanticKind.GseCommunication)
+            {
+                return edge.Source;
+            }
+        }
+
+        return SclNodeHandle.None;
+    }
+
+    private static SclNodeHandle FindOutgoingTarget(
+        SclDocumentState state,
+        SclNodeHandle source,
+        SclReferenceKind kind,
+        SclSemanticKind expectedKind)
+    {
+        var outgoing = state.SemanticIndex.References.GetOutgoing(
+            source);
+
+        for (var i = 0; i < outgoing.Count; i++)
+        {
+            var edge = outgoing[i];
+
+            if (edge.Kind != kind)
+            {
+                continue;
+            }
+
+            if (state.SemanticIndex.TryGetNode(
+                    edge.Target,
+                    out var target) &&
+                target is not null &&
+                target.Kind == expectedKind)
+            {
+                return edge.Target;
+            }
+        }
+
+        return SclNodeHandle.None;
+    }
+
+    private static Diagnostic CreateDiagnostic(
+        SclDocumentState state,
+        string code,
+        DiagnosticSeverity severity,
+        DiagnosticDomain domain,
+        SclNodeHandle node,
+        string message,
+        string explanation) =>
+        new(
+            code,
+            severity,
+            domain,
+            message,
+            node,
+            state.Syntax.GetSourceSpan(node),
+            state.SourcePath,
+            explanation,
+            state.Revision);
 
     private static void AppendSchemaStatusDiagnostic(
         SclDocumentState state,
