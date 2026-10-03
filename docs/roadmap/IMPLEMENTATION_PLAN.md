@@ -93,19 +93,25 @@ See:
 - `docs/testing/REAL_SCD_ENGINEERING_WORKSPACE_ACCEPTANCE.md`;
 - `docs/testing/M3A0_ACCEPTANCE.md`.
 
-### M3A — semantic/engineering diagnostics & remaining coverage — slice 1 implemented
+### M3A — semantic/engineering diagnostics & remaining coverage — slices 1-2 implemented
 
 Acceptance:
 - typed GOOSE endpoint engineering diagnostics: implemented;
-- DOI vs resolved LNodeType semantic consistency diagnostic: implemented;
 - Communication/SMV typed endpoint linkage: implemented;
 - SMV endpoint engineering diagnostics: implemented;
-- continue deeper model-chain findings with source navigation;
-- interpret supported Services without inventing unsupported capability;
+- deep DOI/SDI/DAI ↔ type-template consistency with ambiguity-safe resolution: implemented;
+- cached type-context performance guard for large repeated instance models: implemented;
+- per-IED Services projection and conservative Fix/Conf/Dyn/limit interpretation: implemented;
+- unknown/future Services declarations preserved as uninterpreted, source-linked rows: implemented;
+- explicit GOOSE/GSSE/SMV publisher counts vs literal Services max diagnostics: implemented;
 - add edition-aware rule/schema-provider evolution using legally sourced assets;
-- add contextual engineering explanations without moving IEC logic into Desktop;
+- expand contextual engineering explanations and diagnostic grouping without moving IEC logic into Desktop;
+- add additional cross-domain rules only when their semantics are proven by specification/evidence;
 - add Substation → VoltageLevel → Bay → ConductingEquipment → Terminal/LNode placement only when a real fixture is available;
-- preserve all M1B/M2A/M2B/M3A0 regression and performance gates.
+- preserve all M1B/M2A/M2B/M3A0/M3A1/M3A2 regression and performance gates.
+
+M3A2 acceptance evidence:
+- `docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md`.
 
 Broad destructive editing remains locked until the affected domain has explicit reference-impact and validation coverage.
 
