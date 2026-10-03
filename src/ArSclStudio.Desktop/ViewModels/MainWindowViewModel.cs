@@ -49,6 +49,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     public bool CanSave => !IsBusy && !IsEditing && _session.CurrentState is not null;
     public bool CanUndo => !IsBusy && !IsEditing && _session.CanUndo;
     public bool CanRedo => !IsBusy && !IsEditing && _session.CanRedo;
+    public bool CanValidate =>
+        !IsBusy &&
+        !IsEditing &&
+        _session.CurrentState is not null;
     public bool CanEdit => !IsBusy && !IsEditing && _session.CurrentState is { } state &&
         SclEditPolicy.CanEditDescription(state, _selectionService.SelectedNode);
     public bool CanApply => !IsBusy && IsEditing;
@@ -70,6 +74,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         OnPropertyChanged(nameof(CanSave));
         OnPropertyChanged(nameof(CanUndo));
         OnPropertyChanged(nameof(CanRedo));
+        OnPropertyChanged(nameof(CanValidate));
         OnPropertyChanged(nameof(CanEdit));
         OnPropertyChanged(nameof(CanApply));
     }
@@ -141,6 +146,33 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         finally { IsBusy = false; }
     }
 
+    public async Task ValidateFullAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (!CanValidate)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        StatusText = "Running full engineering and schema validation...";
+
+        try
+        {
+            var published = await RefreshValidationAsync(
+                cancellationToken,
+                fullValidation: true);
+
+            StatusText = published
+                ? $"Full validation complete • {ProblemSummary}"
+                : "Full validation result was superseded or became stale";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
     public async Task<bool> SaveAsync(string? path = null, bool overwrite = false)
     {
         if (!CanSave) { return false; }
@@ -183,18 +215,23 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         RefreshEditCommands();
     }
 
-    private async Task RefreshValidationAsync(
-        CancellationToken cancellationToken = default)
+    private async Task<bool> RefreshValidationAsync(
+        CancellationToken cancellationToken = default,
+        bool fullValidation = false)
     {
         if (Volatile.Read(ref _disposeStarted) != 0 ||
             _session.CurrentState is not { } state)
         {
-            return;
+            return false;
         }
 
-        var result = await _session
-            .ValidateFastAsync(cancellationToken)
-            .ConfigureAwait(true);
+        var result = fullValidation
+            ? await _session
+                .ValidateFullAsync(cancellationToken)
+                .ConfigureAwait(true)
+            : await _session
+                .ValidateFastAsync(cancellationToken)
+                .ConfigureAwait(true);
 
         if (!result.CanPublish ||
             result.Value is null ||
@@ -203,10 +240,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             _session.CurrentState?.Revision != state.Revision ||
             Volatile.Read(ref _disposeStarted) != 0)
         {
-            return;
+            return false;
         }
 
         PublishDiagnostics(result.Value.Diagnostics, state);
+        return true;
     }
 
     [ObservableProperty]
