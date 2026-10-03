@@ -7,7 +7,7 @@ namespace ArSclStudio.Engine.Tests;
 public sealed class SclDocumentSessionTests
 {
     [TestMethod]
-    public void AdvanceRevision_IsMonotonic()
+    public void AdvanceRevisionIsMonotonic()
     {
         var session = new SclDocumentSession(maxWorkerConcurrency: 1);
 
@@ -19,7 +19,7 @@ public sealed class SclDocumentSessionTests
     }
 
     [TestMethod]
-    public async Task RunLatestAsync_SupersedesPreviousRequestOfSameKind()
+    public async Task RunLatestAsyncSupersedesPreviousRequestOfSameKind()
     {
         await using var session = new SclDocumentSession(maxWorkerConcurrency: 1);
         var firstStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -48,7 +48,7 @@ public sealed class SclDocumentSessionTests
     }
 
     [TestMethod]
-    public async Task RunLatestAsync_RejectsResultFromOldRevision()
+    public async Task RunLatestAsyncRejectsResultFromOldRevision()
     {
         await using var session = new SclDocumentSession(maxWorkerConcurrency: 1);
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

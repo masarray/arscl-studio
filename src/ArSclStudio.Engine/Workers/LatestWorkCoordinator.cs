@@ -27,11 +27,7 @@ public sealed class LatestWorkCoordinator : IAsyncDisposable
 
     public LatestWorkCoordinator(int maxConcurrency)
     {
-        if (maxConcurrency <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(maxConcurrency));
-        }
-
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxConcurrency);
         _capacity = new SemaphoreSlim(maxConcurrency, maxConcurrency);
     }
 

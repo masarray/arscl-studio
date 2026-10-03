@@ -8,7 +8,7 @@ namespace ArSclStudio.Scl.Tests;
 public sealed class SclDocumentProbeTests
 {
     [TestMethod]
-    public async Task ProbeAsync_RecognizesSclAndFileRoleHint()
+    public async Task ProbeAsyncRecognizesSclAndFileRoleHint()
     {
         const string xml = """
             <?xml version="1.0" encoding="utf-8"?>
@@ -31,7 +31,7 @@ public sealed class SclDocumentProbeTests
     }
 
     [TestMethod]
-    public async Task ProbeAsync_RejectsDtd()
+    public async Task ProbeAsyncRejectsDtd()
     {
         const string xml = """
             <?xml version="1.0"?>
@@ -43,7 +43,14 @@ public sealed class SclDocumentProbeTests
 
         await using var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml));
 
-        await Assert.ThrowsExceptionAsync<XmlException>(
-            async () => await new SclDocumentProbe().ProbeAsync(stream, "unsafe.scd"));
+        try
+        {
+            await new SclDocumentProbe().ProbeAsync(stream, "unsafe.scd");
+            Assert.Fail("Expected XmlException because DTD processing is prohibited.");
+        }
+        catch (XmlException)
+        {
+            // Expected: secure XML defaults reject DTD input before entity expansion.
+        }
     }
 }
