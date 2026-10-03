@@ -27,6 +27,9 @@ public sealed class EngineeringWorkspaceViewModelTests
                 </SubNetwork>
               </Communication>
               <IED name="IED_A" manufacturer="Vendor A">
+                <Services>
+                  <GetDirectory />
+                </Services>
                 <AccessPoint name="P1">
                   <Server>
                     <LDevice inst="LD_A">
@@ -45,6 +48,9 @@ public sealed class EngineeringWorkspaceViewModelTests
                 </AccessPoint>
               </IED>
               <IED name="IED_B" manufacturer="Vendor B">
+                <Services>
+                  <ConfReportControl max="3" />
+                </Services>
                 <AccessPoint name="P1">
                   <Server>
                     <LDevice inst="LD_B">
@@ -83,6 +89,10 @@ public sealed class EngineeringWorkspaceViewModelTests
             Assert.AreEqual(1, vm.DataSetMemberRows.Count);
             Assert.AreEqual(1, vm.ReportWorkspaceRows.Count);
             Assert.AreEqual("BRCB", vm.ReportWorkspaceRows[0].Kind);
+            Assert.AreEqual(1, vm.ServiceCapabilityRows.Count);
+            Assert.AreEqual(
+                "GetDirectory",
+                vm.ServiceCapabilityRows[0].Name);
 
             vm.SelectedIedWorkspace = vm.IedWorkspaceRows.Single(
                 row => row.Name == "IED_B");
@@ -92,6 +102,13 @@ public sealed class EngineeringWorkspaceViewModelTests
             Assert.AreEqual(2, vm.DataSetMemberRows.Count);
             Assert.AreEqual(1, vm.ReportWorkspaceRows.Count);
             Assert.AreEqual("URCB", vm.ReportWorkspaceRows[0].Kind);
+            Assert.AreEqual(1, vm.ServiceCapabilityRows.Count);
+            Assert.AreEqual(
+                "ConfReportControl",
+                vm.ServiceCapabilityRows[0].Name);
+            Assert.AreEqual(
+                "max=3",
+                vm.ServiceCapabilityRows[0].Parameters);
             Assert.AreEqual("IED_B", vm.DetailTitle);
         }
         finally
