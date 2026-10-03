@@ -170,6 +170,79 @@ public sealed class ProblemNavigationTests
         }
     }
 
+    [TestMethod]
+    public async Task FullValidationAddsDeepModelFindingsWithoutRunningThemOnOpen()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN lnClass="XCBR" inst="1" lnType="LT_XCBR">
+                        <DOI name="Pos">
+                          <DAI name="unexpected">
+                            <Val>1</Val>
+                          </DAI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+              <DataTypeTemplates>
+                <LNodeType id="LT_XCBR" lnClass="XCBR">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="stVal" fc="ST" bType="Dbpos" />
+                </DOType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var vm = new MainWindowViewModel();
+            await vm.OpenFileAsync(path);
+
+            Assert.IsFalse(vm.Problems.Any(row =>
+                row.Code == "SCL-ENG-MODEL-0001"));
+
+            Assert.IsTrue(vm.CanValidate);
+
+            await vm.ValidateFullAsync();
+
+            var problem = vm.Problems.Single(row =>
+                row.Code == "SCL-ENG-MODEL-0001");
+
+            Assert.IsFalse(string.IsNullOrWhiteSpace(
+                problem.Explanation));
+            StringAssert.Contains(
+                vm.StatusText,
+                "Full validation complete");
+            Assert.IsTrue(vm.CanValidate);
+
+            vm.SelectedProblemRow = problem;
+
+            Assert.IsNotNull(vm.SelectedDataModelLogicalNode);
+            Assert.AreEqual(
+                "XCBR1",
+                vm.SelectedDataModelLogicalNode.LogicalNode);
+            Assert.IsNotNull(vm.SelectedDataModelRow);
+            Assert.AreEqual(
+                "Pos",
+                vm.SelectedDataModelRow.Path);
+            Assert.AreEqual(
+                "unexpected",
+                vm.DetailTitle);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
