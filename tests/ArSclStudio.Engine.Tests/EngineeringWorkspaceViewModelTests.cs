@@ -138,17 +138,17 @@ public sealed class EngineeringWorkspaceViewModelTests
             await using var vm = new MainWindowViewModel();
             await vm.OpenFileAsync(path);
 
-            vm.SelectedNetworkWorkspaceRow = vm.NetworkWorkspaceRows.Single();
+            vm.SelectedEngineeringWorkspaceIndex = 1;
             Assert.AreEqual("IED_A / P1", vm.DetailTitle);
 
-            vm.SelectedDataSetWorkspace = vm.DataSetWorkspaceRows.Single();
+            vm.SelectedEngineeringWorkspaceIndex = 2;
             Assert.AreEqual("Events", vm.DetailTitle);
             Assert.AreEqual(1, vm.DataSetMemberRows.Count);
 
             vm.SelectedDataSetMember = vm.DataSetMemberRows.Single();
             StringAssert.Contains(vm.DetailTitle, "LD0/XCBR1/Pos");
 
-            vm.SelectedReportWorkspace = vm.ReportWorkspaceRows.Single();
+            vm.SelectedEngineeringWorkspaceIndex = 3;
             Assert.AreEqual("BRCB01", vm.DetailTitle);
         }
         finally
