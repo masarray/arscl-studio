@@ -109,6 +109,9 @@ public sealed partial class MainWindow : Window
     private async void SaveClick(object? sender, RoutedEventArgs e) =>
         await RunOperationAsync(async vm => { await vm.SaveAsync(); });
 
+    private async void ValidateFullClick(object? sender, RoutedEventArgs e) =>
+        await RunOperationAsync(static vm => vm.ValidateFullAsync());
+
     private async void SaveAsClick(object? sender, RoutedEventArgs e)
     {
         await RunOperationAsync(async vm =>
