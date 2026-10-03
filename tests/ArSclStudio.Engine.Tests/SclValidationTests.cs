@@ -188,6 +188,136 @@ public sealed class SclValidationTests
         }
     }
 
+    [TestMethod]
+    public async Task FastValidationReportsGooseEndpointAndDataModelEngineeringFindings()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="PUB">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="" lnType="LT_LLN0">
+                        <GSEControl name="GOOSE_CB"
+                                    type="GOOSE"
+                                    appID="PUB/LD0/LLN0/GOOSE_CB" />
+                      </LN0>
+                      <LN lnClass="XCBR" inst="1" lnType="LT_XCBR">
+                        <DOI name="VendorOnly">
+                          <DAI name="stVal"><Val>true</Val></DAI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_LLN0" lnClass="LLN0" />
+                <LNodeType id="LT_XCBR" lnClass="XCBR">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="stVal" fc="ST" bType="Dbpos" />
+                </DOType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var goose = result.Value.Diagnostics.Single(
+                diagnostic => diagnostic.Code == "SCL-ENG-GOOSE-0001");
+
+            Assert.AreEqual(DiagnosticDomain.Engineering, goose.Domain);
+            Assert.AreEqual(DiagnosticSeverity.Warning, goose.Severity);
+            Assert.IsTrue(goose.SourceSpan.IsKnown);
+            Assert.AreEqual<DocumentRevision?>(open.State.Revision, goose.Revision);
+            StringAssert.Contains(goose.Message, "GOOSE_CB");
+            StringAssert.Contains(goose.Message, "no Communication/GSE endpoint");
+
+            var model = result.Value.Diagnostics.Single(
+                diagnostic => diagnostic.Code == "SCL-SEM-MODEL-0001");
+
+            Assert.AreEqual(DiagnosticDomain.Semantic, model.Domain);
+            Assert.AreEqual(DiagnosticSeverity.Warning, model.Severity);
+            Assert.IsTrue(model.SourceSpan.IsKnown);
+            StringAssert.Contains(model.Message, "VendorOnly");
+            StringAssert.Contains(model.Message, "XCBR1");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task FastValidationAcceptsCompleteGooseEndpointWithoutEngineeringWarnings()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <Communication>
+                <SubNetwork name="StationLAN" type="8-MMS">
+                  <ConnectedAP iedName="PUB" apName="P1">
+                    <GSE ldInst="LD0" cbName="GOOSE_CB">
+                      <Address>
+                        <P type="MAC-Address">01-0C-CD-01-00-01</P>
+                        <P type="APPID">1001</P>
+                      </Address>
+                    </GSE>
+                  </ConnectedAP>
+                </SubNetwork>
+              </Communication>
+
+              <IED name="PUB">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="" lnType="LT_LLN0">
+                        <GSEControl name="GOOSE_CB"
+                                    type="GOOSE"
+                                    appID="PUB/LD0/LLN0/GOOSE_CB" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_LLN0" lnClass="LLN0" />
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            Assert.IsFalse(result.Value.Diagnostics.Any(
+                diagnostic =>
+                    diagnostic.Code.StartsWith(
+                        "SCL-ENG-GOOSE-",
+                        StringComparison.Ordinal)));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
