@@ -1,6 +1,6 @@
 # IEC 61850 workstation information architecture
 
-Status: M3A0 corrective design contract  
+Status: M3A0 implemented workstation contract (Substation deferred)  
 Date: 2026-10-03
 
 ## Why M3A0 exists
@@ -175,7 +175,7 @@ XML is authoritative for preservation but not the default engineering UX.
 
 ## Corrective slices
 
-### M3A0.1 — IED workspace
+### M3A0.1 — IED workspace — implemented
 
 - real IED projection;
 - default IED selection;
@@ -183,28 +183,65 @@ XML is authoritative for preservation but not the default engineering UX.
 - engineering counts;
 - Model Tree/XML demoted to secondary views.
 
-### M3A0.2 — Network workspace
+### M3A0.2 — Network workspace — implemented
 
 - semantic Address/P model;
 - SubNetwork/ConnectedAP projection;
-- IP/network property table.
+- IP/subnet/gateway property table;
+- OSI AP-title/AE-qualifier retained in the Engine projection;
+- communication navigation stays source-linked.
 
-### M3A0.3 — DataSets + Reports
+### M3A0.3 — DataSets + Reports — implemented
 
 - DataSet catalog/member table;
-- RCB catalog/properties;
-- bidirectional DataSet ↔ control relationship navigation.
+- FCDA LD/LN/DO/DA/FC engineering projection;
+- typed DataSet usage count through the reference graph;
+- BRCB/URCB classification;
+- rptID/confRev/bufTime/intgPd/RptEnabled presentation;
+- readable TrgOps and OptFields summaries;
+- shared source navigation.
 
-### M3A0.4 — GOOSE
+### M3A0.4 — GOOSE — implemented
 
-- GSEControl + communication endpoint join;
-- DataSet content;
-- subscriber/ExtRef relationship surface.
+- Communication/GSE is a typed semantic object;
+- deterministic Communication/GSE ↔ GSEControl reference binding using IED + LD + control name;
+- publisher, bound DataSet and FCDA signals;
+- MAC/APPID/VLAN/priority and MinTime/MaxTime;
+- ExtRef subscriber matching by source signal identity, not guessed control-block names;
+- GSSE remains distinct and is not given a fake Ethernet GSE endpoint.
 
-### M3A0.5 — Data Model + Setting Groups
+### M3A0.5 — Data Model + Setting Groups — implemented
 
-- LN/DO/DA resolved engineering tree;
-- values/FC/CDC/unit presentation;
-- SG-specific projection.
+Data Model:
+- IED-scoped LD/LN selector;
+- LN → LNodeType → DO → DOType → DA/SDO → DAType/BDA resolution;
+- DOI/SDI/DAI instance-value overlay;
+- CDC/FC/bType/value/type-id presentation;
+- source navigation points to the instance when present and to the template definition otherwise.
 
-Only after these slices are stable should the project resume broad mutation/surgery work.
+Setting Groups:
+- SettingControl projection;
+- FC=SG leaf filtering over the resolved Data Model;
+- configured value, unit, min/max/step and type presentation;
+- structured setting values such as setMag.f are supported;
+- unit/multiplier are joined from sibling units metadata rather than guessed from names.
+
+### M3A0.6 — Substation — deferred by evidence
+
+The current golden SCD contains no <Substation> section. ARSCL therefore does not expose a fake or empty primary-system workspace merely to complete a tab list.
+
+Enable this slice only after a real fixture proves:
+- Substation → VoltageLevel → Bay;
+- ConductingEquipment;
+- Terminal/connectivity;
+- LNode placement/binding.
+
+## Current M3A0 boundary
+
+The workstation now provides real projectors for:
+
+IEDs | Network | GOOSE | DataSets | Reports & Logs | Data Model | Setting Groups
+
+XML remains an expert/source view.
+
+Substation remains intentionally deferred. Broad SCL surgery remains locked until semantic/engineering diagnostics and reference-impact coverage for the affected operation are proven.
