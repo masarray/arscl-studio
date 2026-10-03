@@ -91,6 +91,10 @@ internal static class SclValidationEngine
             state.SemanticIndex.References.IssueCount + 1);
 
         AppendReferenceDiagnostics(state, diagnostics, cancellationToken);
+        SclEngineeringDiagnosticAnalyzer.AppendDiagnostics(
+            state,
+            diagnostics,
+            cancellationToken);
 
         var schemaStatus = await schemaProvider
             .GetStatusAsync(state, cancellationToken)
@@ -122,6 +126,10 @@ internal static class SclValidationEngine
             state.SemanticIndex.References.IssueCount + 4);
 
         AppendReferenceDiagnostics(state, diagnostics, cancellationToken);
+        SclEngineeringDiagnosticAnalyzer.AppendDiagnostics(
+            state,
+            diagnostics,
+            cancellationToken);
 
         var schemaStatus = await schemaProvider
             .GetStatusAsync(state, cancellationToken)
