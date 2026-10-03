@@ -8,4 +8,5 @@ public sealed record SclDocumentState(
     string DisplayName,
     SclSyntaxDocument Syntax,
     SclTopLevelIndex TopLevelIndex,
+    SclSemanticIndex SemanticIndex,
     DocumentRevision Revision);

@@ -28,7 +28,7 @@ public static class SclNodeDetailsProjector
 
         var title = GetPrimaryName(state.Syntax, info);
         var kind = GetKindName(info);
-        var path = BuildPath(state.Syntax, info);
+        var path = BuildPath(state, info);
         var sourceLocation = info.SourceSpan.IsKnown
             ? $"{state.DisplayName}:{info.SourceSpan}"
             : state.DisplayName;
@@ -87,7 +87,7 @@ public static class SclNodeDetailsProjector
             : info.Kind.ToString();
 
     private static string BuildPath(
-        SclSyntaxDocument syntax,
+        SclDocumentState state,
         SclSyntaxNodeInfo selected)
     {
         var segments = new List<string>(12);
@@ -95,10 +95,12 @@ public static class SclNodeDetailsProjector
 
         for (var depth = 0; depth < 128; depth++)
         {
-            segments.Add(GetPathSegment(syntax, current));
+            segments.Add(GetPathSegment(state, current));
 
             if (current.Parent.IsNone ||
-                !syntax.TryGetNodeInfo(current.Parent, out var parent) ||
+                !state.Syntax.TryGetNodeInfo(
+                    current.Parent,
+                    out var parent) ||
                 parent is null)
             {
                 break;
@@ -112,9 +114,10 @@ public static class SclNodeDetailsProjector
     }
 
     private static string GetPathSegment(
-        SclSyntaxDocument syntax,
+        SclDocumentState state,
         SclSyntaxNodeInfo info)
     {
+        var syntax = state.Syntax;
         if (info.Kind == SclSyntaxNodeKind.Attribute)
         {
             return $"@{info.LocalName}";
@@ -123,6 +126,19 @@ public static class SclNodeDetailsProjector
         if (info.Kind != SclSyntaxNodeKind.Element)
         {
             return info.Kind.ToString();
+        }
+
+        if (state.SemanticIndex.TryGetNode(
+                info.Handle,
+                out var semanticNode) &&
+            semanticNode is not null &&
+            !string.IsNullOrWhiteSpace(semanticNode.DisplayName) &&
+            !string.Equals(
+                semanticNode.DisplayName,
+                info.LocalName,
+                StringComparison.Ordinal))
+        {
+            return $"{info.LocalName}[{semanticNode.DisplayName}]";
         }
 
         if (syntax.TryGetAttributeValue(info.Handle, "name", out var name) &&
@@ -149,7 +165,29 @@ public static class SclNodeDetailsProjector
                 "Substation" => "Primary-system structure and its logical-node mappings.",
                 "Communication" => "Communication-network configuration and IED access-point bindings.",
                 "IED" => "An IED definition containing capabilities, access points, servers, logical devices, and configured services.",
+                "Services" => "Declared IEC 61850 services and configuration capabilities supported by this IED.",
+                "AccessPoint" => "Named communication access point of an IED.",
+                "Server" => "IEC 61850 server model hosted by an access point.",
+                "LDevice" => "Logical Device containing LN0 and logical nodes.",
+                "LN0" => "LLN0: common logical-node services, datasets, control blocks, inputs, and setting-group configuration for a logical device.",
+                "LN" => "Logical Node instance linked to an LNodeType definition.",
+                "DataSet" => "Ordered collection of FCDA members referenced by reporting, GOOSE, sampled values, logging, or client engineering.",
+                "FCDA" => "Functional-constraint data reference belonging to a DataSet.",
+                "ReportControl" => "Report Control Block configuration. Its datSet reference is tracked by the ARSCL reference graph.",
+                "LogControl" => "Log Control configuration and DataSet binding.",
+                "GSEControl" => "GOOSE publisher control block and DataSet binding.",
+                "SampledValueControl" => "Sampled Value publisher control block and DataSet binding.",
+                "Inputs" => "External-reference subscriptions configured for a logical node.",
+                "ExtRef" => "External signal reference. Resolved source relationships appear in Where Used/References when sufficient SCL identity is present.",
+                "SettingControl" => "Setting-group control configuration for LN0.",
+                "DOI" => "Configured Data Object instance values or overrides under a logical node.",
+                "SDI" => "Configured sub-data instance.",
+                "DAI" => "Configured Data Attribute instance value or override.",
                 "DataTypeTemplates" => "Shared IEC 61850 logical-node, data-object, data-attribute, and enumeration type definitions.",
+                "LNodeType" => "Logical Node type template referenced by LN/LN0 through lnType.",
+                "DOType" => "Data Object type template referenced by DO/SDO definitions.",
+                "DAType" => "Structured Data Attribute type template.",
+                "EnumType" => "Enumeration type template referenced by Enum data attributes.",
                 "Private" => "Vendor or tool-specific extension content. ARSCL preserves this content even when its semantics are unknown.",
                 _ => "IEC 61850 SCL structure. Deeper semantic explanation will be added as the model index expands."
             }

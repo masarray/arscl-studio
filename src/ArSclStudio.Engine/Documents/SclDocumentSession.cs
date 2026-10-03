@@ -1,5 +1,6 @@
 using System.Xml;
 using ArSclStudio.Engine.Diagnostics;
+using ArSclStudio.Engine.Search;
 using ArSclStudio.Engine.Workers;
 using ArSclStudio.Scl.Identity;
 using ArSclStudio.Scl.Semantics;
@@ -64,13 +65,19 @@ public sealed class SclDocumentSession : IAsyncDisposable
                         .LoadFileAsync(path, token)
                         .ConfigureAwait(false);
 
+                    token.ThrowIfCancellationRequested();
+
                     var topLevel = SclTopLevelIndexer.Build(syntax);
+                    var semantic = SclSemanticIndexBuilder.Build(syntax);
+
+                    token.ThrowIfCancellationRequested();
 
                     return new PendingDocumentState(
                         Path.GetFullPath(path),
                         Path.GetFileName(path),
                         syntax,
-                        topLevel);
+                        topLevel,
+                        semantic);
                 },
                 cancellationToken).ConfigureAwait(false);
 
@@ -86,6 +93,7 @@ public sealed class SclDocumentSession : IAsyncDisposable
                         pending.DisplayName,
                         pending.Syntax,
                         pending.TopLevelIndex,
+                        pending.SemanticIndex,
                         revision);
 
                     lock (_stateGate)
@@ -161,6 +169,41 @@ public sealed class SclDocumentSession : IAsyncDisposable
         }
     }
 
+    public async Task<WorkResult<SclSearchResultProjection[]>> SearchAsync(
+        string query,
+        int maximumResults = 200,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(
+            Volatile.Read(ref _disposeStarted) != 0,
+            this);
+
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumResults);
+
+        var state = CurrentState;
+
+        if (state is null || string.IsNullOrWhiteSpace(query))
+        {
+            return new WorkResult<SclSearchResultProjection[]>(
+                WorkResultStatus.Published,
+                CurrentRevision,
+                []);
+        }
+
+        var capturedQuery = query.Trim();
+
+        return await RunLatestAsync(
+            WorkKind.Search,
+            token => Task.Run(
+                () => SclSemanticSearch.Search(
+                    state,
+                    capturedQuery,
+                    maximumResults,
+                    token),
+                token),
+            cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<WorkResult<T>> RunLatestAsync<T>(
         WorkKind kind,
         Func<CancellationToken, Task<T>> operation,
@@ -224,5 +267,6 @@ public sealed class SclDocumentSession : IAsyncDisposable
         string SourcePath,
         string DisplayName,
         SclSyntaxDocument Syntax,
-        SclTopLevelIndex TopLevelIndex);
+        SclTopLevelIndex TopLevelIndex,
+        SclSemanticIndex SemanticIndex);
 }

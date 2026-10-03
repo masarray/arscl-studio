@@ -4,6 +4,8 @@
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:vm="using:ArSclStudio.Desktop.ViewModels"
+  xmlns:nav="using:ArSclStudio.Engine.Navigation"
+  xmlns:search="using:ArSclStudio.Engine.Search"
   Title="{Binding WindowTitle}"
   Width="1500"
   Height="920"
@@ -104,15 +106,15 @@
 
     <Grid
       Grid.Row="3"
-      ColumnDefinitions="320,5,*,5,320"
+      ColumnDefinitions="330,5,*,5,330"
       Margin="8,8,8,0">
 
       <Border Grid.Column="0" Classes="panel">
         <Grid RowDefinitions="Auto,*">
           <TextBox
             Grid.Row="0"
-            PlaceholderText="Search in SCL... (planned M1B)"
-            IsReadOnly="True"
+            PlaceholderText="Search IEC object... (Ctrl+F)"
+            TextChanged="SearchTextChanged"
             Margin="8" />
 
           <TabControl Grid.Row="1">
@@ -129,25 +131,31 @@
                 <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:ExplorerRow">
                     <Grid
-                      ColumnDefinitions="Auto,*,Auto"
-                      Height="26"
+                      ColumnDefinitions="24,*,Auto"
+                      Height="27"
                       Margin="{Binding IndentMargin}">
-                      <TextBlock
+                      <Button
                         Grid.Column="0"
-                        Text="{Binding Glyph}"
-                        Width="20"
-                        VerticalAlignment="Center"
-                        Opacity="0.72" />
+                        Content="{Binding Glyph}"
+                        Width="22"
+                        Height="22"
+                        Padding="0"
+                        BorderThickness="0"
+                        Background="Transparent"
+                        Focusable="False"
+                        Click="EngineeringToggleClick" />
                       <TextBlock
                         Grid.Column="1"
                         Text="{Binding Name}"
-                        VerticalAlignment="Center" />
+                        VerticalAlignment="Center"
+                        TextTrimming="CharacterEllipsis" />
                       <TextBlock
                         Grid.Column="2"
                         Text="{Binding Badge}"
                         VerticalAlignment="Center"
-                        Opacity="0.55"
-                        Margin="8,0,6,0" />
+                        Opacity="0.58"
+                        Margin="8,0,6,0"
+                        TextTrimming="CharacterEllipsis" />
                     </Grid>
                   </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -167,15 +175,19 @@
                 <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:ExplorerRow">
                     <Grid
-                      ColumnDefinitions="Auto,*,Auto"
-                      Height="26"
+                      ColumnDefinitions="24,*,Auto"
+                      Height="27"
                       Margin="{Binding IndentMargin}">
-                      <TextBlock
+                      <Button
                         Grid.Column="0"
-                        Text="{Binding Glyph}"
-                        Width="20"
-                        VerticalAlignment="Center"
-                        Opacity="0.72" />
+                        Content="{Binding Glyph}"
+                        Width="22"
+                        Height="22"
+                        Padding="0"
+                        BorderThickness="0"
+                        Background="Transparent"
+                        Focusable="False"
+                        Click="XmlToggleClick" />
                       <TextBlock
                         Grid.Column="1"
                         Text="{Binding Name}"
@@ -185,7 +197,7 @@
                         Grid.Column="2"
                         Text="{Binding Badge}"
                         VerticalAlignment="Center"
-                        Opacity="0.55"
+                        Opacity="0.58"
                         Margin="8,0,6,0" />
                     </Grid>
                   </DataTemplate>
@@ -241,7 +253,6 @@
           <TabControl Grid.Row="1">
             <TabItem Header="Overview" />
             <TabItem Header="Relations" IsEnabled="False" />
-            <TabItem Header="Where Used" IsEnabled="False" />
             <TabItem Header="XML" IsEnabled="False" />
           </TabControl>
 
@@ -300,7 +311,7 @@
             BorderThickness="0,1,0,0"
             Padding="10,6">
             <TextBlock
-              Text="Read-only M1A workspace — editing remains locked until the transaction kernel is implemented."
+              Text="Read-only semantic browser — editing remains locked until the transaction kernel is implemented."
               Opacity="0.62" />
           </Border>
         </Grid>
@@ -312,49 +323,81 @@
         ResizeDirection="Columns" />
 
       <Border Grid.Column="4" Classes="panel">
-        <Grid RowDefinitions="Auto,*">
-          <TabControl Grid.Row="0">
-            <TabItem Header="Context" />
-            <TabItem Header="Description" />
-            <TabItem Header="Where Used" IsEnabled="False" />
-          </TabControl>
+        <TabControl>
+          <TabItem Header="Context">
+            <ScrollViewer>
+              <StackPanel Margin="14" Spacing="10">
+                <TextBlock
+                  Text="{Binding DetailTitle}"
+                  FontSize="16"
+                  FontWeight="SemiBold" />
+                <TextBlock Text="{Binding DetailKind}" Opacity="0.68" />
 
-          <StackPanel
-            Grid.Row="1"
-            Margin="14"
-            Spacing="10">
-            <TextBlock
-              Text="{Binding DetailTitle}"
-              FontSize="16"
-              FontWeight="SemiBold" />
-            <TextBlock Text="{Binding DetailKind}" Opacity="0.68" />
+                <Border
+                  Background="{DynamicResource ThemeControlLowBrush}"
+                  Padding="10"
+                  CornerRadius="4">
+                  <TextBlock
+                    Text="{Binding DetailDescription}"
+                    TextWrapping="Wrap" />
+                </Border>
 
-            <Border
-              Background="{DynamicResource ThemeControlLowBrush}"
-              Padding="10"
-              CornerRadius="4">
-              <TextBlock
-                Text="{Binding DetailDescription}"
-                TextWrapping="Wrap" />
-            </Border>
+                <TextBlock
+                  Text="Semantic path"
+                  FontWeight="SemiBold"
+                  Margin="0,8,0,0" />
+                <TextBlock
+                  Text="{Binding DetailPath}"
+                  TextWrapping="Wrap" />
 
-            <TextBlock
-              Text="Semantic path"
-              FontWeight="SemiBold"
-              Margin="0,8,0,0" />
-            <TextBlock
-              Text="{Binding DetailPath}"
-              TextWrapping="Wrap" />
+                <TextBlock
+                  Text="Source"
+                  FontWeight="SemiBold"
+                  Margin="0,8,0,0" />
+                <TextBlock
+                  Text="{Binding DetailSource}"
+                  TextWrapping="Wrap" />
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
 
-            <TextBlock
-              Text="Source"
-              FontWeight="SemiBold"
-              Margin="0,8,0,0" />
-            <TextBlock
-              Text="{Binding DetailSource}"
-              TextWrapping="Wrap" />
-          </StackPanel>
-        </Grid>
+          <TabItem Header="{Binding WhereUsedHeader}">
+            <ListBox
+              ItemsSource="{Binding WhereUsedRows}"
+              SelectedItem="{Binding SelectedWhereUsedRow, Mode=TwoWay}"
+              BorderThickness="0">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="nav:SclReferenceProjection">
+                  <Grid
+                    RowDefinitions="Auto,Auto"
+                    Margin="8,5">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock
+                        Text="{Binding SourceLabel}"
+                        FontWeight="SemiBold"
+                        TextTrimming="CharacterEllipsis" />
+                      <TextBlock
+                        Grid.Column="1"
+                        Text="{Binding Kind}"
+                        Opacity="0.58"
+                        Margin="8,0,0,0" />
+                    </Grid>
+                    <TextBlock
+                      Grid.Row="1"
+                      Text="{Binding ReferenceText}"
+                      Opacity="0.68"
+                      TextTrimming="CharacterEllipsis" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </TabItem>
+        </TabControl>
       </Border>
     </Grid>
 
@@ -362,63 +405,103 @@
       Grid.Row="4"
       Classes="panel"
       Margin="8,5,8,0">
-      <Grid RowDefinitions="Auto,*">
-        <TabControl>
-          <TabItem Header="Problems" />
-          <TabItem Header="References" IsEnabled="False" />
-          <TabItem Header="Changes" IsEnabled="False" />
-          <TabItem Header="Signal Basket" IsEnabled="False" />
-          <TabItem Header="Diff" IsEnabled="False" />
-          <TabItem Header="Search Results" IsEnabled="False" />
-          <TabItem Header="Output" IsEnabled="False" />
-        </TabControl>
+      <TabControl>
+        <TabItem Header="Problems">
+          <Grid RowDefinitions="30,*">
+            <Grid
+              ColumnDefinitions="85,105,105,120,*,150"
+              Background="{DynamicResource ThemeControlLowBrush}">
+              <TextBlock Text="Severity" Margin="8,6" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="1" Text="Code" Margin="8,6" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="2" Text="Domain" Margin="8,6" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="3" Text="Object" Margin="8,6" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="4" Text="Message" Margin="8,6" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="5" Text="Source" Margin="8,6" FontWeight="SemiBold" />
+            </Grid>
 
-        <Grid Grid.Row="1" RowDefinitions="30,*">
-          <Grid
-            ColumnDefinitions="85,105,105,120,*,150"
-            Background="{DynamicResource ThemeControlLowBrush}">
-            <TextBlock Text="Severity" Margin="8,6" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="1" Text="Code" Margin="8,6" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="2" Text="Domain" Margin="8,6" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="3" Text="Object" Margin="8,6" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="4" Text="Message" Margin="8,6" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="5" Text="Source" Margin="8,6" FontWeight="SemiBold" />
+            <ListBox
+              Grid.Row="1"
+              ItemsSource="{Binding Problems}"
+              BorderThickness="0">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ProblemRow">
+                  <Grid
+                    ColumnDefinitions="85,105,105,120,*,150"
+                    Height="28">
+                    <TextBlock Text="{Binding Severity}" Margin="8,4" />
+                    <TextBlock Grid.Column="1" Text="{Binding Code}" Margin="8,4" />
+                    <TextBlock Grid.Column="2" Text="{Binding Domain}" Margin="8,4" />
+                    <TextBlock Grid.Column="3" Text="{Binding ObjectName}" Margin="8,4" />
+                    <TextBlock
+                      Grid.Column="4"
+                      Text="{Binding Message}"
+                      Margin="8,4"
+                      TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                      Grid.Column="5"
+                      Text="{Binding Source}"
+                      Margin="8,4"
+                      TextTrimming="CharacterEllipsis" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
           </Grid>
+        </TabItem>
 
-          <ListBox
-            Grid.Row="1"
-            ItemsSource="{Binding Problems}"
-            BorderThickness="0">
-            <ListBox.ItemsPanel>
-              <ItemsPanelTemplate>
-                <VirtualizingStackPanel />
-              </ItemsPanelTemplate>
-            </ListBox.ItemsPanel>
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:ProblemRow">
-                <Grid
-                  ColumnDefinitions="85,105,105,120,*,150"
-                  Height="28">
-                  <TextBlock Text="{Binding Severity}" Margin="8,4" />
-                  <TextBlock Grid.Column="1" Text="{Binding Code}" Margin="8,4" />
-                  <TextBlock Grid.Column="2" Text="{Binding Domain}" Margin="8,4" />
-                  <TextBlock Grid.Column="3" Text="{Binding ObjectName}" Margin="8,4" />
-                  <TextBlock
-                    Grid.Column="4"
-                    Text="{Binding Message}"
-                    Margin="8,4"
-                    TextTrimming="CharacterEllipsis" />
-                  <TextBlock
-                    Grid.Column="5"
-                    Text="{Binding Source}"
-                    Margin="8,4"
-                    TextTrimming="CharacterEllipsis" />
-                </Grid>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-        </Grid>
-      </Grid>
+        <TabItem Header="{Binding SearchResultsHeader}">
+          <Grid RowDefinitions="30,*">
+            <Grid
+              ColumnDefinitions="150,180,*"
+              Background="{DynamicResource ThemeControlLowBrush}">
+              <TextBlock Text="Kind" Margin="8,6" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="1" Text="Name" Margin="8,6" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="2" Text="Path" Margin="8,6" FontWeight="SemiBold" />
+            </Grid>
+
+            <ListBox
+              Grid.Row="1"
+              ItemsSource="{Binding SearchResults}"
+              SelectedItem="{Binding SelectedSearchResult, Mode=TwoWay}"
+              BorderThickness="0">
+              <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+              </ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="search:SclSearchResultProjection">
+                  <Grid
+                    ColumnDefinitions="150,180,*"
+                    Height="28">
+                    <TextBlock Text="{Binding Kind}" Margin="8,4" />
+                    <TextBlock
+                      Grid.Column="1"
+                      Text="{Binding Name}"
+                      Margin="8,4"
+                      TextTrimming="CharacterEllipsis" />
+                    <TextBlock
+                      Grid.Column="2"
+                      Text="{Binding Path}"
+                      Margin="8,4"
+                      TextTrimming="CharacterEllipsis" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </TabItem>
+
+        <TabItem Header="Changes" IsEnabled="False" />
+        <TabItem Header="Signal Basket" IsEnabled="False" />
+        <TabItem Header="Diff" IsEnabled="False" />
+        <TabItem Header="Output" IsEnabled="False" />
+      </TabControl>
     </Border>
 
     <Border

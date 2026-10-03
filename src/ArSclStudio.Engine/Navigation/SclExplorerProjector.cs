@@ -1,5 +1,6 @@
 using ArSclStudio.Engine.Documents;
 using ArSclStudio.Scl.Identity;
+using ArSclStudio.Scl.Semantics;
 using ArSclStudio.Scl.Syntax;
 
 namespace ArSclStudio.Engine.Navigation;
@@ -11,134 +12,58 @@ public static class SclExplorerProjector
     {
         ArgumentNullException.ThrowIfNull(state);
 
-        var syntax = state.Syntax;
-        var index = state.TopLevelIndex;
-        var capacity = 6 +
-            index.Substations.Count +
-            index.Communications.Count +
-            index.Ieds.Count +
-            index.PrivateElements.Count;
-
-        var rows = new List<ExplorerRowProjection>(capacity)
+        var expanded = new HashSet<SclNodeHandle>
         {
-            CreateRealRow(
-                syntax,
-                syntax.RootHandle,
-                ExplorerNodeKind.Document,
-                0,
-                state.DisplayName,
-                ToBadge(syntax.Metadata.FileKindHint),
-                isExpanded: true)
+            state.Syntax.RootHandle
         };
 
-        if (!index.Header.IsNone)
+        return BuildEngineering(state, expanded);
+    }
+
+    public static IReadOnlyList<ExplorerRowProjection> BuildEngineering(
+        SclDocumentState state,
+        IReadOnlySet<SclNodeHandle> expanded)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(expanded);
+
+        var rows = new List<ExplorerRowProjection>();
+        var stack = new Stack<VisibleSemanticItem>();
+
+        if (!state.SemanticIndex.TryGetNode(
+                state.Syntax.RootHandle,
+                out var root) ||
+            root is null)
         {
-            rows.Add(CreateRealRow(
-                syntax,
-                index.Header,
-                ExplorerNodeKind.Header,
-                1,
-                "Header",
-                syntax.Metadata.HeaderId,
-                isExpanded: false));
+            return rows;
         }
 
-        for (var i = 0; i < index.Substations.Count; i++)
-        {
-            var handle = index.Substations[i];
-            rows.Add(CreateRealRow(
-                syntax,
-                handle,
-                ExplorerNodeKind.Substation,
-                1,
-                CreateNamedLabel(syntax, handle, "Substation"),
-                null,
-                isExpanded: false));
-        }
+        stack.Push(new VisibleSemanticItem(root, 0));
 
-        for (var i = 0; i < index.Communications.Count; i++)
+        while (stack.Count != 0)
         {
-            var handle = index.Communications[i];
-            rows.Add(CreateRealRow(
-                syntax,
-                handle,
-                ExplorerNodeKind.Communication,
-                1,
-                index.Communications.Count == 1
-                    ? "Communication"
-                    : $"Communication {i + 1}",
-                null,
-                isExpanded: false));
-        }
+            var item = stack.Pop();
+            var node = item.Node;
+            var isExpanded = expanded.Contains(node.Handle);
 
-        if (index.Ieds.Count > 0)
-        {
-            rows.Add(new ExplorerRowProjection(
-                SclNodeHandle.None,
-                ExplorerNodeKind.Group,
-                1,
-                $"IEDs ({index.Ieds.Count})",
-                null,
-                false,
-                true,
-                true));
+            rows.Add(CreateSemanticRow(
+                state,
+                node,
+                item.Depth,
+                isExpanded));
 
-            for (var i = 0; i < index.Ieds.Count; i++)
+            if (!isExpanded)
             {
-                var ied = index.Ieds[i];
-
-                rows.Add(CreateRealRow(
-                    syntax,
-                    ied.Handle,
-                    ExplorerNodeKind.Ied,
-                    2,
-                    string.IsNullOrWhiteSpace(ied.Name)
-                        ? "IED"
-                        : ied.Name,
-                    ied.Manufacturer,
-                    isExpanded: false));
+                continue;
             }
-        }
 
-        if (!index.DataTypeTemplates.IsNone)
-        {
-            rows.Add(CreateRealRow(
-                syntax,
-                index.DataTypeTemplates,
-                ExplorerNodeKind.DataTypeTemplates,
-                1,
-                "DataTypeTemplates",
-                null,
-                isExpanded: false));
-        }
+            var children = state.SemanticIndex.GetChildren(node.Handle);
 
-        if (index.PrivateElements.Count > 0)
-        {
-            rows.Add(new ExplorerRowProjection(
-                SclNodeHandle.None,
-                ExplorerNodeKind.Group,
-                1,
-                $"Private & Extensions ({index.PrivateElements.Count})",
-                null,
-                false,
-                true,
-                true));
-
-            for (var i = 0; i < index.PrivateElements.Count; i++)
+            for (var i = children.Count - 1; i >= 0; i--)
             {
-                var handle = index.PrivateElements[i];
-                syntax.TryGetAttributeValue(handle, "type", out var type);
-
-                rows.Add(CreateRealRow(
-                    syntax,
-                    handle,
-                    ExplorerNodeKind.Private,
-                    2,
-                    string.IsNullOrWhiteSpace(type)
-                        ? "Private"
-                        : $"Private — {type}",
-                    null,
-                    isExpanded: false));
+                stack.Push(new VisibleSemanticItem(
+                    children[i],
+                    item.Depth + 1));
             }
         }
 
@@ -150,48 +75,129 @@ public static class SclExplorerProjector
     {
         ArgumentNullException.ThrowIfNull(state);
 
-        var syntax = state.Syntax;
-        var root = CreateXmlRow(
-            syntax,
-            syntax.RootHandle,
-            0,
-            isExpanded: true);
-
-        var children = syntax.GetSelectableChildren(syntax.RootHandle);
-        var rows = new List<ExplorerRowProjection>(children.Count + 1)
+        var expanded = new HashSet<SclNodeHandle>
         {
-            root
+            state.Syntax.RootHandle
         };
 
-        for (var i = 0; i < children.Count; i++)
+        return BuildXmlVisible(state, expanded);
+    }
+
+    public static IReadOnlyList<ExplorerRowProjection> BuildXmlVisible(
+        SclDocumentState state,
+        IReadOnlySet<SclNodeHandle> expanded)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(expanded);
+
+        var syntax = state.Syntax;
+        var rows = new List<ExplorerRowProjection>();
+        var stack = new Stack<VisibleXmlItem>();
+
+        stack.Push(new VisibleXmlItem(
+            syntax.RootHandle,
+            0));
+
+        while (stack.Count != 0)
         {
+            var item = stack.Pop();
+            var isExpanded = expanded.Contains(item.Handle);
+
             rows.Add(CreateXmlRow(
                 syntax,
-                children[i],
-                1,
-                isExpanded: false));
+                item.Handle,
+                item.Depth,
+                isExpanded));
+
+            if (!isExpanded)
+            {
+                continue;
+            }
+
+            var children = syntax.GetSelectableChildren(item.Handle);
+
+            for (var i = children.Count - 1; i >= 0; i--)
+            {
+                stack.Push(new VisibleXmlItem(
+                    children[i],
+                    item.Depth + 1));
+            }
         }
 
         return rows;
     }
 
-    private static ExplorerRowProjection CreateRealRow(
-        SclSyntaxDocument syntax,
-        SclNodeHandle handle,
-        ExplorerNodeKind kind,
+    private static ExplorerRowProjection CreateSemanticRow(
+        SclDocumentState state,
+        SclSemanticNode node,
         int depth,
-        string label,
-        string? badge,
-        bool isExpanded) =>
-        new(
-            handle,
-            kind,
+        bool isExpanded)
+    {
+        var label = node.Kind switch
+        {
+            SclSemanticKind.Document => state.DisplayName,
+            SclSemanticKind.Header when
+                !string.IsNullOrWhiteSpace(state.Syntax.Metadata.HeaderId) =>
+                $"Header — {state.Syntax.Metadata.HeaderId}",
+            _ => node.DisplayName
+        };
+
+        var badge = node.Kind == SclSemanticKind.Document
+            ? ToBadge(state.Syntax.Metadata.FileKindHint)
+            : node.Badge;
+
+        return new ExplorerRowProjection(
+            node.Handle,
+            MapSemanticKind(node.Kind),
             depth,
             label,
             badge,
             true,
-            syntax.HasSelectableChildren(handle),
+            state.SemanticIndex.HasChildren(node.Handle),
             isExpanded);
+    }
+
+    private static ExplorerNodeKind MapSemanticKind(SclSemanticKind kind) =>
+        kind switch
+        {
+            SclSemanticKind.Document => ExplorerNodeKind.Document,
+            SclSemanticKind.Header => ExplorerNodeKind.Header,
+            SclSemanticKind.Substation => ExplorerNodeKind.Substation,
+            SclSemanticKind.Communication => ExplorerNodeKind.Communication,
+            SclSemanticKind.SubNetwork => ExplorerNodeKind.SubNetwork,
+            SclSemanticKind.ConnectedAccessPoint => ExplorerNodeKind.ConnectedAccessPoint,
+            SclSemanticKind.Address => ExplorerNodeKind.Address,
+            SclSemanticKind.Ied => ExplorerNodeKind.Ied,
+            SclSemanticKind.Services => ExplorerNodeKind.Services,
+            SclSemanticKind.AccessPoint => ExplorerNodeKind.AccessPoint,
+            SclSemanticKind.Server => ExplorerNodeKind.Server,
+            SclSemanticKind.LogicalDevice => ExplorerNodeKind.LogicalDevice,
+            SclSemanticKind.LogicalNodeZero or
+            SclSemanticKind.LogicalNode => ExplorerNodeKind.LogicalNode,
+            SclSemanticKind.DataSet => ExplorerNodeKind.DataSet,
+            SclSemanticKind.Fcda => ExplorerNodeKind.DataSetMember,
+            SclSemanticKind.ReportControl => ExplorerNodeKind.ReportControl,
+            SclSemanticKind.LogControl => ExplorerNodeKind.LogControl,
+            SclSemanticKind.GseControl => ExplorerNodeKind.GseControl,
+            SclSemanticKind.SampledValueControl => ExplorerNodeKind.SampledValueControl,
+            SclSemanticKind.Inputs => ExplorerNodeKind.Inputs,
+            SclSemanticKind.ExternalReference => ExplorerNodeKind.ExternalReference,
+            SclSemanticKind.SettingGroupControl => ExplorerNodeKind.SettingGroupControl,
+            SclSemanticKind.Doi => ExplorerNodeKind.DataObjectInstance,
+            SclSemanticKind.Sdi => ExplorerNodeKind.SubDataInstance,
+            SclSemanticKind.Dai => ExplorerNodeKind.DataAttributeInstance,
+            SclSemanticKind.DataTypeTemplates => ExplorerNodeKind.DataTypeTemplates,
+            SclSemanticKind.LogicalNodeType => ExplorerNodeKind.LogicalNodeType,
+            SclSemanticKind.DataObjectType => ExplorerNodeKind.DataObjectType,
+            SclSemanticKind.DataAttributeType => ExplorerNodeKind.DataAttributeType,
+            SclSemanticKind.EnumerationType => ExplorerNodeKind.EnumerationType,
+            SclSemanticKind.DataObjectDefinition => ExplorerNodeKind.DataObjectDefinition,
+            SclSemanticKind.SubDataObjectDefinition => ExplorerNodeKind.SubDataObjectDefinition,
+            SclSemanticKind.DataAttributeDefinition => ExplorerNodeKind.DataAttributeDefinition,
+            SclSemanticKind.BasicDataAttributeDefinition => ExplorerNodeKind.BasicDataAttributeDefinition,
+            SclSemanticKind.Private => ExplorerNodeKind.Private,
+            _ => ExplorerNodeKind.XmlOther
+        };
 
     private static ExplorerRowProjection CreateXmlRow(
         SclSyntaxDocument syntax,
@@ -276,20 +282,6 @@ public static class SclExplorerProjector
         }
     }
 
-    private static string CreateNamedLabel(
-        SclSyntaxDocument syntax,
-        SclNodeHandle handle,
-        string fallback)
-    {
-        if (syntax.TryGetAttributeValue(handle, "name", out var name) &&
-            !string.IsNullOrWhiteSpace(name))
-        {
-            return $"{fallback} — {name}";
-        }
-
-        return fallback;
-    }
-
     private static string TrimValue(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -302,11 +294,21 @@ public static class SclExplorerProjector
 
         return trimmed.Length <= maximumLength
             ? trimmed
-            : string.Concat(trimmed.AsSpan(0, maximumLength - 1), "…");
+            : string.Concat(
+                trimmed.AsSpan(0, maximumLength - 1),
+                "…");
     }
 
     private static string? ToBadge(Scl.Documents.SclFileKind fileKind) =>
         fileKind == Scl.Documents.SclFileKind.Unknown
             ? null
             : fileKind.ToString().ToUpperInvariant();
+
+    private readonly record struct VisibleSemanticItem(
+        SclSemanticNode Node,
+        int Depth);
+
+    private readonly record struct VisibleXmlItem(
+        SclNodeHandle Handle,
+        int Depth);
 }

@@ -126,3 +126,21 @@ Unsafe automatic actions:
 - fabricate an RCB unsupported by the IED
 - guess ExtRef publisher
 - convert edition semantics without a reviewed transformation plan
+
+
+## M1B implemented reference policy
+
+The current M1B graph stores **resolved typed edges only**.
+
+Implemented resolved edge categories:
+- control block -> DataSet
+- FCDA -> referenced Logical Node
+- ConnectedAP -> IED / AccessPoint
+- ExtRef -> source Logical Node
+- LN/LN0 -> LNodeType
+- DO/SDO -> DOType
+- structured/enum DA/BDA -> DAType / EnumType
+
+Resolution is intentionally uniqueness-sensitive. If a canonical lookup key occurs more than once, that key becomes ambiguous and is not resolved to an arbitrary node.
+
+The next validation layer will model unresolved/ambiguous target keys explicitly and emit source-linked diagnostics. Until then, absence of a resolved graph edge must not be interpreted as proof that no textual reference exists.

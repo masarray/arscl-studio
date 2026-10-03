@@ -1,9 +1,8 @@
-namespace ArSclStudio.Engine.Navigation;
+namespace ArSclStudio.Scl.Semantics;
 
-public enum ExplorerNodeKind
+public enum SclSemanticKind
 {
     Document = 0,
-    Group,
     Header,
     Substation,
     Communication,
@@ -15,9 +14,10 @@ public enum ExplorerNodeKind
     AccessPoint,
     Server,
     LogicalDevice,
+    LogicalNodeZero,
     LogicalNode,
     DataSet,
-    DataSetMember,
+    Fcda,
     ReportControl,
     LogControl,
     GseControl,
@@ -25,9 +25,9 @@ public enum ExplorerNodeKind
     Inputs,
     ExternalReference,
     SettingGroupControl,
-    DataObjectInstance,
-    SubDataInstance,
-    DataAttributeInstance,
+    Doi,
+    Sdi,
+    Dai,
     DataTypeTemplates,
     LogicalNodeType,
     DataObjectType,
@@ -37,11 +37,5 @@ public enum ExplorerNodeKind
     SubDataObjectDefinition,
     DataAttributeDefinition,
     BasicDataAttributeDefinition,
-    Private,
-    XmlElement,
-    XmlAttribute,
-    XmlText,
-    XmlComment,
-    XmlProcessingInstruction,
-    XmlOther
+    Private
 }
