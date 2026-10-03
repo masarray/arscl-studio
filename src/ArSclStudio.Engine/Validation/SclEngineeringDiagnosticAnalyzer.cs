@@ -26,6 +26,11 @@ internal static class SclEngineeringDiagnosticAnalyzer
             diagnostics,
             cancellationToken);
 
+        AppendSampledValueDiagnostics(
+            state,
+            diagnostics,
+            cancellationToken);
+
         AppendDataModelDiagnostics(
             state,
             diagnostics,
@@ -109,9 +114,17 @@ internal static class SclEngineeringDiagnosticAnalyzer
                 continue;
             }
 
+            AppendMissingDataSetNameDiagnostic(
+                state,
+                diagnostics,
+                node,
+                "SCL-ENG-GOOSE-0003",
+                "GOOSE");
+
             var endpoint = FindCommunicationEndpoint(
                 state,
-                node.Handle);
+                node.Handle,
+                SclSemanticKind.GseCommunication);
 
             if (endpoint.IsNone)
             {
@@ -138,6 +151,62 @@ internal static class SclEngineeringDiagnosticAnalyzer
                     endpoint,
                     $"Communication/GSE endpoint for '{node.DisplayName}' is missing {string.Join(" and ", missing)}.",
                     "This check only reports missing engineering identity fields required by the ARSCL GOOSE workspace. It does not substitute for edition-specific schema validation."));
+            }
+        }
+    }
+
+    private static void AppendSampledValueDiagnostics(
+        SclDocumentState state,
+        List<Diagnostic> diagnostics,
+        CancellationToken cancellationToken)
+    {
+        foreach (var node in state.SemanticIndex.Nodes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (node.Kind !=
+                SclSemanticKind.SampledValueControl)
+            {
+                continue;
+            }
+
+            AppendMissingDataSetNameDiagnostic(
+                state,
+                diagnostics,
+                node,
+                "SCL-ENG-SMV-0003",
+                "SampledValueControl");
+
+            var endpoint = FindCommunicationEndpoint(
+                state,
+                node.Handle,
+                SclSemanticKind.SmvCommunication);
+
+            if (endpoint.IsNone)
+            {
+                diagnostics.Add(CreateDiagnostic(
+                    state,
+                    "SCL-ENG-SMV-0001",
+                    DiagnosticSeverity.Warning,
+                    node.Handle,
+                    $"SampledValueControl '{node.DisplayName}' has no resolved Communication/SMV endpoint, so multicast MAC, APPID and VLAN parameters cannot be projected.",
+                    "ARSCL leaves the sampled-value control inspectable but does not invent process-bus communication parameters. Verify the Communication/SMV binding."));
+                continue;
+            }
+
+            var missing = GetMissingEndpointIdentity(
+                state,
+                endpoint);
+
+            if (missing.Length != 0)
+            {
+                diagnostics.Add(CreateDiagnostic(
+                    state,
+                    "SCL-ENG-SMV-0002",
+                    DiagnosticSeverity.Warning,
+                    endpoint,
+                    $"Communication/SMV endpoint for '{node.DisplayName}' is missing {string.Join(" and ", missing)}.",
+                    "This engineering check reports communication identity fields required for a usable SMV endpoint projection. It does not substitute for edition-specific schema validation."));
             }
         }
     }
@@ -358,7 +427,8 @@ internal static class SclEngineeringDiagnosticAnalyzer
 
     private static SclNodeHandle FindCommunicationEndpoint(
         SclDocumentState state,
-        SclNodeHandle controlHandle)
+        SclNodeHandle controlHandle,
+        SclSemanticKind endpointKind)
     {
         var incoming = state.SemanticIndex.References.GetIncoming(
             controlHandle);
@@ -377,13 +447,39 @@ internal static class SclEngineeringDiagnosticAnalyzer
                     edge.Source,
                     out var source) &&
                 source is not null &&
-                source.Kind == SclSemanticKind.GseCommunication)
+                source.Kind == endpointKind)
             {
                 return edge.Source;
             }
         }
 
         return SclNodeHandle.None;
+    }
+
+    private static void AppendMissingDataSetNameDiagnostic(
+        SclDocumentState state,
+        List<Diagnostic> diagnostics,
+        SclSemanticNode control,
+        string code,
+        string label)
+    {
+        var dataSetName = SclWorkspaceSyntaxReader.Attribute(
+            state.Syntax,
+            control.Handle,
+            "datSet");
+
+        if (!string.IsNullOrWhiteSpace(dataSetName))
+        {
+            return;
+        }
+
+        diagnostics.Add(CreateDiagnostic(
+            state,
+            code,
+            DiagnosticSeverity.Warning,
+            control.Handle,
+            $"{label} '{control.DisplayName}' does not name a DataSet, so its published signal set cannot be projected.",
+            "This is an engineering completeness finding. If a DataSet name is present but cannot be resolved, the typed Reference diagnostics report that separately."));
     }
 
     private static string[] GetMissingEndpointIdentity(
