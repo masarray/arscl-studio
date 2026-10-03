@@ -20,7 +20,7 @@ public sealed class SclDocumentLifetimeTests
 
         try
         {
-            var weakDocument = await OpenDisposeAndReturnWeakDocumentAsync(path);
+            var weakDocument = OpenDisposeAndReturnWeakDocument(path);
 
             for (var i = 0; i < 5; i++)
             {
@@ -48,18 +48,25 @@ public sealed class SclDocumentLifetimeTests
         weakDocument.TryGetTarget(out _);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static async Task<WeakReference<SclSyntaxDocument>>
-        OpenDisposeAndReturnWeakDocumentAsync(string path)
+    private static WeakReference<SclSyntaxDocument>
+        OpenDisposeAndReturnWeakDocument(string path)
     {
         var session = new SclDocumentSession(maxWorkerConcurrency: 1);
-        var result = await session.OpenFileAsync(path);
+        var result = session
+            .OpenFileAsync(path)
+            .GetAwaiter()
+            .GetResult();
 
         Assert.IsNotNull(result.State);
 
         var weakDocument = new WeakReference<SclSyntaxDocument>(
             result.State.Syntax);
 
-        await session.DisposeAsync();
+        session
+            .DisposeAsync()
+            .AsTask()
+            .GetAwaiter()
+            .GetResult();
 
         return weakDocument;
     }
