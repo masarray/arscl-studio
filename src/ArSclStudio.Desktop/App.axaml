@@ -31,6 +31,10 @@
       <Setter Property="Padding" Value="0" />
       <Setter Property="MinHeight" Value="24" />
     </Style>
+    <Style Selector="ListBox.engineeringGrid > ListBoxItem">
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderLowBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
     <Style Selector="TextBox">
       <Setter Property="MinHeight" Value="28" />
     </Style>
