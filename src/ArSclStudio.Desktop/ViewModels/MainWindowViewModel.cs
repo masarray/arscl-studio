@@ -160,8 +160,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         try
         {
             var published = await RefreshValidationAsync(
-                cancellationToken,
-                fullValidation: true);
+                fullValidation: true,
+                cancellationToken: cancellationToken);
 
             StatusText = published
                 ? $"Full validation complete • {ProblemSummary}"
@@ -216,8 +216,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     }
 
     private async Task<bool> RefreshValidationAsync(
-        CancellationToken cancellationToken = default,
-        bool fullValidation = false)
+        bool fullValidation = false,
+        CancellationToken cancellationToken = default)
     {
         if (Volatile.Read(ref _disposeStarted) != 0 ||
             _session.CurrentState is not { } state)
