@@ -76,6 +76,11 @@
           Spacing="8">
           <TextBlock Text="Validation" FontWeight="SemiBold" />
           <TextBlock Text="{Binding ProblemSummary}" Opacity="0.72" />
+          <Button
+            Classes="compact"
+            Content="Full validate"
+            Click="ValidateFullClick"
+            IsEnabled="{Binding CanValidate}" />
         </StackPanel>
 
         <ComboBox
