@@ -21,6 +21,13 @@ public sealed partial class MainWindowViewModel
     private SclNetworkWorkspaceProjection? _selectedNetworkWorkspaceRow;
 
     [ObservableProperty]
+    private IReadOnlyList<SclServiceCapabilityProjection> _serviceCapabilityRows =
+        Array.Empty<SclServiceCapabilityProjection>();
+
+    [ObservableProperty]
+    private SclServiceCapabilityProjection? _selectedServiceCapability;
+
+    [ObservableProperty]
     private IReadOnlyList<SclGooseWorkspaceProjection> _gooseWorkspaceRows =
         Array.Empty<SclGooseWorkspaceProjection>();
 
@@ -219,6 +226,17 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    partial void OnSelectedServiceCapabilityChanged(
+        SclServiceCapabilityProjection? value)
+    {
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            _selectionService.Select(value.Handle);
+        }
+    }
+
     partial void OnSelectedGooseWorkspaceChanged(
         SclGooseWorkspaceProjection? value)
     {
@@ -408,6 +426,7 @@ public sealed partial class MainWindowViewModel
 
         _workspaceIedHandle = iedHandle;
 
+        var selectedServiceHandle = SelectedServiceCapability?.Handle;
         var selectedGooseHandle = SelectedGooseWorkspace?.Handle;
         var selectedDataSetHandle = SelectedDataSetWorkspace?.Handle;
         var selectedReportHandle = SelectedReportWorkspace?.Handle;
@@ -415,6 +434,10 @@ public sealed partial class MainWindowViewModel
             SelectedDataModelLogicalNode?.Handle;
         var selectedSettingControlHandle =
             SelectedSettingGroupControl?.Handle;
+
+        var services = SclServicesWorkspaceProjector.Build(
+            state,
+            iedHandle);
 
         var gooseControls = SclGooseWorkspaceProjector.BuildCatalog(
             state,
@@ -443,6 +466,7 @@ public sealed partial class MainWindowViewModel
 
         try
         {
+            ServiceCapabilityRows = services;
             GooseWorkspaceRows = gooseControls;
             DataSetWorkspaceRows = dataSets;
             ReportWorkspaceRows = reports;
@@ -454,6 +478,14 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(ReportWorkspaceHeader));
             OnPropertyChanged(nameof(DataModelWorkspaceHeader));
             OnPropertyChanged(nameof(SettingGroupsWorkspaceHeader));
+
+            var nextService =
+                selectedServiceHandle is { } serviceHandle
+                    ? services.FirstOrDefault(
+                        row => row.Handle == serviceHandle)
+                    : null;
+
+            SelectedServiceCapability = nextService;
 
             var nextGoose = selectedGooseHandle is { } gooseHandle
                 ? gooseControls.FirstOrDefault(row => row.Handle == gooseHandle)
@@ -505,6 +537,8 @@ public sealed partial class MainWindowViewModel
     private void ClearIedScopedWorkspaces()
     {
         _workspaceIedHandle = SclNodeHandle.None;
+        ServiceCapabilityRows = Array.Empty<SclServiceCapabilityProjection>();
+        SelectedServiceCapability = null;
         GooseWorkspaceRows = Array.Empty<SclGooseWorkspaceProjection>();
         SelectedGooseWorkspace = null;
         GooseSignalRows = Array.Empty<SclGooseSignalProjection>();
@@ -558,6 +592,12 @@ public sealed partial class MainWindowViewModel
                     DataModelLogicalNodes.FirstOrDefault(
                         row => row.Handle == selected);
                 SelectedDataModelRow = null;
+                break;
+
+            case SclSemanticKind.ServiceCapability:
+                SelectedServiceCapability =
+                    ServiceCapabilityRows.FirstOrDefault(
+                        row => row.Handle == selected);
                 break;
 
             case SclSemanticKind.SettingGroupControl:
