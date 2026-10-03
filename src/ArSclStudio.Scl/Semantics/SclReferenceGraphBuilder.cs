@@ -21,6 +21,7 @@ internal static class SclReferenceGraphBuilder
         var logicalNodes = new UniqueHandleIndex<LogicalNodeKey>();
         var dataSets = new UniqueHandleIndex<DataSetKey>();
         var gseControls = new UniqueHandleIndex<GseControlKey>();
+        var smvControls = new UniqueHandleIndex<SmvControlKey>();
 
         foreach (var node in index.Nodes)
         {
@@ -60,6 +61,14 @@ internal static class SclReferenceGraphBuilder
                         index,
                         node,
                         gseControls);
+                    break;
+
+                case SclSemanticKind.SampledValueControl:
+                    AddSmvControl(
+                        syntax,
+                        index,
+                        node,
+                        smvControls);
                     break;
             }
         }
@@ -128,6 +137,16 @@ internal static class SclReferenceGraphBuilder
                         index,
                         node,
                         gseControls,
+                        edges,
+                        issues);
+                    break;
+
+                case SclSemanticKind.SmvCommunication:
+                    AddSmvCommunicationBinding(
+                        syntax,
+                        index,
+                        node,
+                        smvControls,
                         edges,
                         issues);
                     break;
@@ -381,6 +400,107 @@ internal static class SclReferenceGraphBuilder
             resolution,
             referenceText,
             SclSemanticKind.GseControl);
+    }
+
+    private static void AddSmvControl(
+        SclSyntaxDocument syntax,
+        SclSemanticIndex index,
+        SclSemanticNode node,
+        UniqueHandleIndex<SmvControlKey> destination)
+    {
+        if (!TryGetAncestorAttribute(
+                syntax,
+                index,
+                node.Parent,
+                SclSemanticKind.Ied,
+                "name",
+                out var iedName) ||
+            !TryGetAncestorAttribute(
+                syntax,
+                index,
+                node.Parent,
+                SclSemanticKind.LogicalDevice,
+                "inst",
+                out var ldInst) ||
+            !syntax.TryGetAttributeValue(
+                node.Handle,
+                "name",
+                out var name) ||
+            string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        destination.TryAdd(
+            new SmvControlKey(
+                iedName,
+                ldInst,
+                name),
+            node.Handle);
+    }
+
+    private static void AddSmvCommunicationBinding(
+        SclSyntaxDocument syntax,
+        SclSemanticIndex index,
+        SclSemanticNode node,
+        UniqueHandleIndex<SmvControlKey> smvControls,
+        List<SclReferenceEdge> edges,
+        List<SclReferenceIssue> issues)
+    {
+        if (!TryGetAncestorAttribute(
+                syntax,
+                index,
+                node.Parent,
+                SclSemanticKind.ConnectedAccessPoint,
+                "iedName",
+                out var iedName) ||
+            !syntax.TryGetAttributeValue(
+                node.Handle,
+                "ldInst",
+                out var ldInst) ||
+            string.IsNullOrWhiteSpace(ldInst) ||
+            !syntax.TryGetAttributeValue(
+                node.Handle,
+                "cbName",
+                out var cbName) ||
+            string.IsNullOrWhiteSpace(cbName))
+        {
+            return;
+        }
+
+        var key = new SmvControlKey(
+            iedName,
+            ldInst,
+            cbName);
+
+        var resolution = smvControls.Resolve(
+            key,
+            out var target);
+
+        var referenceText = string.Concat(
+            iedName,
+            "/",
+            ldInst,
+            "/",
+            cbName);
+
+        if (resolution == HandleResolutionStatus.Unique)
+        {
+            edges.Add(new SclReferenceEdge(
+                node.Handle,
+                target,
+                SclReferenceKind.CommunicationControlBinding,
+                referenceText));
+            return;
+        }
+
+        AddReferenceIssue(
+            issues,
+            node.Handle,
+            SclReferenceKind.CommunicationControlBinding,
+            resolution,
+            referenceText,
+            SclSemanticKind.SampledValueControl);
     }
 
     private static void AddLogicalNodeTypeReference(
@@ -914,6 +1034,11 @@ internal static class SclReferenceGraphBuilder
         string Name);
 
     private readonly record struct GseControlKey(
+        string IedName,
+        string LdInst,
+        string Name);
+
+    private readonly record struct SmvControlKey(
         string IedName,
         string LdInst,
         string Name);
