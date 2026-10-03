@@ -109,6 +109,14 @@ public sealed class EngineeringWorkspaceViewModelTests
                 <SubNetwork name="StationLAN" type="8-MMS">
                   <ConnectedAP iedName="IED_A" apName="P1">
                     <Address><P type="IP">10.0.0.1</P></Address>
+                    <GSE ldInst="LD0" cbName="GOOSE_CB">
+                      <Address>
+                        <P type="MAC-Address">01-0C-CD-01-00-01</P>
+                        <P type="APPID">1001</P>
+                        <P type="VLAN-ID">001</P>
+                        <P type="VLAN-PRIORITY">4</P>
+                      </Address>
+                    </GSE>
                   </ConnectedAP>
                 </SubNetwork>
               </Communication>
@@ -124,6 +132,11 @@ public sealed class EngineeringWorkspaceViewModelTests
                         <ReportControl name="BRCB01"
                                        datSet="Events"
                                        buffered="true" />
+                        <GSEControl name="GOOSE_CB"
+                                    type="GOOSE"
+                                    datSet="Events"
+                                    appID="IED_A/LD0/LLN0/GOOSE_CB"
+                                    confRev="1" />
                       </LN0>
                       <LN lnClass="XCBR" inst="1" />
                     </LDevice>
@@ -142,13 +155,19 @@ public sealed class EngineeringWorkspaceViewModelTests
             Assert.AreEqual("IED_A / P1", vm.DetailTitle);
 
             vm.SelectedEngineeringWorkspaceIndex = 2;
+            Assert.AreEqual("GOOSE_CB", vm.DetailTitle);
+            Assert.AreEqual(1, vm.GooseWorkspaceRows.Count);
+            Assert.AreEqual(1, vm.GooseSignalRows.Count);
+            Assert.AreEqual("01-0C-CD-01-00-01", vm.SelectedGooseWorkspace?.MacAddress);
+
+            vm.SelectedEngineeringWorkspaceIndex = 3;
             Assert.AreEqual("Events", vm.DetailTitle);
             Assert.AreEqual(1, vm.DataSetMemberRows.Count);
 
             vm.SelectedDataSetMember = vm.DataSetMemberRows.Single();
             StringAssert.Contains(vm.DetailTitle, "LD0/XCBR1/Pos");
 
-            vm.SelectedEngineeringWorkspaceIndex = 3;
+            vm.SelectedEngineeringWorkspaceIndex = 4;
             Assert.AreEqual("BRCB01", vm.DetailTitle);
         }
         finally
