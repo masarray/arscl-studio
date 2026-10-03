@@ -56,7 +56,7 @@ Key rules:
 - background work is cancellable, bounded, coalesced, and revision-aware
 - target compatibility is separate from IEC validity
 - unknown/vendor XML must survive engineering round trips
-- save/export will be transactional
+- save is transactional; future export must use the same verified boundary
 
 Read **[AGENTS.md](AGENTS.md)** before making code changes.
 

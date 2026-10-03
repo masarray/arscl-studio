@@ -49,19 +49,30 @@ public sealed class TransactionPerformanceTests
     [TestMethod]
     public void PatchHistoryDoesNotRetainOldSyntaxSnapshots()
     {
-        // Keep fixture creation outside an async completion continuation: an inline parent
-        // continuation can legitimately keep its OpenResult alive on the stack during GC.
-        var fixture = EditingFixture.CreateAsync().GetAwaiter().GetResult();
+        // Synchronous outer scope prevents the async fixture factory's completion stack
+        // from retaining its OpenResult while the collectability assertion runs.
+        var path = Path.Combine(Path.GetTempPath(), $"arscl-gc-{Guid.NewGuid():N}.scd");
+        File.WriteAllText(path, EditingFixture.Xml);
+        var session = new SclDocumentSession();
         try
         {
-            var weak = EditAndCapturePrevious(fixture.Session);
+            OpenForCollectability(session, path);
+            var weak = EditAndCapturePrevious(session);
             Collect();
             Assert.IsFalse(HasTarget(weak), "Undo history retained an entire old syntax document.");
-            Assert.IsTrue(fixture.Session.CanUndo);
-            Assert.IsTrue(fixture.Session.UndoAsync(fixture.Session.CurrentRevision).GetAwaiter().GetResult().Succeeded);
+            Assert.IsTrue(session.CanUndo);
+            Assert.IsTrue(session.UndoAsync(session.CurrentRevision).GetAwaiter().GetResult().Succeeded);
         }
-        finally { fixture.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+        finally
+        {
+            session.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            File.Delete(path);
+        }
     }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void OpenForCollectability(SclDocumentSession session, string path) =>
+        Assert.IsTrue(session.OpenFileAsync(path).GetAwaiter().GetResult().Succeeded);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static WeakReference<SclSyntaxDocument> EditAndCapturePrevious(SclDocumentSession session)

@@ -267,9 +267,16 @@ public sealed partial class SclDocumentSession : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposeStarted, 1) != 0)
+        // Share the publication gate: disposal must not interrupt the gap between
+        // a filesystem/history commit and its revision/state publication.
+        lock (_stateGate)
         {
-            return;
+            if (_disposeStarted != 0)
+            {
+                return;
+            }
+
+            Volatile.Write(ref _disposeStarted, 1);
         }
 
         await _exclusiveWork.DisposeAsync().ConfigureAwait(false);
