@@ -188,6 +188,193 @@ public sealed class SclValidationTests
         }
     }
 
+    [TestMethod]
+    public async Task EngineeringDiagnosticsAreSourceLinkedAndKeepGsseDistinct()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <Communication>
+                <SubNetwork name="StationLAN" type="8-MMS">
+                  <ConnectedAP iedName="IED_A" apName="P1">
+                    <Address>
+                      <P type="IP">10.0.0.10</P>
+                    </Address>
+                    <GSE ldInst="LD0" cbName="GOOSE_PARTIAL">
+                      <Address>
+                        <P type="MAC-Address">01-0C-CD-01-00-01</P>
+                      </Address>
+                    </GSE>
+                  </ConnectedAP>
+                  <ConnectedAP iedName="IED_B" apName="P1">
+                    <Address>
+                      <P type="IP">10.0.0.10</P>
+                    </Address>
+                  </ConnectedAP>
+                </SubNetwork>
+              </Communication>
+
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="">
+                        <GSEControl name="GOOSE_PARTIAL" type="GOOSE" />
+                        <GSEControl name="GOOSE_NO_ENDPOINT" type="GOOSE" />
+                        <GSEControl name="LEGACY_GSSE" type="GSSE" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <IED name="IED_B">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="" />
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var result = await session.ValidateFastAsync();
+
+            Assert.AreEqual(WorkResultStatus.Published, result.Status);
+            Assert.IsNotNull(result.Value);
+
+            var engineering = result.Value.Diagnostics
+                .Where(diagnostic =>
+                    diagnostic.Domain == DiagnosticDomain.Engineering)
+                .ToArray();
+
+            Assert.AreEqual(
+                2,
+                engineering.Count(diagnostic =>
+                    diagnostic.Code == "SCL-ENG-NET-0001"));
+
+            var missingEndpoint = engineering.Single(diagnostic =>
+                diagnostic.Code == "SCL-ENG-GOOSE-0001");
+
+            Assert.AreEqual(
+                DiagnosticSeverity.Warning,
+                missingEndpoint.Severity);
+            Assert.IsTrue(missingEndpoint.SourceSpan.IsKnown);
+            Assert.AreEqual(
+                Path.GetFullPath(path),
+                missingEndpoint.SourcePath);
+            Assert.AreEqual<DocumentRevision?>(
+                open.State.Revision,
+                missingEndpoint.Revision);
+            StringAssert.Contains(
+                missingEndpoint.Message,
+                "GOOSE_NO_ENDPOINT");
+
+            var partialEndpoint = engineering.Single(diagnostic =>
+                diagnostic.Code == "SCL-ENG-GOOSE-0002");
+
+            Assert.IsTrue(partialEndpoint.SourceSpan.IsKnown);
+            StringAssert.Contains(
+                partialEndpoint.Message,
+                "APPID");
+            StringAssert.Contains(
+                partialEndpoint.Message,
+                "GOOSE_PARTIAL");
+
+            Assert.IsFalse(engineering.Any(diagnostic =>
+                diagnostic.Message.Contains(
+                    "LEGACY_GSSE",
+                    StringComparison.Ordinal)));
+
+            Assert.IsFalse(engineering.Any(diagnostic =>
+                diagnostic.Domain == DiagnosticDomain.Schema));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task SettingGroupDiagnosticsReportRangeAndMissingConfiguredValues()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="PROT">
+                      <LN0 lnClass="LLN0" inst="" lnType="LT_LLN0">
+                        <SettingControl numOfSGs="2" actSG="3" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+              <DataTypeTemplates>
+                <LNodeType id="LT_LLN0" lnClass="LLN0" />
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var engineering = result.Value.Diagnostics
+                .Where(diagnostic =>
+                    diagnostic.Domain == DiagnosticDomain.Engineering)
+                .ToArray();
+
+            Assert.IsFalse(engineering.Any(diagnostic =>
+                diagnostic.Code == "SCL-ENG-SG-0001"));
+
+            var activeRange = engineering.Single(diagnostic =>
+                diagnostic.Code == "SCL-ENG-SG-0002");
+
+            Assert.AreEqual(
+                DiagnosticSeverity.Warning,
+                activeRange.Severity);
+            StringAssert.Contains(
+                activeRange.Message,
+                "outside");
+            StringAssert.Contains(
+                activeRange.Message,
+                "1..2");
+
+            var noValues = engineering.Single(diagnostic =>
+                diagnostic.Code == "SCL-ENG-SG-0003");
+
+            Assert.AreEqual(
+                DiagnosticSeverity.Info,
+                noValues.Severity);
+            StringAssert.Contains(
+                noValues.Message,
+                "FC=SG");
+            Assert.AreEqual<DocumentRevision?>(
+                open.State.Revision,
+                noValues.Revision);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
