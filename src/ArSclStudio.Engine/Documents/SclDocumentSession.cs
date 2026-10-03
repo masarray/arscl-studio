@@ -2,6 +2,7 @@ using System.Xml;
 using ArSclStudio.Engine.Editing;
 using ArSclStudio.Engine.Diagnostics;
 using ArSclStudio.Engine.Search;
+using ArSclStudio.Engine.Validation;
 using ArSclStudio.Engine.Workers;
 using ArSclStudio.Scl.Identity;
 using ArSclStudio.Scl.Semantics;
@@ -13,19 +14,24 @@ namespace ArSclStudio.Engine.Documents;
 public sealed partial class SclDocumentSession : IAsyncDisposable
 {
     private readonly LatestWorkCoordinator _latestWork;
+    private readonly ISclSchemaProvider _schemaProvider;
     private readonly object _stateGate = new();
     private SclDocumentState? _currentState;
     private long _revision;
     private long _openSequence;
     private int _disposeStarted;
 
-    public SclDocumentSession(int? maxWorkerConcurrency = null, ISclTransactionValidator? transactionValidator = null)
+    public SclDocumentSession(
+        int? maxWorkerConcurrency = null,
+        ISclTransactionValidator? transactionValidator = null,
+        ISclSchemaProvider? schemaProvider = null)
     {
         var concurrency = maxWorkerConcurrency ??
             Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
 
         _latestWork = new LatestWorkCoordinator(concurrency);
         _transactionValidator = transactionValidator;
+        _schemaProvider = schemaProvider ?? UnavailableSclSchemaProvider.Instance;
     }
 
     public Guid SessionId { get; } = Guid.NewGuid();
@@ -233,6 +239,84 @@ public sealed partial class SclDocumentSession : IAsyncDisposable
         {
             Status = WorkResultStatus.StaleRevision, Value = null
         };
+    }
+
+    public async Task<WorkResult<SclValidationSnapshot>> ValidateFastAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(
+            Volatile.Read(ref _disposeStarted) != 0,
+            this);
+
+        var state = CurrentState;
+        if (state is null)
+        {
+            var status = new SclSchemaProviderStatus(
+                "none",
+                SclSchemaProviderAvailability.Unavailable,
+                "No SCL document is open.");
+
+            return new WorkResult<SclValidationSnapshot>(
+                WorkResultStatus.Published,
+                CurrentRevision,
+                new SclValidationSnapshot(CurrentRevision, [], status));
+        }
+
+        var result = await RunLatestAsync(
+            WorkKind.ValidateFast,
+            token => Task.Run(
+                async () => await SclValidationEngine
+                    .ValidateFastAsync(state, _schemaProvider, token)
+                    .ConfigureAwait(false),
+                token),
+            cancellationToken).ConfigureAwait(false);
+
+        return result.SourceRevision == state.Revision
+            ? result
+            : result with
+            {
+                Status = WorkResultStatus.StaleRevision,
+                Value = null
+            };
+    }
+
+    public async Task<WorkResult<SclValidationSnapshot>> ValidateFullAsync(
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(
+            Volatile.Read(ref _disposeStarted) != 0,
+            this);
+
+        var state = CurrentState;
+        if (state is null)
+        {
+            var status = new SclSchemaProviderStatus(
+                "none",
+                SclSchemaProviderAvailability.Unavailable,
+                "No SCL document is open.");
+
+            return new WorkResult<SclValidationSnapshot>(
+                WorkResultStatus.Published,
+                CurrentRevision,
+                new SclValidationSnapshot(CurrentRevision, [], status));
+        }
+
+        var result = await RunLatestAsync(
+            WorkKind.ValidateFull,
+            token => Task.Run(
+                async () => await SclValidationEngine
+                    .ValidateFullAsync(state, _schemaProvider, token)
+                    .ConfigureAwait(false),
+                token),
+            cancellationToken).ConfigureAwait(false);
+
+        return result.SourceRevision == state.Revision
+            ? result
+            : result with
+            {
+                Status = WorkResultStatus.StaleRevision,
+                Value = null
+            };
     }
 
     public async Task<WorkResult<T>> RunLatestAsync<T>(
