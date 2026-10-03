@@ -66,14 +66,46 @@ The default schema provider is deliberately unavailable until a legally sourced 
 
 M1B already delivered the deep lazy browser, typed reference graph, Where Used and semantic search. M3 extends semantic **coverage and explanations** rather than rebuilding that foundation.
 
+### M3A0 — IEC 61850 workstation information architecture — implemented
+
+The corrective workstation layer now exposes real Engine-backed workspaces for:
+- IED overview;
+- Network;
+- GOOSE/GSSE;
+- DataSets;
+- Reports & Logs;
+- Data Model;
+- Setting Groups.
+
+Key semantic expansion delivered in M3A0:
+- Address/P network projection;
+- Communication/GSE semantic endpoints;
+- deterministic Communication/GSE ↔ GSEControl binding;
+- GOOSE DataSet/member/subscriber engineering projection;
+- LN → LNodeType → DO → DOType → DA/SDO → DAType/BDA model resolution;
+- DOI/SDI/DAI instance overlay;
+- SettingControl and FC=SG value/unit/bound projection.
+
+The current real golden SCD has no Substation section, so ARSCL does not expose a fake Substation workspace merely to complete the UI.
+
+See:
+- `docs/ux/IEC61850_WORKSTATION_INFORMATION_ARCHITECTURE.md`;
+- `docs/testing/REAL_SCD_ENGINEERING_WORKSPACE_ACCEPTANCE.md`;
+- `docs/testing/M3A0_ACCEPTANCE.md`.
+
+### M3A — next: semantic/engineering diagnostics & remaining coverage
+
 Acceptance:
-- complete Substation hierarchy coverage: VoltageLevel, Bay, ConductingEquipment, Terminal and LNode placement;
-- richer Communication semantics including P-address parameters and GSE/SMV endpoint linkage;
-- supported-services interpretation;
-- deeper DOI/SDI/DAI ↔ type-template resolution;
-- model/reference/engineering diagnostics for newly covered semantics;
-- edition-aware rule/schema provider evolution using legally sourced assets;
-- contextual engineering explanations without moving IEC logic into Desktop.
+- add typed Semantic/Engineering diagnostics for the newly modeled Network, GOOSE, Data Model and Setting Groups domains;
+- surface unresolved/ambiguous model-chain findings with source navigation;
+- interpret supported Services without inventing unsupported capability;
+- extend SMV communication endpoint linkage using the same typed pattern used for GOOSE;
+- add edition-aware rule/schema-provider evolution using legally sourced assets;
+- add contextual engineering explanations without moving IEC logic into Desktop;
+- add Substation → VoltageLevel → Bay → ConductingEquipment → Terminal/LNode placement only when a real fixture is available;
+- preserve all M1B/M2A/M2B/M3A0 regression and performance gates.
+
+Broad destructive editing remains locked until the affected domain has explicit reference-impact and validation coverage.
 
 ## M4 — SCL surgery
 
