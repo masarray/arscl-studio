@@ -111,7 +111,7 @@
         <Grid RowDefinitions="Auto,*">
           <TextBox
             Grid.Row="0"
-            Watermark="Search in SCL... (planned M1B)"
+            PlaceholderText="Search in SCL... (planned M1B)"
             IsReadOnly="True"
             Margin="8" />
 

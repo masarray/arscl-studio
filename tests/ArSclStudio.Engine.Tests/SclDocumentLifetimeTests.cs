@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using ArSclStudio.Engine.Documents;
 using ArSclStudio.Scl.Syntax;
 
@@ -21,14 +22,19 @@ public sealed class SclDocumentLifetimeTests
         {
             var weakDocument = await OpenDisposeAndReturnWeakDocumentAsync(path);
 
-            for (var i = 0; i < 3 && weakDocument.TryGetTarget(out _); i++)
+            for (var i = 0; i < 5; i++)
             {
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
                 GC.Collect();
+
+                if (!HasTarget(weakDocument))
+                {
+                    break;
+                }
             }
 
-            Assert.IsFalse(weakDocument.TryGetTarget(out _));
+            Assert.IsFalse(HasTarget(weakDocument));
         }
         finally
         {
@@ -36,6 +42,12 @@ public sealed class SclDocumentLifetimeTests
         }
     }
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static bool HasTarget(
+        WeakReference<SclSyntaxDocument> weakDocument) =>
+        weakDocument.TryGetTarget(out _);
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static async Task<WeakReference<SclSyntaxDocument>>
         OpenDisposeAndReturnWeakDocumentAsync(string path)
     {
