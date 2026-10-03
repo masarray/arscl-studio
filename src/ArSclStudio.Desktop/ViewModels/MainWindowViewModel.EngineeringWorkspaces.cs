@@ -62,6 +62,20 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     private SclReportWorkspaceProjection? _selectedReportWorkspace;
 
+    [ObservableProperty]
+    private IReadOnlyList<SclDataModelLogicalNodeProjection> _dataModelLogicalNodes =
+        Array.Empty<SclDataModelLogicalNodeProjection>();
+
+    [ObservableProperty]
+    private SclDataModelLogicalNodeProjection? _selectedDataModelLogicalNode;
+
+    [ObservableProperty]
+    private IReadOnlyList<SclDataModelRowProjection> _dataModelRows =
+        Array.Empty<SclDataModelRowProjection>();
+
+    [ObservableProperty]
+    private SclDataModelRowProjection? _selectedDataModelRow;
+
     public string GooseWorkspaceHeader =>
         GooseWorkspaceRows.Count == 0
             ? "GOOSE"
@@ -76,6 +90,11 @@ public sealed partial class MainWindowViewModel
         ReportWorkspaceRows.Count == 0
             ? "Reports & Logs"
             : $"Reports & Logs ({ReportWorkspaceRows.Count})";
+
+    public string DataModelWorkspaceHeader =>
+        DataModelLogicalNodes.Count == 0
+            ? "Data Model"
+            : $"Data Model ({DataModelLogicalNodes.Count} LN)";
 
     partial void OnSelectedIedWorkspaceChanged(SclIedWorkspaceProjection? value)
     {
@@ -151,6 +170,13 @@ public sealed partial class MainWindowViewModel
                 if (SelectedReportWorkspace is { } report)
                 {
                     _selectionService.Select(report.Handle);
+                }
+                break;
+
+            case 5:
+                if (SelectedDataModelLogicalNode is { } logicalNode)
+                {
+                    _selectionService.Select(logicalNode.Handle);
                 }
                 break;
         }
@@ -259,6 +285,39 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    partial void OnSelectedDataModelLogicalNodeChanged(
+        SclDataModelLogicalNodeProjection? value)
+    {
+        if (_session.CurrentState is { } state)
+        {
+            DataModelRows = value is null
+                ? Array.Empty<SclDataModelRowProjection>()
+                : SclDataModelWorkspaceProjector.BuildRows(
+                    state,
+                    value.Handle);
+
+            SelectedDataModelRow = null;
+        }
+
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            _selectionService.Select(value.Handle);
+        }
+    }
+
+    partial void OnSelectedDataModelRowChanged(
+        SclDataModelRowProjection? value)
+    {
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            _selectionService.Select(value.Handle);
+        }
+    }
+
     private void RefreshEngineeringWorkspaces(
         SclDocumentState state,
         bool forceIedRefresh = false)
@@ -293,6 +352,8 @@ public sealed partial class MainWindowViewModel
         var selectedGooseHandle = SelectedGooseWorkspace?.Handle;
         var selectedDataSetHandle = SelectedDataSetWorkspace?.Handle;
         var selectedReportHandle = SelectedReportWorkspace?.Handle;
+        var selectedDataModelNodeHandle =
+            SelectedDataModelLogicalNode?.Handle;
 
         var gooseControls = SclGooseWorkspaceProjector.BuildCatalog(
             state,
@@ -306,6 +367,11 @@ public sealed partial class MainWindowViewModel
             state,
             iedHandle);
 
+        var dataModelLogicalNodes =
+            SclDataModelWorkspaceProjector.BuildLogicalNodes(
+                state,
+                iedHandle);
+
         var wasSynchronizing = _synchronizingSelection;
         _synchronizingSelection = true;
 
@@ -314,10 +380,13 @@ public sealed partial class MainWindowViewModel
             GooseWorkspaceRows = gooseControls;
             DataSetWorkspaceRows = dataSets;
             ReportWorkspaceRows = reports;
+            DataModelLogicalNodes = dataModelLogicalNodes;
 
             OnPropertyChanged(nameof(GooseWorkspaceHeader));
             OnPropertyChanged(nameof(DataSetWorkspaceHeader));
             OnPropertyChanged(nameof(ReportWorkspaceHeader));
+        OnPropertyChanged(nameof(DataModelWorkspaceHeader));
+            OnPropertyChanged(nameof(DataModelWorkspaceHeader));
 
             var nextGoose = selectedGooseHandle is { } gooseHandle
                 ? gooseControls.FirstOrDefault(row => row.Handle == gooseHandle)
@@ -339,6 +408,16 @@ public sealed partial class MainWindowViewModel
 
             SelectedReportWorkspace =
                 nextReport ?? reports.FirstOrDefault();
+
+            var nextDataModelNode =
+                selectedDataModelNodeHandle is { } dataModelNodeHandle
+                    ? dataModelLogicalNodes.FirstOrDefault(
+                        row => row.Handle == dataModelNodeHandle)
+                    : null;
+
+            SelectedDataModelLogicalNode =
+                nextDataModelNode ??
+                dataModelLogicalNodes.FirstOrDefault();
         }
         finally
         {
@@ -361,6 +440,10 @@ public sealed partial class MainWindowViewModel
         SelectedDataSetMember = null;
         ReportWorkspaceRows = Array.Empty<SclReportWorkspaceProjection>();
         SelectedReportWorkspace = null;
+        DataModelLogicalNodes = Array.Empty<SclDataModelLogicalNodeProjection>();
+        SelectedDataModelLogicalNode = null;
+        DataModelRows = Array.Empty<SclDataModelRowProjection>();
+        SelectedDataModelRow = null;
 
         OnPropertyChanged(nameof(GooseWorkspaceHeader));
         OnPropertyChanged(nameof(DataSetWorkspaceHeader));
@@ -384,6 +467,14 @@ public sealed partial class MainWindowViewModel
             case SclSemanticKind.ConnectedAccessPoint:
                 SelectedNetworkWorkspaceRow = NetworkWorkspaceRows.FirstOrDefault(
                     row => row.Handle == selected);
+                break;
+
+            case SclSemanticKind.LogicalNodeZero:
+            case SclSemanticKind.LogicalNode:
+                SelectedDataModelLogicalNode =
+                    DataModelLogicalNodes.FirstOrDefault(
+                        row => row.Handle == selected);
+                SelectedDataModelRow = null;
                 break;
 
             case SclSemanticKind.GseControl:
@@ -425,6 +516,17 @@ public sealed partial class MainWindowViewModel
             case SclSemanticKind.ReportControl:
             case SclSemanticKind.LogControl:
                 SelectedReportWorkspace = ReportWorkspaceRows.FirstOrDefault(
+                    row => row.Handle == selected);
+                break;
+
+            case SclSemanticKind.Doi:
+            case SclSemanticKind.Sdi:
+            case SclSemanticKind.Dai:
+            case SclSemanticKind.DataObjectDefinition:
+            case SclSemanticKind.SubDataObjectDefinition:
+            case SclSemanticKind.DataAttributeDefinition:
+            case SclSemanticKind.BasicDataAttributeDefinition:
+                SelectedDataModelRow = DataModelRows.FirstOrDefault(
                     row => row.Handle == selected);
                 break;
         }
