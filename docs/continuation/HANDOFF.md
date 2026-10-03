@@ -4,20 +4,20 @@ Last updated: 2026-10-03
 
 ## Current phase
 
-**M3A0 — IEC 61850 Engineering Workstation: COMPLETE for the current golden SCD domains; manual visual acceptance pending.**
+**M3A0 workstation baseline: complete. M3A Semantic & Engineering Diagnostics: slice 1 complete; manual visual acceptance for the workstation remains pending.**
 
 - Repository: `masarray/arscl-studio`
 - Branch: `feature/m3a0-iec-workstation-ia`
 - PR: #5 (draft; keep unmerged until visual audit is accepted)
 - Base main: `6bb9eab76814280e5f27557d638612ab88039eb0` (M2B)
-- Verified executable head: `8f8148d0336d0694b6ae03240d0d0c8715d0e60d`
-- Verified executable CI: `37124979451`
+- Verified executable head: `b9d32c4180b9458753fc144ac49bb3df92fcb846`
+- Verified executable CI: `37136912729`
 - Windows / Ubuntu / macOS build + tests: green
-- SCL tests: 10/10 per OS
-- Engine/Desktop tests: 54/54 per OS
-- Total: **64/64 tests per OS**
-- Verified Windows self-contained artifact: `11273649986` (`ARSCL-Studio-win-x64`)
-- Verified build digest: `sha256:325e3c0112e7fe2e64ff1a14ea8072955823a6c995e17ef6b0def2d8a05bd594`
+- SCL tests: 11/11 per OS
+- Engine/Desktop tests: 57/57 per OS
+- Total: **68/68 tests per OS**
+- Verified Windows self-contained artifact: `11278714393` (`ARSCL-Studio-win-x64`)
+- Verified build digest: `sha256:511ed6dfb85f131b438424d9198d5eeead35e27c0e5fc1978f8d79f78cbab8d5`
 
 Documentation-only commits after the executable head do not change runtime behavior. Final PR-head CI must still remain green before merge.
 
@@ -143,17 +143,29 @@ Do not add a fake/empty Substation workspace just to complete a tab list.
 - schema provider remains explicit/legal-source dependent.
 - visual quality still requires manual Windows/high-DPI acceptance on the golden SCD.
 
-## Next phase: M3A — Semantic & Engineering Diagnostics
+## M3A diagnostics slice 1 implemented
 
-Do not rebuild M3A0 workspaces. Extend their semantic confidence.
+New Problems/validation coverage:
+- `SCL-ENG-GOOSE-0001..0004`: missing GOOSE endpoint/address/MAC/network APPID;
+- `SCL-SEM-MODEL-0001`: DOI instance absent from resolved LNodeType;
+- `SCL-ENG-SMV-0001..0004`: missing SMV endpoint/address/MAC/network APPID.
 
-Priority:
-1. typed Network/GOOSE/Data Model/Setting Group engineering diagnostics;
-2. unresolved/ambiguous type-chain and endpoint findings;
-3. supported Services interpretation;
-4. SMV communication endpoint linkage following the typed GSE pattern;
-5. edition-aware schema/rule-provider evolution from legally sourced assets;
-6. contextual explanations and quick navigation;
-7. Substation hierarchy only after a real Substation fixture is supplied.
+`Communication/SMV` is now a typed semantic object and resolves to `SampledValueControl` through the reference graph using IED + LD + control name.
 
-Broad SCL surgery remains M4 and must not start until reference-impact and validation coverage for each destructive operation is explicit.
+Noise control:
+- GSSE is not treated as missing Ethernet GOOSE;
+- unresolved lnType remains a reference diagnostic instead of receiving duplicate semantic noise;
+- control-level `appID`/`smvID` is never substituted for Communication-layer network APPID.
+
+See `docs/testing/M3A_DIAGNOSTICS_ACCEPTANCE.md`.
+
+## Next M3A slice
+
+Do not rebuild M3A0 workspaces. Continue semantic confidence in this order:
+1. deeper DOI/SDI/DAI ↔ template consistency without full-model materialization regressions;
+2. supported Services interpretation;
+3. contextual engineering explanations for new diagnostics;
+4. SMV engineering projection only when a real fixture justifies the UI;
+5. Substation hierarchy only after a real Substation fixture is supplied.
+
+Broad SCL surgery remains M4 and must stay locked until reference-impact and validation coverage for each destructive operation is explicit.
