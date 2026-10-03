@@ -387,13 +387,14 @@
               <Grid RowDefinitions="29,*">
                 <Grid
                   Background="{DynamicResource ThemeControlLowBrush}"
-                  ColumnDefinitions="110,70,130,150,150,*">
+                  ColumnDefinitions="100,65,105,85,135,140,*">
                   <TextBlock Text="Subnet" Margin="7,5" FontWeight="SemiBold" />
                   <TextBlock Grid.Column="1" Text="Type" Margin="7,5" FontWeight="SemiBold" />
-                  <TextBlock Grid.Column="2" Text="IED / AP" Margin="7,5" FontWeight="SemiBold" />
-                  <TextBlock Grid.Column="3" Text="IP address" Margin="7,5" FontWeight="SemiBold" />
-                  <TextBlock Grid.Column="4" Text="Subnet mask" Margin="7,5" FontWeight="SemiBold" />
-                  <TextBlock Grid.Column="5" Text="Gateway" Margin="7,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="2" Text="IED" Margin="7,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="3" Text="AP" Margin="7,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="4" Text="IP address" Margin="7,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="5" Text="Subnet mask" Margin="7,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="6" Text="Gateway" Margin="7,5" FontWeight="SemiBold" />
                 </Grid>
                 <ListBox
                   Grid.Row="1"
@@ -407,17 +408,17 @@
                   </ListBox.ItemsPanel>
                   <ListBox.ItemTemplate>
                     <DataTemplate x:DataType="nav:SclNetworkWorkspaceProjection">
-                      <Grid ColumnDefinitions="110,70,130,150,150,*" Height="28">
+                      <Grid ColumnDefinitions="100,65,105,85,135,140,*" Height="28">
                         <TextBlock Text="{Binding SubNetwork}" Margin="7,4"
                                    TextTrimming="CharacterEllipsis" />
                         <TextBlock Grid.Column="1" Text="{Binding NetworkType}" Margin="7,4" />
-                        <TextBlock Grid.Column="2"
-                                   Text="{Binding IedName, StringFormat='{}{0}'}"
-                                   Margin="7,4"
+                        <TextBlock Grid.Column="2" Text="{Binding IedName}" Margin="7,4"
                                    TextTrimming="CharacterEllipsis" />
-                        <TextBlock Grid.Column="3" Text="{Binding IpAddress}" Margin="7,4" />
-                        <TextBlock Grid.Column="4" Text="{Binding SubnetMask}" Margin="7,4" />
-                        <TextBlock Grid.Column="5" Text="{Binding Gateway}" Margin="7,4" />
+                        <TextBlock Grid.Column="3" Text="{Binding AccessPoint}" Margin="7,4"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="4" Text="{Binding IpAddress}" Margin="7,4" />
+                        <TextBlock Grid.Column="5" Text="{Binding SubnetMask}" Margin="7,4" />
+                        <TextBlock Grid.Column="6" Text="{Binding Gateway}" Margin="7,4" />
                       </Grid>
                     </DataTemplate>
                   </ListBox.ItemTemplate>
@@ -487,8 +488,8 @@
                     <ListBox.ItemsPanel>
                       <ItemsPanelTemplate>
                         <VirtualizingStackPanel />
-                      </ListBox.ItemsPanel>
-                    </ItemsPanelTemplate>
+                      </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                       <DataTemplate x:DataType="nav:SclDataSetMemberProjection">
                         <Grid ColumnDefinitions="80,100,110,95,55,*" Height="28">
