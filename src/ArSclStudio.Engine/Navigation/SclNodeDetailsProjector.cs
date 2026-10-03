@@ -26,8 +26,18 @@ public static class SclNodeDetailsProjector
                 "The selected node is no longer available in this document revision.");
         }
 
-        var title = GetPrimaryName(state.Syntax, info);
-        var kind = GetKindName(info);
+        var semanticNode = state.SemanticIndex.TryGetNode(
+            handle,
+            out var semantic) &&
+            semantic is not null
+                ? semantic
+                : null;
+
+        var title = semanticNode?.DisplayName ??
+            GetPrimaryName(state.Syntax, info);
+
+        var kind = semanticNode?.Kind.ToString() ??
+            GetKindName(info);
         var path = BuildPath(state, info);
         var sourceLocation = info.SourceSpan.IsKnown
             ? $"{state.DisplayName}:{info.SourceSpan}"
