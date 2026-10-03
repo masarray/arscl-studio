@@ -93,6 +93,56 @@ public sealed class SclSyntaxDocument
         return result;
     }
 
+    public bool HasSelectableChildren(SclNodeHandle handle)
+    {
+        if (!_registry.TryGetNode(handle, out var node) || node is null)
+        {
+            return false;
+        }
+
+        if (node is XmlElement element && element.HasAttributes)
+        {
+            return true;
+        }
+
+        foreach (XmlNode child in node.ChildNodes)
+        {
+            if (_registry.TryGetHandle(child, out _))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public bool TryGetAttributeValue(
+        SclNodeHandle elementHandle,
+        string localName,
+        out string? value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(localName);
+
+        if (_registry.TryGetNode(elementHandle, out var node) &&
+            node is XmlElement element)
+        {
+            foreach (XmlAttribute attribute in element.Attributes)
+            {
+                if (string.Equals(
+                    attribute.LocalName,
+                    localName,
+                    StringComparison.Ordinal))
+                {
+                    value = attribute.Value;
+                    return true;
+                }
+            }
+        }
+
+        value = null;
+        return false;
+    }
+
     public SclSourceSpan GetSourceSpan(SclNodeHandle handle) =>
         _registry.GetSourceSpan(handle);
 

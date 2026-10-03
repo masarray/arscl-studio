@@ -1,4 +1,5 @@
 using ArSclStudio.Scl.Identity;
+using ArSclStudio.Scl.Source;
 
 namespace ArSclStudio.Engine.Diagnostics;
 
@@ -27,4 +28,6 @@ public sealed record Diagnostic(
     DiagnosticDomain Domain,
     string Message,
     SclNodeHandle Node,
+    SclSourceSpan SourceSpan = default,
+    string? SourcePath = null,
     string? Explanation = null);

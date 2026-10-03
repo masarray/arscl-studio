@@ -1,10 +1,18 @@
+using System.Xml;
+using ArSclStudio.Engine.Diagnostics;
 using ArSclStudio.Engine.Workers;
+using ArSclStudio.Scl.Identity;
+using ArSclStudio.Scl.Semantics;
+using ArSclStudio.Scl.Source;
+using ArSclStudio.Scl.Syntax;
 
 namespace ArSclStudio.Engine.Documents;
 
 public sealed class SclDocumentSession : IAsyncDisposable
 {
     private readonly LatestWorkCoordinator _latestWork;
+    private readonly object _stateGate = new();
+    private SclDocumentState? _currentState;
     private long _revision;
     private int _disposeStarted;
 
@@ -20,8 +28,138 @@ public sealed class SclDocumentSession : IAsyncDisposable
 
     public DocumentRevision CurrentRevision => new(Interlocked.Read(ref _revision));
 
+    public SclDocumentState? CurrentState
+    {
+        get
+        {
+            lock (_stateGate)
+            {
+                return _currentState;
+            }
+        }
+    }
+
     public DocumentRevision AdvanceRevision() =>
         new(Interlocked.Increment(ref _revision));
+
+    public async Task<SclOpenResult> OpenFileAsync(
+        string path,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(
+            Volatile.Read(ref _disposeStarted) != 0,
+            this);
+
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        try
+        {
+            var loader = new SclDocumentLoader();
+
+            var workResult = await RunLatestAsync(
+                WorkKind.Parse,
+                async token =>
+                {
+                    var syntax = await loader
+                        .LoadFileAsync(path, token)
+                        .ConfigureAwait(false);
+
+                    var topLevel = SclTopLevelIndexer.Build(syntax);
+
+                    return new PendingDocumentState(
+                        Path.GetFullPath(path),
+                        Path.GetFileName(path),
+                        syntax,
+                        topLevel);
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            switch (workResult.Status)
+            {
+                case WorkResultStatus.Published when workResult.Value is not null:
+                {
+                    var revision = AdvanceRevision();
+                    var pending = workResult.Value;
+
+                    var state = new SclDocumentState(
+                        pending.SourcePath,
+                        pending.DisplayName,
+                        pending.Syntax,
+                        pending.TopLevelIndex,
+                        revision);
+
+                    lock (_stateGate)
+                    {
+                        _currentState = state;
+                    }
+
+                    return new SclOpenResult(
+                        SclOpenStatus.Opened,
+                        state,
+                        Array.Empty<Diagnostic>());
+                }
+
+                case WorkResultStatus.Cancelled:
+                    return new SclOpenResult(
+                        SclOpenStatus.Cancelled,
+                        null,
+                        Array.Empty<Diagnostic>());
+
+                case WorkResultStatus.Superseded:
+                case WorkResultStatus.StaleRevision:
+                    return new SclOpenResult(
+                        SclOpenStatus.Superseded,
+                        null,
+                        Array.Empty<Diagnostic>());
+
+                default:
+                    return new SclOpenResult(
+                        SclOpenStatus.Failed,
+                        null,
+                        [CreateRuntimeDiagnostic(
+                            path,
+                            "SCL-OPEN-0002",
+                            "The SCL open operation completed without a publishable document.")]);
+            }
+        }
+        catch (XmlException exception)
+        {
+            return new SclOpenResult(
+                SclOpenStatus.Failed,
+                null,
+                [new Diagnostic(
+                    "SCL-XML-0001",
+                    DiagnosticSeverity.Error,
+                    DiagnosticDomain.Xml,
+                    exception.Message,
+                    SclNodeHandle.None,
+                    new SclSourceSpan(
+                        exception.LineNumber,
+                        exception.LinePosition),
+                    path,
+                    "The file was not committed to the active document session. Correct the XML/SCL syntax and open it again.")]);
+        }
+        catch (IOException exception)
+        {
+            return new SclOpenResult(
+                SclOpenStatus.Failed,
+                null,
+                [CreateRuntimeDiagnostic(
+                    path,
+                    "SCL-IO-0001",
+                    exception.Message)]);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return new SclOpenResult(
+                SclOpenStatus.Failed,
+                null,
+                [CreateRuntimeDiagnostic(
+                    path,
+                    "SCL-IO-0002",
+                    exception.Message)]);
+        }
+    }
 
     public async Task<WorkResult<T>> RunLatestAsync<T>(
         WorkKind kind,
@@ -61,5 +199,30 @@ public sealed class SclDocumentSession : IAsyncDisposable
         }
 
         await _latestWork.DisposeAsync().ConfigureAwait(false);
+
+        lock (_stateGate)
+        {
+            _currentState = null;
+        }
     }
+
+    private static Diagnostic CreateRuntimeDiagnostic(
+        string path,
+        string code,
+        string message) =>
+        new(
+            code,
+            DiagnosticSeverity.Error,
+            DiagnosticDomain.Runtime,
+            message,
+            SclNodeHandle.None,
+            default,
+            path,
+            "The previously opened document, if any, remains unchanged.");
+
+    private sealed record PendingDocumentState(
+        string SourcePath,
+        string DisplayName,
+        SclSyntaxDocument Syntax,
+        SclTopLevelIndex TopLevelIndex);
 }
