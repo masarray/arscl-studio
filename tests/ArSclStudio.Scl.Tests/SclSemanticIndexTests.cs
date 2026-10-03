@@ -137,6 +137,87 @@ public sealed class SclSemanticIndexTests
                 .Any(edge => edge.Source == report.Handle));
     }
 
+    [TestMethod]
+    public async Task CommunicationEndpointsBindToTypedGooseAndSampledValueControls()
+    {
+        var document = await LoadAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <Communication>
+                <SubNetwork name="ProcessBus">
+                  <ConnectedAP iedName="MU_A" apName="P1">
+                    <GSE ldInst="LD0" cbName="CB_SHARED" />
+                    <SMV ldInst="LD0" cbName="CB_SHARED" />
+                  </ConnectedAP>
+                </SubNetwork>
+              </Communication>
+
+              <IED name="MU_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="">
+                        <DataSet name="ProcessData" />
+                        <GSEControl name="CB_SHARED" datSet="ProcessData" />
+                        <SampledValueControl
+                          name="CB_SHARED"
+                          datSet="ProcessData"
+                          smvID="MU_A/LD0/LLN0/CB_SHARED" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+            </SCL>
+            """);
+
+        var index = SclSemanticIndexBuilder.Build(document);
+
+        Assert.AreEqual(
+            1,
+            Count(index, SclSemanticKind.GseCommunication));
+        Assert.AreEqual(
+            1,
+            Count(index, SclSemanticKind.SmvCommunication));
+
+        var gseEndpoint = FindSingle(
+            index,
+            SclSemanticKind.GseCommunication);
+        var smvEndpoint = FindSingle(
+            index,
+            SclSemanticKind.SmvCommunication);
+        var gseControl = FindSingle(
+            index,
+            SclSemanticKind.GseControl);
+        var sampledValueControl = FindSingle(
+            index,
+            SclSemanticKind.SampledValueControl);
+
+        var gseEdges = index.References.GetOutgoing(
+            gseEndpoint.Handle);
+        var smvEdges = index.References.GetOutgoing(
+            smvEndpoint.Handle);
+
+        Assert.IsTrue(gseEdges.Any(edge =>
+            edge.Kind ==
+                SclReferenceKind.CommunicationControlBinding &&
+            edge.Target == gseControl.Handle));
+
+        Assert.IsFalse(gseEdges.Any(edge =>
+            edge.Target == sampledValueControl.Handle));
+
+        Assert.IsTrue(smvEdges.Any(edge =>
+            edge.Kind ==
+                SclReferenceKind.CommunicationControlBinding &&
+            edge.Target == sampledValueControl.Handle));
+
+        Assert.IsFalse(smvEdges.Any(edge =>
+            edge.Target == gseControl.Handle));
+
+        Assert.AreEqual(
+            0,
+            index.References.IssueCount);
+    }
+
     private static int Count(
         SclSemanticIndex index,
         SclSemanticKind kind)
