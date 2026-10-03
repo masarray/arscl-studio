@@ -591,6 +591,142 @@ public sealed class SclValidationTests
         }
     }
 
+    [TestMethod]
+    public async Task FastValidationReportsExplicitPublisherCountsBeyondDeclaredServiceLimits()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <Services>
+                  <GOOSE max="1" />
+                  <GSSE max="0" />
+                  <SMV max="0" />
+                </Services>
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="">
+                        <GSEControl name="GOOSE_1" type="GOOSE" />
+                        <GSEControl name="GOOSE_2" type="GOOSE" />
+                        <GSEControl name="GSSE_1" type="GSSE" />
+                        <GSEControl name="UNSPECIFIED" />
+                        <SampledValueControl name="MSVCB01" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var goose = result.Value.Diagnostics.Single(
+                diagnostic =>
+                    diagnostic.Code ==
+                    "SCL-ENG-SERVICE-0001");
+
+            StringAssert.Contains(
+                goose.Message,
+                "publisher count 2");
+            StringAssert.Contains(
+                goose.Message,
+                "maximum 1");
+            Assert.IsTrue(goose.SourceSpan.IsKnown);
+
+            var gsse = result.Value.Diagnostics.Single(
+                diagnostic =>
+                    diagnostic.Code ==
+                    "SCL-ENG-SERVICE-0002");
+
+            StringAssert.Contains(
+                gsse.Message,
+                "publisher count 1");
+            StringAssert.Contains(
+                gsse.Message,
+                "maximum 0");
+
+            var smv = result.Value.Diagnostics.Single(
+                diagnostic =>
+                    diagnostic.Code ==
+                    "SCL-ENG-SERVICE-0003");
+
+            StringAssert.Contains(
+                smv.Message,
+                "publisher count 1");
+            StringAssert.Contains(
+                smv.Message,
+                "maximum 0");
+
+            Assert.AreEqual(
+                3,
+                result.Value.Diagnostics.Count(
+                    diagnostic =>
+                        diagnostic.Code.StartsWith(
+                            "SCL-ENG-SERVICE-",
+                            StringComparison.Ordinal)));
+
+            StringAssert.Contains(
+                goose.Explanation ?? string.Empty,
+                "explicit publisher identities");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task FastValidationDoesNotInferUntypedGseControlAgainstGooseLimit()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <Services>
+                  <GOOSE max="0" />
+                </Services>
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="">
+                        <GSEControl name="UNSPECIFIED" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            Assert.IsFalse(
+                result.Value.Diagnostics.Any(
+                    diagnostic =>
+                        diagnostic.Code ==
+                        "SCL-ENG-SERVICE-0001"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
