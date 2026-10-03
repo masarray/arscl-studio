@@ -1,3 +1,5 @@
+using Avalonia;
+
 namespace ArSclStudio.Desktop.ViewModels;
 
 public sealed record ExplorerRow(
@@ -5,7 +7,10 @@ public sealed record ExplorerRow(
     string Name,
     double Indent,
     string? Badge = null,
-    bool HasWarning = false);
+    bool HasWarning = false)
+{
+    public Thickness IndentMargin => new(Indent, 0, 0, 0);
+}
 
 public sealed record MemberRow(
     string Reference,

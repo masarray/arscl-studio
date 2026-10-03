@@ -65,7 +65,7 @@
             </ListBox.ItemsPanel>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="vm:ExplorerRow">
-                <Grid ColumnDefinitions="Auto,*,Auto" Height="26" Margin="{Binding Indent, Converter={x:Static ObjectConverters.DoubleToThicknessConverter}}">
+                <Grid ColumnDefinitions="Auto,*,Auto" Height="26" Margin="{Binding IndentMargin}">
                   <TextBlock Grid.Column="0" Text="{Binding Glyph}" Width="20" VerticalAlignment="Center" />
                   <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" />
                   <TextBlock Grid.Column="2" Text="{Binding Badge}" VerticalAlignment="Center" Opacity="0.65" />

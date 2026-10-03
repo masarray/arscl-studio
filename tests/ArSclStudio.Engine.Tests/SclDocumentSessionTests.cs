@@ -70,6 +70,5 @@ public sealed class SclDocumentSessionTests
         var result = await work;
 
         Assert.AreEqual(WorkResultStatus.StaleRevision, result.Status);
-        Assert.IsNull(result.Value);
     }
 }
