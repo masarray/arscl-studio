@@ -607,6 +607,20 @@ public sealed partial class MainWindowViewModel
                 SelectedSettingGroupSetting = null;
                 break;
 
+            case SclSemanticKind.GseCommunication:
+                var gseControl = FindBoundCommunicationControl(
+                    state,
+                    selected,
+                    SclSemanticKind.GseControl);
+
+                SelectedGooseWorkspace = gseControl.IsNone
+                    ? null
+                    : GooseWorkspaceRows.FirstOrDefault(
+                        row => row.Handle == gseControl);
+                SelectedGooseSignal = null;
+                SelectedGooseSubscriber = null;
+                break;
+
             case SclSemanticKind.GseControl:
                 SelectedGooseWorkspace = GooseWorkspaceRows.FirstOrDefault(
                     row => row.Handle == selected);
@@ -652,17 +666,118 @@ public sealed partial class MainWindowViewModel
             case SclSemanticKind.Doi:
             case SclSemanticKind.Sdi:
             case SclSemanticKind.Dai:
+                SynchronizeDataModelInstanceSelection(
+                    state,
+                    selected);
+                SelectedSettingGroupSetting =
+                    SettingGroupSettings.FirstOrDefault(
+                        row => row.Handle == selected);
+                break;
+
             case SclSemanticKind.DataObjectDefinition:
             case SclSemanticKind.SubDataObjectDefinition:
             case SclSemanticKind.DataAttributeDefinition:
             case SclSemanticKind.BasicDataAttributeDefinition:
                 SelectedDataModelRow = DataModelRows.FirstOrDefault(
                     row => row.Handle == selected);
-                SelectedSettingGroupSetting =
-                    SettingGroupSettings.FirstOrDefault(
-                        row => row.Handle == selected);
                 break;
         }
+    }
+
+    private void SynchronizeDataModelInstanceSelection(
+        SclDocumentState state,
+        SclNodeHandle selected)
+    {
+        SclSemanticNode? logicalNode = null;
+
+        if (!state.SemanticIndex.TryFindAncestor(
+                selected,
+                SclSemanticKind.LogicalNodeZero,
+                out logicalNode) ||
+            logicalNode is null)
+        {
+            state.SemanticIndex.TryFindAncestor(
+                selected,
+                SclSemanticKind.LogicalNode,
+                out logicalNode);
+        }
+
+        if (logicalNode is null)
+        {
+            SelectedDataModelRow = null;
+            return;
+        }
+
+        SelectedDataModelLogicalNode =
+            DataModelLogicalNodes.FirstOrDefault(
+                row => row.Handle == logicalNode.Handle);
+
+        if (SelectedDataModelLogicalNode is null)
+        {
+            SelectedDataModelRow = null;
+            return;
+        }
+
+        var current = selected;
+
+        for (var depth = 0;
+             depth < 32 &&
+             !current.IsNone &&
+             current != logicalNode.Handle;
+             depth++)
+        {
+            var row = DataModelRows.FirstOrDefault(
+                candidate => candidate.Handle == current);
+
+            if (row is not null)
+            {
+                SelectedDataModelRow = row;
+                return;
+            }
+
+            if (!state.SemanticIndex.TryGetNode(
+                    current,
+                    out var node) ||
+                node is null)
+            {
+                break;
+            }
+
+            current = node.Parent;
+        }
+
+        SelectedDataModelRow = null;
+    }
+
+    private static SclNodeHandle FindBoundCommunicationControl(
+        SclDocumentState state,
+        SclNodeHandle endpoint,
+        SclSemanticKind expectedControlKind)
+    {
+        var outgoing = state.SemanticIndex.References.GetOutgoing(
+            endpoint);
+
+        for (var i = 0; i < outgoing.Count; i++)
+        {
+            var edge = outgoing[i];
+
+            if (edge.Kind !=
+                SclReferenceKind.CommunicationControlBinding)
+            {
+                continue;
+            }
+
+            if (state.SemanticIndex.TryGetNode(
+                    edge.Target,
+                    out var target) &&
+                target is not null &&
+                target.Kind == expectedControlKind)
+            {
+                return edge.Target;
+            }
+        }
+
+        return SclNodeHandle.None;
     }
 
     private void ClearEngineeringWorkspaces()
