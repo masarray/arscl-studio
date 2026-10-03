@@ -4,20 +4,20 @@ Last updated: 2026-10-03
 
 ## Current phase
 
-**M3A0 workstation baseline: complete. M3A1 diagnostics and M3A2 deep model consistency + Services interpretation: complete; manual visual acceptance for the workstation remains pending.**
+**M3A0 workstation baseline + M3A1/M3A2 semantic slices: complete. M3UX1 engineering-desktop density/inspection redesign: implemented; manual Windows visual acceptance remains pending.**
 
 - Repository: `masarray/arscl-studio`
 - Branch: `feature/m3a0-iec-workstation-ia`
 - PR: #5 (draft; keep unmerged until visual audit is accepted)
 - Base main: `6bb9eab76814280e5f27557d638612ab88039eb0` (M2B)
-- Verified executable head: `e6390cd59ac395947eec94c3a86bcd5c90ef46b7`
-- Verified executable CI: `37138858197`
+- Verified executable head: `8259b15765c46e8f20f59b15b7025a1c1e6a92ea`
+- Verified executable CI: `37139948935`
 - Windows / Ubuntu / macOS build + tests: green
 - SCL tests: 11/11 per OS
 - Engine/Desktop tests: 65/65 per OS
 - Total: **76/76 tests per OS**
-- Verified Windows self-contained artifact: `11280036122` (`ARSCL-Studio-win-x64`)
-- Verified build digest: `sha256:8b64c16801f39e7a4da6b1a5e372590b825b934809a16177909f9ca6a6f3a826`
+- Verified Windows self-contained artifact: `11279419971` (`ARSCL-Studio-win-x64`)
+- Verified build digest: `sha256:e1569501819ca2b859e57b1acde86e1c61746df94c2aabc36734a4facf2adf24`
 
 Documentation-only commits after the executable head do not change runtime behavior. Final PR-head CI must still remain green before merge.
 
@@ -36,6 +36,7 @@ Read:
 - `docs/testing/M3A0_ACCEPTANCE.md`
 - `docs/testing/M3A_DIAGNOSTICS_ACCEPTANCE.md`
 - `docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md`
+- `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`
 - `docs/ux/IEC61850_WORKSTATION_INFORMATION_ARCHITECTURE.md`
 
 ## Product direction locked by M3A0
@@ -190,13 +191,31 @@ See:
 - `docs/testing/M3A_DIAGNOSTICS_ACCEPTANCE.md`;
 - `docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md`.
 
-## Next M3A slice
+## M3UX1 engineering-desktop redesign implemented
 
-Do not rebuild M3A0/M3A2 workspaces. Continue with:
-1. edition-aware rule/schema-provider evolution using legally sourced assets;
-2. richer contextual engineering explanations and diagnostic grouping/filtering;
-3. additional safe cross-domain consistency checks only where semantics are proven;
-4. SMV visual engineering projection only when a real fixture justifies the UI;
-5. Substation hierarchy only after a real Substation fixture is supplied.
+The visual shell no longer treats engineering information like website cards/articles:
+- compact Project Explorer with dense IED rows;
+- 260px left browser / wide center work area / 300px Inspector baseline;
+- compact workspace tabs and selected-state treatment;
+- grouped engineering command strip;
+- dense center IED context strip;
+- Data Model LN selector narrowed and object table widened;
+- DO/DA/BDA hierarchy uses actual Engine `Depth` for pixel indentation;
+- Context pane replaced by Properties/Where Used Inspector;
+- Problems/Search/Changes moved into a vertically resizable bottom dock;
+- panel corner/card styling removed in favor of docked square panes.
 
-Runtime/live capability verification remains a later phase. Broad SCL surgery remains M4 and must stay locked until reference-impact and validation coverage for each destructive operation is explicit.
+See `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`.
+
+## Next visual gate
+
+Before merging PR #5, run the Windows artifact on the golden SCD and provide screenshots of at least Data Model, GOOSE, Reports and Setting Groups.
+
+Audit specifically:
+1. tab fit and DPI behavior;
+2. splitter proportions;
+3. Data Model hierarchy/column clipping;
+4. Properties and Where Used readability;
+5. whether the IED browser now feels like an engineering navigator rather than cards.
+
+Only after that visual gate passes should work return to M3A3 edition-aware rule/schema-provider evolution. Broad SCL surgery remains locked.
