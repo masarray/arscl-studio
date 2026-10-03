@@ -24,7 +24,13 @@ public sealed record SclDataModelRowProjection(
     string BasicType,
     string Value,
     string TypeId,
-    string Description);
+    string Description)
+{
+    public string DisplayName =>
+        string.Concat(
+            new string(' ', Depth * 2),
+            Name);
+}
 
 public static class SclDataModelWorkspaceProjector
 {
