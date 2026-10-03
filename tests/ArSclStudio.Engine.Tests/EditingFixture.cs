@@ -23,10 +23,10 @@ internal sealed class EditingFixture : IAsyncDisposable
         </SCL>
         """;
 
-    private EditingFixture(string directory, SclDocumentSession session)
+    private EditingFixture(string directory, ISclTransactionValidator? validator)
     {
         DirectoryPath = directory;
-        Session = session;
+        Session = new SclDocumentSession(maxWorkerConcurrency: 1, transactionValidator: validator);
     }
 
     internal string DirectoryPath { get; }
@@ -40,11 +40,19 @@ internal sealed class EditingFixture : IAsyncDisposable
     {
         var directory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "arscl-test-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
-        var fixture = new EditingFixture(directory, new SclDocumentSession(transactionValidator: validator));
-        await File.WriteAllTextAsync(fixture.Path, xml ?? Xml);
-        var opened = await fixture.Session.OpenFileAsync(fixture.Path);
-        Assert.IsTrue(opened.Succeeded);
-        return fixture;
+        var fixture = new EditingFixture(directory, validator);
+        try
+        {
+            await File.WriteAllTextAsync(fixture.Path, xml ?? Xml);
+            var opened = await fixture.Session.OpenFileAsync(fixture.Path);
+            Assert.IsTrue(opened.Succeeded);
+            return fixture;
+        }
+        catch
+        {
+            await fixture.DisposeAsync();
+            throw;
+        }
     }
 
     internal string? Description(SclNodeHandle handle)

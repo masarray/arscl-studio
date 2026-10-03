@@ -41,7 +41,7 @@ public sealed class TransactionPerformanceTests
         Assert.AreSame(semantic, f.State.SemanticIndex);
         Assert.IsTrue(timer.Elapsed < TimeSpan.FromSeconds(30));
         Assert.IsTrue(allocated < 512L * 1024 * 1024, $"Staging allocated {allocated:N0} bytes.");
-        var rows = SclExplorerProjector.BuildEngineering(f.State, []);
+        var rows = SclExplorerProjector.BuildEngineering(f.State, new HashSet<ArSclStudio.Scl.Identity.SclNodeHandle>());
         Assert.IsTrue(rows.Count < 10);
         Assert.IsTrue((await f.Session.UndoAsync(f.Session.CurrentRevision)).Succeeded);
     }
