@@ -93,13 +93,15 @@ See:
 - `docs/testing/REAL_SCD_ENGINEERING_WORKSPACE_ACCEPTANCE.md`;
 - `docs/testing/M3A0_ACCEPTANCE.md`.
 
-### M3A — next: semantic/engineering diagnostics & remaining coverage
+### M3A — semantic/engineering diagnostics & remaining coverage — slice 1 implemented
 
 Acceptance:
-- add typed Semantic/Engineering diagnostics for the newly modeled Network, GOOSE, Data Model and Setting Groups domains;
-- surface unresolved/ambiguous model-chain findings with source navigation;
+- typed GOOSE endpoint engineering diagnostics: implemented;
+- DOI vs resolved LNodeType semantic consistency diagnostic: implemented;
+- Communication/SMV typed endpoint linkage: implemented;
+- SMV endpoint engineering diagnostics: implemented;
+- continue deeper model-chain findings with source navigation;
 - interpret supported Services without inventing unsupported capability;
-- extend SMV communication endpoint linkage using the same typed pattern used for GOOSE;
 - add edition-aware rule/schema-provider evolution using legally sourced assets;
 - add contextual engineering explanations without moving IEC logic into Desktop;
 - add Substation → VoltageLevel → Bay → ConductingEquipment → Terminal/LNode placement only when a real fixture is available;
