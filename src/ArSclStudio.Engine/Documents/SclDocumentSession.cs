@@ -64,13 +64,19 @@ public sealed class SclDocumentSession : IAsyncDisposable
                         .LoadFileAsync(path, token)
                         .ConfigureAwait(false);
 
+                    token.ThrowIfCancellationRequested();
+
                     var topLevel = SclTopLevelIndexer.Build(syntax);
+                    var semantic = SclSemanticIndexBuilder.Build(syntax);
+
+                    token.ThrowIfCancellationRequested();
 
                     return new PendingDocumentState(
                         Path.GetFullPath(path),
                         Path.GetFileName(path),
                         syntax,
-                        topLevel);
+                        topLevel,
+                        semantic);
                 },
                 cancellationToken).ConfigureAwait(false);
 
@@ -86,6 +92,7 @@ public sealed class SclDocumentSession : IAsyncDisposable
                         pending.DisplayName,
                         pending.Syntax,
                         pending.TopLevelIndex,
+                        pending.SemanticIndex,
                         revision);
 
                     lock (_stateGate)
@@ -224,5 +231,6 @@ public sealed class SclDocumentSession : IAsyncDisposable
         string SourcePath,
         string DisplayName,
         SclSyntaxDocument Syntax,
-        SclTopLevelIndex TopLevelIndex);
+        SclTopLevelIndex TopLevelIndex,
+        SclSemanticIndex SemanticIndex);
 }
