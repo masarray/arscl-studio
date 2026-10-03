@@ -1024,7 +1024,7 @@
               </Grid>
             </TabItem>
             <TabItem Header="Data Model">
-              <Grid ColumnDefinitions="220,5,*">
+              <Grid ColumnDefinitions="210,5,*">
                 <Grid Grid.Column="0" RowDefinitions="29,*">
                   <Grid
                     Background="{DynamicResource ThemeControlLowBrush}"
@@ -1082,7 +1082,7 @@
                 <Grid Grid.Column="2" RowDefinitions="27,*,76">
                   <Grid
                     Background="{DynamicResource ThemeControlLowBrush}"
-                    ColumnDefinitions="180,44,46,38,92,150,*">
+                    ColumnDefinitions="220,44,46,38,80,120,*">
                     <TextBlock Text="Name" Margin="6,5" FontWeight="SemiBold" />
                     <TextBlock Grid.Column="1" Text="Kind" Margin="6,5" FontWeight="SemiBold" />
                     <TextBlock Grid.Column="2" Text="CDC" Margin="6,5" FontWeight="SemiBold" />
@@ -1105,11 +1105,12 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                       <DataTemplate x:DataType="nav:SclDataModelRowProjection">
-                        <Grid ColumnDefinitions="180,44,46,38,92,150,*" Height="24">
+                        <Grid ColumnDefinitions="220,44,46,38,80,120,*" Height="24">
                           <TextBlock
                                      Text="{Binding Name}"
                                      Margin="{Binding Depth, Converter={StaticResource DepthToIndent}}"
-                                     TextTrimming="CharacterEllipsis" />
+                                     TextTrimming="CharacterEllipsis"
+                                     ToolTip.Tip="{Binding Path}" />
                           <TextBlock Grid.Column="1"
                                      Text="{Binding Kind}"
                                      Margin="6,4" />
