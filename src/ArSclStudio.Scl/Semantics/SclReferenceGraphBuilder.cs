@@ -20,7 +20,8 @@ internal static class SclReferenceGraphBuilder
         var logicalDevices = new UniqueHandleIndex<LogicalDeviceKey>();
         var logicalNodes = new UniqueHandleIndex<LogicalNodeKey>();
         var dataSets = new UniqueHandleIndex<DataSetKey>();
-        var gseControls = new UniqueHandleIndex<GseControlKey>();
+        var communicationControls =
+            new UniqueHandleIndex<CommunicationControlKey>();
 
         foreach (var node in index.Nodes)
         {
@@ -55,11 +56,12 @@ internal static class SclReferenceGraphBuilder
                     break;
 
                 case SclSemanticKind.GseControl:
-                    AddGseControl(
+                case SclSemanticKind.SampledValueControl:
+                    AddCommunicationControl(
                         syntax,
                         index,
                         node,
-                        gseControls);
+                        communicationControls);
                     break;
             }
         }
@@ -123,11 +125,23 @@ internal static class SclReferenceGraphBuilder
                     break;
 
                 case SclSemanticKind.GseCommunication:
-                    AddGseCommunicationBinding(
+                    AddCommunicationControlBinding(
                         syntax,
                         index,
                         node,
-                        gseControls,
+                        SclSemanticKind.GseControl,
+                        communicationControls,
+                        edges,
+                        issues);
+                    break;
+
+                case SclSemanticKind.SmvCommunication:
+                    AddCommunicationControlBinding(
+                        syntax,
+                        index,
+                        node,
+                        SclSemanticKind.SampledValueControl,
+                        communicationControls,
                         edges,
                         issues);
                     break;
@@ -282,13 +296,16 @@ internal static class SclReferenceGraphBuilder
         }
     }
 
-    private static void AddGseControl(
+    private static void AddCommunicationControl(
         SclSyntaxDocument syntax,
         SclSemanticIndex index,
         SclSemanticNode node,
-        UniqueHandleIndex<GseControlKey> destination)
+        UniqueHandleIndex<CommunicationControlKey> destination)
     {
-        if (!TryGetAncestorAttribute(
+        if (node.Kind is not (
+                SclSemanticKind.GseControl or
+                SclSemanticKind.SampledValueControl) ||
+            !TryGetAncestorAttribute(
                 syntax,
                 index,
                 node.Parent,
@@ -312,22 +329,27 @@ internal static class SclReferenceGraphBuilder
         }
 
         destination.TryAdd(
-            new GseControlKey(
+            new CommunicationControlKey(
+                node.Kind,
                 iedName,
                 ldInst,
                 name),
             node.Handle);
     }
 
-    private static void AddGseCommunicationBinding(
+    private static void AddCommunicationControlBinding(
         SclSyntaxDocument syntax,
         SclSemanticIndex index,
         SclSemanticNode node,
-        UniqueHandleIndex<GseControlKey> gseControls,
+        SclSemanticKind expectedControlKind,
+        UniqueHandleIndex<CommunicationControlKey> controls,
         List<SclReferenceEdge> edges,
         List<SclReferenceIssue> issues)
     {
-        if (!TryGetAncestorAttribute(
+        if (expectedControlKind is not (
+                SclSemanticKind.GseControl or
+                SclSemanticKind.SampledValueControl) ||
+            !TryGetAncestorAttribute(
                 syntax,
                 index,
                 node.Parent,
@@ -348,12 +370,13 @@ internal static class SclReferenceGraphBuilder
             return;
         }
 
-        var key = new GseControlKey(
+        var key = new CommunicationControlKey(
+            expectedControlKind,
             iedName,
             ldInst,
             cbName);
 
-        var resolution = gseControls.Resolve(
+        var resolution = controls.Resolve(
             key,
             out var target);
 
@@ -380,7 +403,7 @@ internal static class SclReferenceGraphBuilder
             SclReferenceKind.CommunicationControlBinding,
             resolution,
             referenceText,
-            SclSemanticKind.GseControl);
+            expectedControlKind);
     }
 
     private static void AddLogicalNodeTypeReference(
@@ -913,7 +936,8 @@ internal static class SclReferenceGraphBuilder
         SclNodeHandle LogicalNode,
         string Name);
 
-    private readonly record struct GseControlKey(
+    private readonly record struct CommunicationControlKey(
+        SclSemanticKind Kind,
         string IedName,
         string LdInst,
         string Name);
