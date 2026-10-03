@@ -11,6 +11,7 @@ internal static class SclEngineeringDiagnosticAnalyzer
     public static void AppendDiagnostics(
         SclDocumentState state,
         List<Diagnostic> diagnostics,
+        bool includeDeepModelChecks,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -31,10 +32,13 @@ internal static class SclEngineeringDiagnosticAnalyzer
             diagnostics,
             cancellationToken);
 
-        AppendDataModelDiagnostics(
-            state,
-            diagnostics,
-            cancellationToken);
+        if (includeDeepModelChecks)
+        {
+            AppendDataModelDiagnostics(
+                state,
+                diagnostics,
+                cancellationToken);
+        }
 
         AppendSettingGroupDiagnostics(
             state,
