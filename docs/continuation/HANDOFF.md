@@ -4,15 +4,17 @@ Last updated: 2026-10-03
 
 ## Current phase
 
-M0 — Foundation, active.
+M0 — Foundation, with the first M1 document-loading slice already landed.
 
 Branch: `foundation/m0-architecture`
 
-Last code commit verified by cross-platform CI before this documentation update:
-`55981e2f5b0b68b14f2fd940ba5ee85009c31fb7`
+Draft PR: #1 — `M0 foundation: Avalonia architecture, reliability contracts, and engine skeleton`
+
+Latest code commit verified by cross-platform CI before this documentation update:
+`324f98befdf499ead9adec9effb8cebbfb9b824b`
 
 Verified CI run:
-`37093403688` — Windows, Ubuntu, and macOS build + tests all passed.
+`37093777256` — Windows, Ubuntu, and macOS build + tests all passed.
 
 ## Product intent
 
@@ -33,7 +35,7 @@ See `docs/architecture/GUI_UX.md`.
 
 C# / .NET 10 / Avalonia 12.
 
-Projects now exist:
+Projects:
 - `ArSclStudio.Scl`
 - `ArSclStudio.Engine`
 - `ArSclStudio.Profiles`
@@ -44,7 +46,7 @@ Engine is headless. Desktop never edits XML directly.
 
 Authoritative source is the SCL syntax document; semantic models are indexed projections rather than independently serialized copies.
 
-## Implemented M0 subset
+## Implemented foundation
 
 ### Repository governance
 - strict `AGENTS.md`
@@ -52,15 +54,25 @@ Authoritative source is the SCL syntax document; semantic models are indexed pro
 - ADRs for Avalonia, source-of-truth, transactions, workers, virtualization, and validation-vs-compatibility
 - implementation roadmap and research notes
 
-### SCL foundation
-- secure XML reader defaults
+### Secure/preservation-oriented SCL loading
+- secure XML defaults
 - DTD prohibited
 - external resolver disabled
 - configurable maximum document size
 - lightweight SCL probe
-- extension-based file-kind hint
-- Header/schema revision probe
-- canonical identity primitives
+- asynchronous cancellable DOM construction
+- whitespace/comments/processing instructions retained
+- vendor namespace prefixes, unknown elements/attributes, and Private content retained
+- source line/column captured for selectable nodes
+- stable runtime `SclNodeHandle` registry
+- immutable on-demand node-info projection
+- XML snapshot only through an explicit API, not exposed mutable DOM to Desktop
+- top-level semantic index for Header/Substation/Communication/IED/DataTypeTemplates/Private
+
+Important fidelity wording:
+- the loader targets engineering/semantic/vendor-content preservation
+- byte-for-byte lexical identity (attribute quote style, entity spelling, original formatting bytes) is not currently promised
+- no-edit save can later preserve the original bytes as an optimization; edited export will be validated for semantic/vendor-content fidelity
 
 ### Engine foundation
 - document revision
@@ -79,7 +91,7 @@ Authoritative source is the SCL syntax document; semantic models are indexed pro
 - contextual center editor
 - Context/Where Used pane
 - Problems/References/Changes/Signal Basket/Diff bottom tool area
-- virtualizing list baseline rather than recursive control tree
+- virtualizing-list baseline rather than recursive control tree
 
 ### Tooling
 - headless CLI using the same SCL layer
@@ -88,7 +100,7 @@ Authoritative source is the SCL syntax document; semantic models are indexed pro
 
 ## Reliability/performance commitments
 
-The architecture is already committed to:
+The architecture is committed to:
 - secure XML defaults
 - document revisions
 - stale worker result rejection
@@ -103,18 +115,18 @@ The architecture is already committed to:
 - vendor/private XML preservation
 - round-trip gates
 
-These are contracts. Some are not implemented yet; do not claim otherwise.
+Some contracts, especially editing transactions and transactional export, are not implemented yet; do not claim otherwise.
 
 ## Known limitations
 
-The current GUI uses demonstration rows to prove shell/layout only; it is not wired to a real semantic tree yet.
+The current GUI uses demonstration rows to prove shell/layout only; it is not yet wired to the loaded SCL model.
 
-The SCL probe is not the full lossless document loader.
+The top-level index is intentionally shallow. The complete IEC reference graph and type/data model indexes are still pending.
 
 The following are deliberately not implemented yet:
-- semantic reference graph
-- schema validation packs
-- complete IEC object model/index
+- full IEC semantic reference graph
+- schema/OCL validation packs
+- complete IED/LN/DO/DA/type indexes
 - editing transactions/undo
 - real save/export
 - semantic diff/merge
@@ -123,16 +135,16 @@ The following are deliberately not implemented yet:
 
 ## Immediate next acceptance target
 
-Finish the remainder of M0 and begin M1 in controlled vertical slices:
+Continue M1 in controlled vertical slices:
 
-1. implement lossless document-load abstraction with source/node handles
-2. create shallow semantic index for root/Header/Substation/Communication/IED/DataTypeTemplates
-3. replace static ExplorerRows with a flattened virtualized projection backed by the loaded document
-4. wire Open file -> Session -> probe/load -> explorer
-5. source-linked parse diagnostics
-6. selection service shared by Engineering and XML projections
-7. large synthetic fixture and open/close leak/performance test
-8. preserve the same green Windows/Linux/macOS CI baseline
+1. create a real `Open file -> SclDocumentSession -> SclDocumentLoader -> top-level index` Engine pipeline
+2. replace static ExplorerRows with a flattened virtualized projection backed by real node handles
+3. synchronize Engineering and XML selection through a SelectionService
+4. expose contextual details from immutable semantic projections
+5. route parse/load failures to source-linked Problems
+6. add large synthetic SCL fixture and timing/allocation regression baseline
+7. add repeated open/close collectability test for session-owned state
+8. preserve the green Windows/Linux/macOS CI baseline
 
 ## Continuation rule
 
@@ -140,5 +152,5 @@ Before changing implementation:
 1. read `AGENTS.md`
 2. read architecture ADRs
 3. inspect this handoff
-4. confirm current branch/CI
+4. confirm current branch/PR/CI
 5. continue the current milestone instead of redesigning completed decisions without evidence
