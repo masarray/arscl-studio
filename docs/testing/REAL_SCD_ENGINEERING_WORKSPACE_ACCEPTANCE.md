@@ -244,3 +244,66 @@ The fixture is considered **opened successfully as an IEC 61850 engineering proj
 10. Where in the original SCL did a selected engineering object come from, when expert traceability is needed?
 
 If those questions require navigating generic XML nodes, the engineering workspace is not complete.
+
+## M3A0 implementation status
+
+Automated workstation implementation now exists for:
+- IED overview;
+- Network;
+- GOOSE/GSSE;
+- DataSets;
+- Reports & Logs;
+- Data Model;
+- Setting Groups.
+
+The supplied fixture has no `Substation` section, so no Substation workspace is enabled for this acceptance target.
+
+### GOOSE implementation notes
+
+The real fixture has six `GSEControl` objects but only five Communication/`GSE` Ethernet endpoints. One BCUGE control is `type="GSSE"`. The implementation preserves this distinction:
+- GOOSE endpoints are joined to GSEControl by IED + LD + control-block name;
+- GSSE is shown as GSSE with endpoint status not applicable;
+- no endpoint is invented.
+
+Subscriber relationships are matched by source signal identity:
+`iedName + ldInst + prefix + lnClass + lnInst + doName + daName`.
+
+The implementation does not require vendor-specific `srcCBName` metadata to infer a subscriber.
+
+### Data Model implementation notes
+
+The workstation resolves the type-template chain and overlays instance data:
+`LN → LNodeType → DO → DOType → DA/SDO → DAType/BDA`.
+
+DOI/SDI/DAI values override the display value for their resolved model row while the type definition remains visible through type-id metadata.
+
+### Setting Groups implementation notes
+
+Setting Groups are derived from the same resolved Data Model:
+- only leaf DA/BDA rows with FC=`SG` are projected as settings;
+- sibling `units` metadata is joined when present;
+- `minVal`, `maxVal` and `stepSize` are joined using the same nested leaf suffix;
+- no engineering unit or setting meaning is guessed from a DAI name alone.
+
+### Automated implementation evidence
+
+Verified executable head:
+`8f8148d0336d0694b6ae03240d0d0c8715d0e60d`
+
+GitHub Actions run:
+`37124979451`
+
+Result:
+- Windows build + tests: green;
+- Ubuntu build + tests: green;
+- macOS build + tests: green;
+- Windows self-contained publish: green;
+- build: 0 warnings / 0 errors on the verified Ubuntu run;
+- SCL tests: 10/10;
+- Engine/Desktop tests: 54/54;
+- total: **64 tests per OS**.
+
+Verified Windows artifact:
+`ARSCL-Studio-win-x64` — artifact `11273649986`.
+
+Automated tests cover the projector contracts and shared navigation. Final GUI spacing, DPI, typography and comparison against the real supplied station file remain manual visual acceptance.
