@@ -1460,52 +1460,71 @@
                     </StackPanel>
                   </Border>
 
-                  <Grid
-                    ColumnDefinitions="82,*"
-                    RowDefinitions="Auto,Auto,Auto,Auto"
-                    Margin="8">
-                    <TextBlock Text="Type" Classes="propertyName" />
-                    <TextBlock
-                      Grid.Column="1"
-                      Text="{Binding DetailKind}"
-                      TextTrimming="CharacterEllipsis" />
+                  <StackPanel>
+                    <Border
+                      BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="8,5">
+                      <Grid ColumnDefinitions="74,*">
+                        <TextBlock Text="Type" Classes="propertyName" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding DetailKind}"
+                                   TextTrimming="CharacterEllipsis" />
+                      </Grid>
+                    </Border>
 
-                    <TextBlock
-                      Grid.Row="1"
-                      Text="Value"
-                      Classes="propertyName"
-                      Margin="0,6,8,0" />
-                    <TextBlock
-                      Grid.Row="1"
-                      Grid.Column="1"
-                      Text="{Binding DetailValue}"
-                      Margin="0,6,0,0"
-                      TextWrapping="Wrap" />
+                    <Border
+                      BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="8,5">
+                      <Grid ColumnDefinitions="74,*">
+                        <TextBlock Text="Value" Classes="propertyName" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding DetailValue}"
+                                   TextWrapping="Wrap"
+                                   ToolTip.Tip="{Binding DetailValue}" />
+                      </Grid>
+                    </Border>
 
-                    <TextBlock
-                      Grid.Row="2"
-                      Text="Path"
-                      Classes="propertyName"
-                      Margin="0,6,8,0" />
-                    <TextBlock
-                      Grid.Row="2"
-                      Grid.Column="1"
-                      Text="{Binding DetailPath}"
-                      Margin="0,6,0,0"
-                      TextWrapping="Wrap" />
+                    <Border
+                      BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="8,5">
+                      <Grid ColumnDefinitions="74,*">
+                        <TextBlock Text="Path" Classes="propertyName" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding DetailPath}"
+                                   TextWrapping="Wrap"
+                                   ToolTip.Tip="{Binding DetailPath}" />
+                      </Grid>
+                    </Border>
 
-                    <TextBlock
-                      Grid.Row="3"
-                      Text="Source"
-                      Classes="propertyName"
-                      Margin="0,6,8,0" />
-                    <TextBlock
-                      Grid.Row="3"
-                      Grid.Column="1"
-                      Text="{Binding DetailSource}"
-                      Margin="0,6,0,0"
-                      TextWrapping="Wrap" />
-                  </Grid>
+                    <Border
+                      BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="8,5">
+                      <Grid ColumnDefinitions="74,*">
+                        <TextBlock Text="Source" Classes="propertyName" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding DetailSource}"
+                                   TextWrapping="Wrap"
+                                   ToolTip.Tip="{Binding DetailSource}" />
+                      </Grid>
+                    </Border>
+
+                    <Border
+                      BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                      BorderThickness="0,0,0,1"
+                      Padding="8,5">
+                      <Grid ColumnDefinitions="74,*">
+                        <TextBlock Text="Namespace" Classes="propertyName" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding DetailNamespace}"
+                                   TextWrapping="Wrap"
+                                   ToolTip.Tip="{Binding DetailNamespace}" />
+                      </Grid>
+                    </Border>
+                  </StackPanel>
 
                   <Border
                     BorderBrush="{DynamicResource ThemeBorderLowBrush}"
