@@ -12,7 +12,7 @@
   MinWidth="1180"
   MinHeight="720">
 
-  <Grid RowDefinitions="Auto,Auto,Auto,*,190,Auto">
+  <Grid RowDefinitions="Auto,Auto,Auto,*,5,185,Auto">
     <Menu Grid.Row="0">
       <MenuItem Header="_File">
         <MenuItem Header="_Open SCL..." Click="OpenFileClick" IsEnabled="{Binding CanOpen}" />
@@ -1492,13 +1492,18 @@
       </Border>
     </Grid>
 
-    <Border
+    <GridSplitter
       Grid.Row="4"
+      Height="5"
+      ResizeDirection="Rows" />
+
+    <Border
+      Grid.Row="5"
       Classes="panel"
-      Margin="0,4,0,0">
+      Margin="0">
       <TabControl>
         <TabItem Header="Problems">
-          <Grid RowDefinitions="30,*">
+          <Grid RowDefinitions="26,*">
             <Grid
               ColumnDefinitions="85,105,105,120,*,150"
               Background="{DynamicResource ThemeControlLowBrush}">
@@ -1524,8 +1529,8 @@
                 <DataTemplate x:DataType="vm:ProblemRow">
                   <Grid
                     ColumnDefinitions="85,105,105,120,*,150"
-                    Height="28">
-                    <TextBlock Text="{Binding Severity}" Margin="8,4" />
+                    Height="25">
+                    <TextBlock Text="{Binding Severity}" Margin="6,3" />
                     <TextBlock Grid.Column="1" Text="{Binding Code}" Margin="8,4" />
                     <TextBlock Grid.Column="2" Text="{Binding Domain}" Margin="8,4" />
                     <TextBlock Grid.Column="3" Text="{Binding ObjectName}" Margin="8,4" />
@@ -1619,8 +1624,8 @@
     </Border>
 
     <Border
-      Grid.Row="5"
-      Padding="8,5"
+      Grid.Row="6"
+      Padding="7,3"
       BorderBrush="{DynamicResource ThemeBorderLowBrush}"
       BorderThickness="0,1,0,0">
       <Grid ColumnDefinitions="*,Auto">
