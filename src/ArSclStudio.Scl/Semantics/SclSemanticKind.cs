@@ -13,6 +13,7 @@ public enum SclSemanticKind
     Address,
     Ied,
     Services,
+    ServiceCapability,
     AccessPoint,
     Server,
     LogicalDevice,
