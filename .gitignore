@@ -1,0 +1,15 @@
+bin/
+obj/
+artifacts/
+TestResults/
+BenchmarkDotNet.Artifacts/
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.cache
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
