@@ -383,7 +383,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                     _selectionService.Select(
                         SelectedIedWorkspace?.Handle ??
                         result.State.Syntax.RootHandle);
-                    await RefreshValidationAsync(cancellationToken);
+                    await RefreshValidationAsync(
+                        cancellationToken: cancellationToken);
                     StatusText =
                         $"Loaded {result.State.Syntax.IndexedNodeCount:N0} XML nodes • " +
                         $"{result.State.SemanticIndex.NodeCount:N0} IEC objects • " +
