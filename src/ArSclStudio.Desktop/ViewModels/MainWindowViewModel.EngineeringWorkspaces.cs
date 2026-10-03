@@ -14,6 +14,13 @@ public sealed partial class MainWindowViewModel
     private int _selectedEngineeringWorkspaceIndex;
 
     [ObservableProperty]
+    private IReadOnlyList<SclServiceCapabilityProjection> _serviceCapabilityRows =
+        Array.Empty<SclServiceCapabilityProjection>();
+
+    [ObservableProperty]
+    private SclServiceCapabilityProjection? _selectedServiceCapability;
+
+    [ObservableProperty]
     private IReadOnlyList<SclNetworkWorkspaceProjection> _networkWorkspaceRows =
         Array.Empty<SclNetworkWorkspaceProjection>();
 
@@ -89,6 +96,11 @@ public sealed partial class MainWindowViewModel
 
     [ObservableProperty]
     private SclSettingGroupSettingProjection? _selectedSettingGroupSetting;
+
+    public string ServicesWorkspaceHeader =>
+        ServiceCapabilityRows.Count == 0
+            ? "Declared Services"
+            : $"Declared Services ({ServiceCapabilityRows.Count})";
 
     public string GooseWorkspaceHeader =>
         GooseWorkspaceRows.Count == 0
@@ -205,6 +217,17 @@ public sealed partial class MainWindowViewModel
                     _selectionService.Select(settingControl.Handle);
                 }
                 break;
+        }
+    }
+
+    partial void OnSelectedServiceCapabilityChanged(
+        SclServiceCapabilityProjection? value)
+    {
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            _selectionService.Select(value.Handle);
         }
     }
 
@@ -408,6 +431,7 @@ public sealed partial class MainWindowViewModel
 
         _workspaceIedHandle = iedHandle;
 
+        var selectedServiceHandle = SelectedServiceCapability?.Handle;
         var selectedGooseHandle = SelectedGooseWorkspace?.Handle;
         var selectedDataSetHandle = SelectedDataSetWorkspace?.Handle;
         var selectedReportHandle = SelectedReportWorkspace?.Handle;
@@ -415,6 +439,11 @@ public sealed partial class MainWindowViewModel
             SelectedDataModelLogicalNode?.Handle;
         var selectedSettingControlHandle =
             SelectedSettingGroupControl?.Handle;
+
+        var serviceCapabilities =
+            SclServicesWorkspaceProjector.Build(
+                state,
+                iedHandle);
 
         var gooseControls = SclGooseWorkspaceProjector.BuildCatalog(
             state,
@@ -443,17 +472,26 @@ public sealed partial class MainWindowViewModel
 
         try
         {
+            ServiceCapabilityRows = serviceCapabilities;
             GooseWorkspaceRows = gooseControls;
             DataSetWorkspaceRows = dataSets;
             ReportWorkspaceRows = reports;
             DataModelLogicalNodes = dataModelLogicalNodes;
             SettingGroupControls = settingControls;
 
-            OnPropertyChanged(nameof(GooseWorkspaceHeader));
+            OnPropertyChanged(nameof(ServicesWorkspaceHeader));
+            OnPropertyChanged(nameof(ServicesWorkspaceHeader));
+        OnPropertyChanged(nameof(GooseWorkspaceHeader));
             OnPropertyChanged(nameof(DataSetWorkspaceHeader));
             OnPropertyChanged(nameof(ReportWorkspaceHeader));
             OnPropertyChanged(nameof(DataModelWorkspaceHeader));
             OnPropertyChanged(nameof(SettingGroupsWorkspaceHeader));
+
+            SelectedServiceCapability =
+                selectedServiceHandle is { } serviceHandle
+                    ? serviceCapabilities.FirstOrDefault(
+                        row => row.Handle == serviceHandle)
+                    : null;
 
             var nextGoose = selectedGooseHandle is { } gooseHandle
                 ? gooseControls.FirstOrDefault(row => row.Handle == gooseHandle)
@@ -505,6 +543,8 @@ public sealed partial class MainWindowViewModel
     private void ClearIedScopedWorkspaces()
     {
         _workspaceIedHandle = SclNodeHandle.None;
+        ServiceCapabilityRows = Array.Empty<SclServiceCapabilityProjection>();
+        SelectedServiceCapability = null;
         GooseWorkspaceRows = Array.Empty<SclGooseWorkspaceProjection>();
         SelectedGooseWorkspace = null;
         GooseSignalRows = Array.Empty<SclGooseSignalProjection>();
@@ -537,6 +577,15 @@ public sealed partial class MainWindowViewModel
         SclDocumentState state,
         SclNodeHandle selected)
     {
+        var selectedService =
+            ServiceCapabilityRows.FirstOrDefault(
+                row => row.Handle == selected);
+
+        if (selectedService is not null)
+        {
+            SelectedServiceCapability = selectedService;
+        }
+
         if (!state.SemanticIndex.TryGetNode(
                 selected,
                 out var selectedNode) ||
