@@ -1588,21 +1588,55 @@
       Classes="panel"
       Margin="0">
       <TabControl>
-        <TabItem Header="Problems">
-          <Grid RowDefinitions="26,*">
+        <TabItem Header="{Binding ProblemsHeader}">
+          <Grid RowDefinitions="31,26,*">
+            <Border
+              Grid.Row="0"
+              BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="5,3">
+              <Grid ColumnDefinitions="135,145,*,Auto">
+                <ComboBox
+                  Grid.Column="0"
+                  MinHeight="25"
+                  ItemsSource="{Binding ProblemSeverityFilters}"
+                  SelectedItem="{Binding SelectedProblemSeverityFilter, Mode=TwoWay}" />
+                <ComboBox
+                  Grid.Column="1"
+                  MinHeight="25"
+                  Margin="5,0,0,0"
+                  ItemsSource="{Binding ProblemDomainFilters}"
+                  SelectedItem="{Binding SelectedProblemDomainFilter, Mode=TwoWay}" />
+                <TextBox
+                  Grid.Column="2"
+                  MinHeight="25"
+                  Margin="5,0,0,0"
+                  Watermark="Filter code, object, message or source..."
+                  Text="{Binding ProblemFilterText, Mode=TwoWay}" />
+                <TextBlock
+                  Grid.Column="3"
+                  Text="{Binding ProblemSummary}"
+                  Margin="10,0,4,0"
+                  VerticalAlignment="Center"
+                  Opacity="0.62" />
+              </Grid>
+            </Border>
+
             <Grid
-              ColumnDefinitions="85,105,105,120,*,150"
+              Grid.Row="1"
+              ColumnDefinitions="78,105,105,125,*,165"
               Background="{DynamicResource ThemeControlLowBrush}">
-              <TextBlock Text="Severity" Margin="8,6" FontWeight="SemiBold" />
-              <TextBlock Grid.Column="1" Text="Code" Margin="8,6" FontWeight="SemiBold" />
-              <TextBlock Grid.Column="2" Text="Domain" Margin="8,6" FontWeight="SemiBold" />
-              <TextBlock Grid.Column="3" Text="Object" Margin="8,6" FontWeight="SemiBold" />
-              <TextBlock Grid.Column="4" Text="Message" Margin="8,6" FontWeight="SemiBold" />
-              <TextBlock Grid.Column="5" Text="Source" Margin="8,6" FontWeight="SemiBold" />
+              <TextBlock Text="Severity" Margin="6,4" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="1" Text="Code" Margin="6,4" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="2" Text="Domain" Margin="6,4" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="3" Text="Object" Margin="6,4" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="4" Text="Message" Margin="6,4" FontWeight="SemiBold" />
+              <TextBlock Grid.Column="5" Text="Source" Margin="6,4" FontWeight="SemiBold" />
             </Grid>
 
             <ListBox
-              Grid.Row="1"
+              Grid.Row="2"
+              Classes="engineeringGrid"
               ItemsSource="{Binding Problems}"
               SelectedItem="{Binding SelectedProblemRow, Mode=TwoWay}"
               BorderThickness="0">
@@ -1614,22 +1648,30 @@
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:ProblemRow">
                   <Grid
-                    ColumnDefinitions="85,105,105,120,*,150"
-                    Height="25">
+                    ColumnDefinitions="78,105,105,125,*,165"
+                    Height="25"
+                    ToolTip.Tip="{Binding Message}">
                     <TextBlock Text="{Binding Severity}" Margin="6,3" />
-                    <TextBlock Grid.Column="1" Text="{Binding Code}" Margin="8,4" />
-                    <TextBlock Grid.Column="2" Text="{Binding Domain}" Margin="8,4" />
-                    <TextBlock Grid.Column="3" Text="{Binding ObjectName}" Margin="8,4" />
-                    <TextBlock
-                      Grid.Column="4"
-                      Text="{Binding Message}"
-                      Margin="8,4"
-                      TextTrimming="CharacterEllipsis" />
-                    <TextBlock
-                      Grid.Column="5"
-                      Text="{Binding Source}"
-                      Margin="8,4"
-                      TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Code}"
+                               Margin="6,3"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding Domain}"
+                               Margin="6,3"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="3"
+                               Text="{Binding ObjectName}"
+                               Margin="6,3"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="4"
+                               Text="{Binding Message}"
+                               Margin="6,3"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="5"
+                               Text="{Binding Source}"
+                               Margin="6,3"
+                               TextTrimming="CharacterEllipsis" />
                   </Grid>
                 </DataTemplate>
               </ListBox.ItemTemplate>
