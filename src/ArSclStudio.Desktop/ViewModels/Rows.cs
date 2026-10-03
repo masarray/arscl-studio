@@ -30,6 +30,7 @@ public sealed record ProblemRow(
     string Domain,
     string ObjectName,
     string Message,
+    string Explanation,
     string Source)
 {
     public static ProblemRow FromDiagnostic(
@@ -57,6 +58,7 @@ public sealed record ProblemRow(
                 ? diagnostic.Node.IsNone ? "Document" : diagnostic.Node.ToString()
                 : objectName,
             diagnostic.Message,
+            diagnostic.Explanation ?? string.Empty,
             source);
     }
 }
