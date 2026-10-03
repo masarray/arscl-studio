@@ -341,7 +341,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                     ChangeRows = Array.Empty<ChangeRow>();
                     PublishDocument(result.State);
                     PublishDiagnostics(result.Diagnostics, result.State);
-                    _selectionService.Select(result.State.Syntax.RootHandle);
+                    _selectionService.Select(
+                        SelectedIedWorkspace?.Handle ??
+                        result.State.Syntax.RootHandle);
                     await RefreshValidationAsync(cancellationToken);
                     StatusText =
                         $"Loaded {result.State.Syntax.IndexedNodeCount:N0} XML nodes • " +
