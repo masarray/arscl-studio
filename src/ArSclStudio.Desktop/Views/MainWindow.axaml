@@ -1382,6 +1382,7 @@
                     <TextBlock
                       Grid.Column="4"
                       Text="{Binding Message}"
+                      ToolTip.Tip="{Binding Explanation}"
                       Margin="8,4"
                       TextTrimming="CharacterEllipsis" />
                     <TextBlock
