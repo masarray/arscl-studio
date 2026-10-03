@@ -4,150 +4,156 @@ Last updated: 2026-10-03
 
 ## Current phase
 
-**M2B — Validation & Reference Diagnostics: COMPLETE (automated code acceptance).**
+**M3A0 — IEC 61850 Engineering Workstation: COMPLETE for the current golden SCD domains; manual visual acceptance pending.**
 
 - Repository: `masarray/arscl-studio`
-- Branch: `feature/m2b-validation-reference-diagnostics`
-- PR: #4
-- Base: M2A main `8c143b7bf4c9b044429c4da57c0ccf00371f9489`
-- Verified executable-code head: `22bec93f3c564d2e98c17ace2cf0b71046b85f45`
-- Verified code CI: run `37117698045`
-- Windows / Ubuntu / macOS: build + **55 tests per OS passed** (10 SCL + 45 Engine/Desktop)
-- Windows self-contained desktop artifact from the verified code run: `11271414372`
-- Documentation-only commits after the verified code head do not change executable behavior; final PR/main CI must still remain green.
+- Branch: `feature/m3a0-iec-workstation-ia`
+- PR: #5 (draft; keep unmerged until visual audit is accepted)
+- Base main: `6bb9eab76814280e5f27557d638612ab88039eb0` (M2B)
+- Verified executable head: `8f8148d0336d0694b6ae03240d0d0c8715d0e60d`
+- Verified executable CI: `37124979451`
+- Windows / Ubuntu / macOS build + tests: green
+- SCL tests: 10/10 per OS
+- Engine/Desktop tests: 54/54 per OS
+- Total: **64/64 tests per OS**
+- Verified Windows self-contained artifact: `11273649986` (`ARSCL-Studio-win-x64`)
+- Verified build digest: `sha256:325e3c0112e7fe2e64ff1a14ea8072955823a6c995e17ef6b0def2d8a05bd594`
 
-## Read first
+Documentation-only commits after the executable head do not change runtime behavior. Final PR-head CI must still remain green before merge.
 
-1. `AGENTS.md` — mandatory reliability, ownership and no-naive-coding contract.
-2. `docs/adr/0007-isolated-property-transactions.md` — M2A transaction/save invariants.
-3. `docs/adr/0008-validation-reference-diagnostics.md` — M2B validation/reference invariants.
-4. `docs/testing/M2B_ACCEPTANCE.md` — exact automated evidence and limits.
-5. Existing architecture/IEC strategy and ADRs 0001–0006.
+## Golden acceptance fixture
 
-ARSCL remains a cross-platform Avalonia/.NET 10 IEC 61850 engineering workbench. Desktop never mutates SCL XML. The preservation-oriented syntax document is authoritative; semantic/reference/validation objects are projections over stable source handles.
+User-supplied real SCD:
+`IEC_station_1_20260924_C264_SCC_SELECTIVE_POLL_CSWI3.scd`
 
-## Stable baseline retained
+SHA-256:
+`45dd0b8c0a39c0aaefcda2419fc24efea49030f04f09e9fe644678b60f6cbab5`
 
-From M1B/M2A:
-- secure SCL loader and vendor/private XML preservation;
-- stable `SclNodeHandle` and source spans;
-- lazy flattened Engineering/XML trees and virtualized lists;
-- IED/AP/Server/LD/LN, DataSet/FCDA, report/log/GOOSE/SV controls, Inputs/ExtRef, DOI/SDI/DAI and type templates;
-- typed resolved reference graph, Where Used and semantic search;
-- compound transaction staging, rollback, bounded patch history, undo/redo;
-- only direct standard-namespace `IED.desc` is editable;
-- verified atomic Save/Save As with external-modification protection;
-- cancellation, bounded workers, latest-wins work, stale revision rejection and lifecycle tests.
+The fixture itself is not committed.
 
-## M2B implemented scope
+Read:
+- `docs/testing/REAL_SCD_ENGINEERING_WORKSPACE_ACCEPTANCE.md`
+- `docs/testing/M3A0_ACCEPTANCE.md`
+- `docs/ux/IEC61850_WORKSTATION_INFORMATION_ARCHITECTURE.md`
 
-### Reference evidence
+## Product direction locked by M3A0
 
-The reference graph now retains both:
-- resolved typed edges;
-- `SclReferenceIssue` records for unresolved or ambiguous targets.
+ARSCL is an IEC 61850 engineering workstation, not an XML viewer with IEC labels.
 
-The resolver distinguishes Missing / Unique / Ambiguous. Duplicate identities are never resolved by first/random match.
+Enabled engineering workspaces:
+`IED Overview | Network | GOOSE | DataSets | Reports & Logs | Data Model | Setting Groups`
 
-Current diagnostics cover the reference kinds already supported by the M1B graph, including:
-- LN/type-template references;
-- DO/DA type references;
-- DataSet control bindings;
-- ConnectedAP → IED/AP;
-- FCDA → logical node;
-- ExtRef → source logical node.
+Secondary/expert views:
+`Model Tree | XML`
 
-Do not assume this is every possible IEC 61850 reference yet.
+Desktop must never walk XML to invent IEC meaning. Every enabled workspace must be backed by an Engine projector and tests.
 
-### Validation
+## Implemented workspaces
 
-- `SclValidationSnapshot` is stamped with its source `DocumentRevision`.
-- reference diagnostics contain source handle, path/span and revision;
-- `SCL-REF-0001`: unresolved;
-- `SCL-REF-0002`: ambiguous/no-guess;
-- Reference, Schema, Semantic, Engineering and Compatibility remain distinct domains;
-- `ValidateFastAsync` and `ValidateFullAsync` use the existing latest-work coordinator;
-- same-kind newer validation supersedes/cancels older work;
-- stale revision output is rejected before publication.
+### IED Overview
+- default landing context is an IED, not the SCL root;
+- manufacturer/description;
+- AP / LD / LN / DataSet / Report / GOOSE / Setting Group counts;
+- vendor Private XML stays preserved but out of the primary engineering navigation.
 
-### Schema provider
+### Network
+- SubNetwork and network type;
+- ConnectedAP;
+- IED/AP;
+- IP, subnet, gateway;
+- OSI AP-title/AE-qualifier retained when present;
+- shared source navigation.
 
-`ISclSchemaProvider` is the pluggable boundary for legally sourced schema assets.
+### GOOSE / GSSE
+- Communication/GSE is a typed semantic object;
+- deterministic Communication/GSE ↔ GSEControl binding via IED + LD + control name;
+- GOOSE vs GSSE remains distinct;
+- bound DataSet and FCDA member signals;
+- MAC / network APPID / VLAN / priority;
+- MinTime / MaxTime;
+- ExtRef subscribers matched by source signal identity;
+- no guessed srcCBName/control-block relation.
 
-The default provider is intentionally unavailable and reports that state explicitly. ARSCL does not embed normative IEC schema text whose redistribution rights have not been verified.
+### DataSets
+- IED-scoped DataSet catalog;
+- LD / LN / DataSet;
+- member and usage counts;
+- FCDA member LD / LN / DO / DA / FC / reference;
+- shared source navigation.
 
-A configured provider reports:
-- provider ID;
-- Available / Unavailable / UnsupportedRevision;
-- message;
-- provenance.
+### Reports & Logs
+- BRCB vs URCB;
+- DataSet;
+- rptID;
+- confRev;
+- bufTime / intgPd;
+- RptEnabled max;
+- readable TrgOps;
+- readable OptFields.
 
-Fast validation can report that a provider is available while deferring heavy XSD work. Full validation invokes the provider when Available.
+### Data Model
+- IED-scoped LD/LN selector;
+- LN → LNodeType → DO → DOType → DA/SDO → DAType/BDA resolution;
+- DOI/SDI/DAI instance overlay;
+- CDC / FC / bType / configured value / type ID / description;
+- row source points at the instance when present, otherwise at the type definition.
 
-### Desktop
+### Setting Groups
+- SettingControl metadata;
+- FC=SG leaf values derived from the resolved Data Model;
+- structured settings such as `setMag.f`;
+- sibling units/multiplier join;
+- min/max/step join using the same nested leaf suffix;
+- no unit or semantic guess from DAI names.
 
-Problems is now a real source-navigation surface:
-- rows retain the diagnostic `SclNodeHandle`;
-- semantic object names are projected when known;
-- selecting a problem navigates through the shared selection service;
-- required Engineering/XML ancestors are expanded lazily;
-- stale validation snapshots are not published.
+## Important real-fixture details
 
-A well-formed SCL with reference errors still opens for recovery/inspection. M2B never silently repairs it.
+- golden SCD contains 5 IEDs;
+- 72 DataSets;
+- 315 ReportControls;
+- 6 GSEControls;
+- 24 ExtRefs;
+- 2 SettingControls;
+- one BCUGE GSEControl is `type="GSSE"` and therefore has no Ethernet Communication/GSE endpoint;
+- the golden SCD has **no `<Substation>` section**.
 
-## Tests and evidence
+Do not add a fake/empty Substation workspace just to complete a tab list.
 
-Verified code run `37117698045` is green on Windows, Ubuntu and macOS.
+## Stable safety boundaries retained
 
-Per OS:
-- SCL: 10/10;
-- Engine/Desktop: 45/45;
-- total: **55/55**.
+- preservation-oriented syntax document remains authoritative;
+- stable SclNodeHandle and source spans;
+- typed reference graph and Where Used;
+- unresolved/ambiguous reference diagnostics;
+- revision-safe validation workers;
+- transaction/undo/redo/save guarantees;
+- generic XML mutation remains forbidden in Desktop;
+- only the previously approved safe property edit policy remains open;
+- identity rename/delete, DataSet surgery, RCB surgery, broad communication editing and merge remain locked.
 
-New tests prove:
-- unresolved reference diagnostics;
-- ambiguous no-guess diagnostics;
-- revision/source linking;
-- explicit schema-unavailable status;
-- configured schema-provider findings;
-- fast-validation latest-wins cancellation;
-- Problems source navigation.
+## Current limits
 
-All M2A gates remained green: transactions, rollback, undo/redo, save verification, preservation, race handling, lifetime/collectability and 100k-DAI regression.
+- M3A0 is a read/inspect engineering-workspace milestone, not complete IEC 61850 semantic validation.
+- Data Model currently shows configured raw values; enum ordinal/text normalization can be expanded later.
+- Setting Group units are only shown when represented/resolvable.
+- GOOSE subscriber projection matches source signal identity; deeper service-type diagnostics belong to M3A.
+- SMV communication endpoint engineering workspace is not yet implemented.
+- supported Services interpretation is not yet complete.
+- Substation primary-system semantics are deferred until a real fixture exists.
+- schema provider remains explicit/legal-source dependent.
+- visual quality still requires manual Windows/high-DPI acceptance on the golden SCD.
 
-See `docs/testing/M2B_ACCEPTANCE.md` for exact evidence.
+## Next phase: M3A — Semantic & Engineering Diagnostics
 
-## Important limits
+Do not rebuild M3A0 workspaces. Extend their semantic confidence.
 
-- M2B is **not** complete IEC 61850 XSD/NSD/semantic validation.
-- No normative IEC XSD/NSD assets are bundled.
-- Fast validation currently emphasizes reference integrity and schema-provider state; semantic/engineering rule coverage expands in M3.
-- Existing reference diagnostics cover modeled M1B reference kinds, not every reference form in every edition.
-- Target compatibility remains a separate future profile layer.
-- Identity rename/delete, DataSet surgery, RCB editing/removal, merge and broad XML editing remain locked.
-- Desktop still has no generic XML mutation path.
-- Existing source spans describe the current loaded/verified syntax state.
-- Real vendor-tool import, native dialog and DPI/layout acceptance remains manual.
+Priority:
+1. typed Network/GOOSE/Data Model/Setting Group engineering diagnostics;
+2. unresolved/ambiguous type-chain and endpoint findings;
+3. supported Services interpretation;
+4. SMV communication endpoint linkage following the typed GSE pattern;
+5. edition-aware schema/rule-provider evolution from legally sourced assets;
+6. contextual explanations and quick navigation;
+7. Substation hierarchy only after a real Substation fixture is supplied.
 
-## Next milestone: M3A — Semantic Completeness & Engineering Diagnostics
-
-Do **not** rebuild the browser/reference/search foundations. Extend them systematically.
-
-Acceptance target:
-
-1. Deepen Substation semantics:
-   - Substation → VoltageLevel → Bay;
-   - ConductingEquipment;
-   - Terminal/connectivity context;
-   - LNode placement/binding.
-2. Deepen Communication semantics:
-   - Address/P interpretation such as IP, subnet, gateway, MAC, APPID and VLAN where represented by SCL;
-   - GSE/SMV communication endpoint linkage.
-3. Interpret supported Services without inventing unsupported capability.
-4. Complete more DOI/SDI/DAI ↔ DataTypeTemplates chains and surface unresolved/ambiguous model findings.
-5. Add typed Semantic/Engineering diagnostics with source navigation and revision-safe publication.
-6. Keep schema-provider assets legally sourced and edition-aware; do not hard-code copied normative text.
-7. Preserve lazy/virtualized UI, bounded allocation, cancellation/coalescing, round-trip fidelity and all M1B/M2A/M2B gates.
-8. Do not broaden destructive edit policy until semantic/reference impact coverage for that operation is explicitly proven.
-
-M4 remains the first broad SCL Surgery phase after these semantic gates are mature.
+Broad SCL surgery remains M4 and must not start until reference-impact and validation coverage for each destructive operation is explicit.
