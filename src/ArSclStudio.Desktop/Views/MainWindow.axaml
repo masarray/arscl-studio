@@ -350,6 +350,71 @@
                     BorderBrush="{DynamicResource ThemeBorderLowBrush}"
                     BorderThickness="0,1,0,0"
                     Padding="0,10,0,0">
+                    <Grid RowDefinitions="Auto,29,*">
+                      <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                        <TextBlock
+                          Text="{Binding ServicesWorkspaceHeader}"
+                          FontWeight="SemiBold" />
+                        <TextBlock
+                          Grid.Column="1"
+                          Text="Declared by SCL; runtime verification is separate"
+                          Opacity="0.55" />
+                      </Grid>
+
+                      <Grid
+                        Grid.Row="1"
+                        Background="{DynamicResource ThemeControlLowBrush}"
+                        ColumnDefinitions="95,155,235,*">
+                        <TextBlock Text="Category" Margin="6,5" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="1" Text="Capability" Margin="6,5" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="2" Text="Raw declaration" Margin="6,5" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="3" Text="Interpretation" Margin="6,5" FontWeight="SemiBold" />
+                      </Grid>
+
+                      <ListBox
+                        Grid.Row="2"
+                        MaxHeight="245"
+                        ItemsSource="{Binding ServiceCapabilityRows}"
+                        SelectedItem="{Binding SelectedServiceCapability, Mode=TwoWay}"
+                        BorderThickness="0">
+                        <ListBox.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <VirtualizingStackPanel />
+                          </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                          <DataTemplate x:DataType="nav:SclServiceCapabilityProjection">
+                            <Grid ColumnDefinitions="95,155,235,*" Height="27">
+                              <TextBlock
+                                Text="{Binding Category}"
+                                Margin="6,4"
+                                TextTrimming="CharacterEllipsis" />
+                              <TextBlock
+                                Grid.Column="1"
+                                Text="{Binding Path}"
+                                Margin="6,4"
+                                TextTrimming="CharacterEllipsis" />
+                              <TextBlock
+                                Grid.Column="2"
+                                Text="{Binding Parameters}"
+                                Margin="6,4"
+                                TextTrimming="CharacterEllipsis" />
+                              <TextBlock
+                                Grid.Column="3"
+                                Text="{Binding Interpretation}"
+                                Margin="6,4"
+                                TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                          </DataTemplate>
+                        </ListBox.ItemTemplate>
+                      </ListBox>
+                    </Grid>
+                  </Border>
+
+                  <Border
+                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="0,10,0,0">
                     <StackPanel Spacing="4">
                       <TextBlock Text="Selected object" FontWeight="SemiBold" />
                       <TextBlock Text="{Binding DetailTitle}" />
