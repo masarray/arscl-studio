@@ -7,16 +7,46 @@
   <Application.Styles>
     <FluentTheme />
     <Style Selector="Window">
-      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Menu">
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TabItem">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="Padding" Value="9,4" />
+    </Style>
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="MinHeight" Value="24" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="MinHeight" Value="28" />
     </Style>
     <Style Selector="Button.compact">
-      <Setter Property="MinHeight" Value="30" />
-      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="MinHeight" Value="27" />
+      <Setter Property="Padding" Value="9,3" />
+      <Setter Property="FontSize" Value="12" />
     </Style>
     <Style Selector="Border.panel">
       <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderLowBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="Border.paneHeader">
+      <Setter Property="Background" Value="{DynamicResource ThemeControlLowBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderLowBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="Padding" Value="8,5" />
+    </Style>
+    <Style Selector="TextBlock.paneTitle">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.propertyName">
+      <Setter Property="Opacity" Value="0.68" />
+      <Setter Property="Margin" Value="0,0,8,0" />
     </Style>
     <Style Selector="Border.summaryCell">
       <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderLowBrush}" />
