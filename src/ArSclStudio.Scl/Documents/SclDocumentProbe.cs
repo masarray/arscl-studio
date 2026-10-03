@@ -5,6 +5,13 @@ namespace ArSclStudio.Scl.Documents;
 
 public sealed class SclDocumentProbe
 {
+    private readonly SecureXmlReaderOptions _readerOptions;
+
+    public SclDocumentProbe(SecureXmlReaderOptions? readerOptions = null)
+    {
+        _readerOptions = readerOptions ?? new SecureXmlReaderOptions();
+    }
+
     public async ValueTask<SclProbeResult> ProbeFileAsync(
         string path,
         CancellationToken cancellationToken = default)
@@ -32,7 +39,7 @@ public sealed class SclDocumentProbe
     {
         ArgumentNullException.ThrowIfNull(stream);
 
-        using var reader = SecureXmlReaderFactory.Create(stream);
+        using var reader = SecureXmlReaderFactory.Create(stream, _readerOptions);
 
         cancellationToken.ThrowIfCancellationRequested();
         var nodeType = await reader.MoveToContentAsync().ConfigureAwait(false);
