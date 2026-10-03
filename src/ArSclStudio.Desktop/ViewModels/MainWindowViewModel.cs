@@ -306,10 +306,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     }
 
     private static void IndexRows(
-        IReadOnlyList<ExplorerRow> rows,
+        ExplorerRow[] rows,
         Dictionary<SclNodeHandle, ExplorerRow> destination)
     {
-        for (var i = 0; i < rows.Count; i++)
+        for (var i = 0; i < rows.Length; i++)
         {
             var row = rows[i];
 
