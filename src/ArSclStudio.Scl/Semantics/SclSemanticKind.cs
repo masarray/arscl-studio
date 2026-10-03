@@ -8,6 +8,7 @@ public enum SclSemanticKind
     Communication,
     SubNetwork,
     ConnectedAccessPoint,
+    GseCommunication,
     Address,
     Ied,
     Services,
