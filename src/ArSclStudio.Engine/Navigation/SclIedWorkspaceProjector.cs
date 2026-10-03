@@ -15,7 +15,9 @@ public sealed record SclIedWorkspaceProjection(
     int DataSetCount,
     int ReportCount,
     int GooseCount,
-    int SettingGroupCount);
+    int SampledValueCount,
+    int SettingGroupCount,
+    int ServiceCapabilityCount);
 
 public static class SclIedWorkspaceProjector
 {
@@ -89,7 +91,9 @@ public static class SclIedWorkspaceProjector
                 aggregate.DataSets,
                 aggregate.Reports,
                 aggregate.Goose,
-                aggregate.SettingGroups);
+                aggregate.SampledValues,
+                aggregate.SettingGroups,
+                aggregate.ServiceCapabilities);
         }
 
         return result;
@@ -173,7 +177,11 @@ public static class SclIedWorkspaceProjector
 
         public int Goose { get; private set; }
 
+        public int SampledValues { get; private set; }
+
         public int SettingGroups { get; private set; }
+
+        public int ServiceCapabilities { get; private set; }
 
         public void Count(SclSemanticKind kind)
         {
@@ -205,8 +213,16 @@ public static class SclIedWorkspaceProjector
                     Goose++;
                     break;
 
+                case SclSemanticKind.SampledValueControl:
+                    SampledValues++;
+                    break;
+
                 case SclSemanticKind.SettingGroupControl:
                     SettingGroups++;
+                    break;
+
+                case SclSemanticKind.ServiceCapability:
+                    ServiceCapabilities++;
                     break;
             }
         }
