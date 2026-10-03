@@ -107,6 +107,7 @@ public static class SclSemanticIndexBuilder
             "SubNetwork" => SclSemanticKind.SubNetwork,
             "ConnectedAP" => SclSemanticKind.ConnectedAccessPoint,
             "GSE" => SclSemanticKind.GseCommunication,
+            "SMV" => SclSemanticKind.SmvCommunication,
             "Address" => SclSemanticKind.Address,
             "IED" => SclSemanticKind.Ied,
             "Services" => SclSemanticKind.Services,
@@ -148,6 +149,7 @@ public static class SclSemanticIndexBuilder
             "SubNetwork" or
             "ConnectedAP" or
             "GSE" or
+            "SMV" or
             "Address" or
             "IED" or
             "Services" or
@@ -194,7 +196,9 @@ public static class SclSemanticIndexBuilder
             SclSemanticKind.ConnectedAccessPoint =>
                 CreateConnectedAccessPointName(element),
             SclSemanticKind.GseCommunication =>
-                CreateGseCommunicationName(element),
+                CreateCommunicationControlName(element, "GSE"),
+            SclSemanticKind.SmvCommunication =>
+                CreateCommunicationControlName(element, "SMV"),
             SclSemanticKind.ExternalReference => CreateExtRefName(element),
             _ => FirstNonEmpty(
                 element.GetAttribute("name"),
@@ -260,14 +264,16 @@ public static class SclSemanticIndexBuilder
             : string.Concat(reference, " [", fc, "]");
     }
 
-    private static string CreateGseCommunicationName(XmlElement element)
+    private static string CreateCommunicationControlName(
+        XmlElement element,
+        string fallback)
     {
         var ldInst = element.GetAttribute("ldInst");
         var cbName = element.GetAttribute("cbName");
 
         if (string.IsNullOrWhiteSpace(ldInst))
         {
-            return NonEmpty(cbName, "GSE");
+            return NonEmpty(cbName, fallback);
         }
 
         return string.IsNullOrWhiteSpace(cbName)
