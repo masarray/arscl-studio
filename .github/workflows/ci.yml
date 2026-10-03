@@ -39,4 +39,23 @@ jobs:
         run: dotnet build ArSclStudio.sln --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test ArSclStudio.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test ArSclStudio.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx" --logger "console;verbosity=detailed"
+
+
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-evidence-${{ matrix.os }}
+          path: tests/**/TestResults/*.trx
+
+      - name: Publish Windows desktop
+        if: runner.os == 'Windows'
+        run: dotnet publish src/ArSclStudio.Desktop/ArSclStudio.Desktop.csproj --configuration Release --runtime win-x64 --self-contained true --output artifacts/ARSCL-Studio-win-x64
+
+      - name: Upload Windows desktop
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ARSCL-Studio-win-x64
+          path: artifacts/ARSCL-Studio-win-x64

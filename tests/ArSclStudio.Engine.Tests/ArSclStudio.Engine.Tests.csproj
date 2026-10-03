@@ -12,5 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/ArSclStudio.Engine/ArSclStudio.Engine.csproj" />
+    <ProjectReference Include="../../src/ArSclStudio.Desktop/ArSclStudio.Desktop.csproj" />
   </ItemGroup>
 </Project>
+

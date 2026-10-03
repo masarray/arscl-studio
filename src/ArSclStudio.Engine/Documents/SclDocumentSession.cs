@@ -215,7 +215,7 @@ public sealed partial class SclDocumentSession : IAsyncDisposable
 
         var capturedQuery = query.Trim();
 
-        return await RunLatestAsync(
+        var result = await RunLatestAsync(
             WorkKind.Search,
             token => Task.Run(
                 () => SclSemanticSearch.Search(
@@ -225,6 +225,10 @@ public sealed partial class SclDocumentSession : IAsyncDisposable
                     token),
                 token),
             cancellationToken).ConfigureAwait(false);
+        return result.SourceRevision == state.Revision ? result : result with
+        {
+            Status = WorkResultStatus.StaleRevision, Value = null
+        };
     }
 
     public async Task<WorkResult<T>> RunLatestAsync<T>(

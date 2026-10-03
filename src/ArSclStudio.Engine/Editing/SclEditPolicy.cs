@@ -34,6 +34,11 @@ public static class SclEditPolicy
                 throw new InvalidOperationException("Only distinct, standard SCL IED descriptions may be edited in M2A.");
             }
 
+            if ((change.Before?.Length ?? 0) > 4096)
+            {
+                throw new InvalidOperationException("Existing description exceeds the reversible editing limit.");
+            }
+
             if (change.After is { } value)
             {
                 if (value.Length > 4096)

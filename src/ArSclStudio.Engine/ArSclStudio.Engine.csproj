@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ArSclStudio.Engine.Tests" />
     <ProjectReference Include="../ArSclStudio.Scl/ArSclStudio.Scl.csproj" />
   </ItemGroup>
 </Project>
+
