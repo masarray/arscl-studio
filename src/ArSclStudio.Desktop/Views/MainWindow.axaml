@@ -1005,6 +1005,180 @@
               </Grid>
             </TabItem>
 
+            <TabItem Header="{Binding SettingGroupsWorkspaceHeader}">
+              <Grid ColumnDefinitions="225,5,*">
+                <Grid Grid.Column="0" RowDefinitions="29,*">
+                  <Grid
+                    Background="{DynamicResource ThemeControlLowBrush}"
+                    ColumnDefinitions="*,62,58">
+                    <TextBlock Text="Logical device"
+                               Margin="6,5"
+                               FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1"
+                               Text="Groups"
+                               Margin="6,5"
+                               FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="2"
+                               Text="Active"
+                               Margin="6,5"
+                               FontWeight="SemiBold" />
+                  </Grid>
+
+                  <ListBox
+                    Grid.Row="1"
+                    ItemsSource="{Binding SettingGroupControls}"
+                    SelectedItem="{Binding SelectedSettingGroupControl, Mode=TwoWay}"
+                    BorderThickness="0">
+                    <ListBox.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <VirtualizingStackPanel />
+                      </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="nav:SclSettingGroupControlProjection">
+                        <Grid ColumnDefinitions="*,62,58" Height="28">
+                          <TextBlock Text="{Binding LogicalDevice}"
+                                     Margin="6,4"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="1"
+                                     Text="{Binding NumberOfGroups}"
+                                     Margin="6,4"
+                                     HorizontalAlignment="Right" />
+                          <TextBlock Grid.Column="2"
+                                     Text="{Binding ActiveGroup}"
+                                     Margin="6,4"
+                                     HorizontalAlignment="Right" />
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Grid>
+
+                <GridSplitter
+                  Grid.Column="1"
+                  Width="5"
+                  ResizeDirection="Columns" />
+
+                <Grid Grid.Column="2" RowDefinitions="29,*,82">
+                  <Grid
+                    Background="{DynamicResource ThemeControlLowBrush}"
+                    ColumnDefinitions="90,110,120,95,55,72,72,65,85,*">
+                    <TextBlock Text="LN" Margin="5,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="Data Object" Margin="5,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="2" Text="Setting" Margin="5,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="3" Text="Value" Margin="5,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="4" Text="Unit" Margin="5,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="5" Text="Min" Margin="5,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="6" Text="Max" Margin="5,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="7" Text="Step" Margin="5,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="8" Text="Type" Margin="5,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="9" Text="Description" Margin="5,5" FontWeight="SemiBold" />
+                  </Grid>
+
+                  <ListBox
+                    Grid.Row="1"
+                    ItemsSource="{Binding SettingGroupSettings}"
+                    SelectedItem="{Binding SelectedSettingGroupSetting, Mode=TwoWay}"
+                    BorderThickness="0">
+                    <ListBox.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <VirtualizingStackPanel />
+                      </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="nav:SclSettingGroupSettingProjection">
+                        <Grid ColumnDefinitions="90,110,120,95,55,72,72,65,85,*" Height="27">
+                          <TextBlock Text="{Binding LogicalNode}"
+                                     Margin="5,4"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="1"
+                                     Text="{Binding DataObject}"
+                                     Margin="5,4"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="2"
+                                     Text="{Binding Setting}"
+                                     Margin="5,4"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="3"
+                                     Text="{Binding Value}"
+                                     Margin="5,4"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="4"
+                                     Text="{Binding Unit}"
+                                     Margin="5,4" />
+                          <TextBlock Grid.Column="5"
+                                     Text="{Binding Minimum}"
+                                     Margin="5,4" />
+                          <TextBlock Grid.Column="6"
+                                     Text="{Binding Maximum}"
+                                     Margin="5,4" />
+                          <TextBlock Grid.Column="7"
+                                     Text="{Binding Step}"
+                                     Margin="5,4" />
+                          <TextBlock Grid.Column="8"
+                                     Text="{Binding BasicType}"
+                                     Margin="5,4"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="9"
+                                     Text="{Binding Description}"
+                                     Margin="5,4"
+                                     TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+
+                  <Border
+                    Grid.Row="2"
+                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="9,7">
+                    <Grid
+                      ColumnDefinitions="95,*,80,*,95,*"
+                      RowDefinitions="Auto,Auto">
+                      <TextBlock Text="Logical device" FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding SelectedSettingGroupControl.LogicalDevice}" />
+                      <TextBlock Grid.Column="2"
+                                 Text="Active group"
+                                 FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="3"
+                                 Text="{Binding SelectedSettingGroupControl.ActiveGroup}" />
+                      <TextBlock Grid.Column="4"
+                                 Text="Groups"
+                                 FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="5"
+                                 Text="{Binding SelectedSettingGroupControl.NumberOfGroups}" />
+
+                      <TextBlock Grid.Row="1"
+                                 Text="Edit group"
+                                 Margin="0,7,0,0" />
+                      <TextBlock Grid.Row="1"
+                                 Grid.Column="1"
+                                 Text="{Binding SelectedSettingGroupControl.EditGroup}"
+                                 Margin="0,7,0,0" />
+                      <TextBlock Grid.Row="1"
+                                 Grid.Column="2"
+                                 Text="Confirm edit"
+                                 Margin="0,7,0,0" />
+                      <TextBlock Grid.Row="1"
+                                 Grid.Column="3"
+                                 Text="{Binding SelectedSettingGroupControl.Confirmation}"
+                                 Margin="0,7,0,0" />
+                      <TextBlock Grid.Row="1"
+                                 Grid.Column="4"
+                                 Text="Reservation"
+                                 Margin="0,7,0,0" />
+                      <TextBlock Grid.Row="1"
+                                 Grid.Column="5"
+                                 Text="{Binding SelectedSettingGroupControl.ReservationTime}"
+                                 Margin="0,7,0,0" />
+                    </Grid>
+                  </Border>
+                </Grid>
+              </Grid>
+            </TabItem>
+
           </TabControl>
 
           <Border
