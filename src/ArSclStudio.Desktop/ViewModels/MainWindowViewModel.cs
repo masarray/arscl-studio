@@ -101,6 +101,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             {
                 IsEditing = false;
                 RefreshAfterOperation();
+                await RefreshValidationAsync();
             }
         }
         finally { IsBusy = false; }
@@ -114,7 +115,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         {
             var result = await _session.UndoAsync(_session.CurrentRevision);
             StatusText = result.Message;
-            if (result.Succeeded) { RefreshAfterOperation(); }
+            if (result.Succeeded)
+            {
+                RefreshAfterOperation();
+                await RefreshValidationAsync();
+            }
         }
         finally { IsBusy = false; }
     }
@@ -127,7 +132,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         {
             var result = await _session.RedoAsync(_session.CurrentRevision);
             StatusText = result.Message;
-            if (result.Succeeded) { RefreshAfterOperation(); }
+            if (result.Succeeded)
+            {
+                RefreshAfterOperation();
+                await RefreshValidationAsync();
+            }
         }
         finally { IsBusy = false; }
     }
@@ -141,7 +150,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         {
             var result = await _session.SaveAsync(_session.CurrentRevision, path, overwrite);
             StatusText = result.Message;
-            if (result.Succeeded) { RefreshAfterOperation(); }
+            if (result.Succeeded)
+            {
+                RefreshAfterOperation();
+                await RefreshValidationAsync();
+            }
             return result.Succeeded;
         }
         finally { IsBusy = false; }
@@ -168,6 +181,32 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         RefreshEditCommands();
     }
 
+    private async Task RefreshValidationAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (Volatile.Read(ref _disposeStarted) != 0 ||
+            _session.CurrentState is not { } state)
+        {
+            return;
+        }
+
+        var result = await _session
+            .ValidateFastAsync(cancellationToken)
+            .ConfigureAwait(true);
+
+        if (!result.CanPublish ||
+            result.Value is null ||
+            result.SourceRevision != state.Revision ||
+            result.Value.Revision != state.Revision ||
+            _session.CurrentState?.Revision != state.Revision ||
+            Volatile.Read(ref _disposeStarted) != 0)
+        {
+            return;
+        }
+
+        PublishDiagnostics(result.Value.Diagnostics, state);
+    }
+
     [ObservableProperty]
     private string _targetProfile = "SICAM SCC";
 
@@ -179,6 +218,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     [ObservableProperty]
     private IReadOnlyList<ProblemRow> _problems = Array.Empty<ProblemRow>();
+
+    [ObservableProperty]
+    private ProblemRow? _selectedProblemRow;
 
     [ObservableProperty]
     private IReadOnlyList<SclReferenceProjection> _whereUsedRows =
@@ -297,8 +339,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                     IsDirty = false;
                     ChangeRows = Array.Empty<ChangeRow>();
                     PublishDocument(result.State);
-                    PublishDiagnostics(result.Diagnostics);
+                    PublishDiagnostics(result.Diagnostics, result.State);
                     _selectionService.Select(result.State.Syntax.RootHandle);
+                    await RefreshValidationAsync(cancellationToken);
                     StatusText =
                         $"Loaded {result.State.Syntax.IndexedNodeCount:N0} XML nodes • " +
                         $"{result.State.SemanticIndex.NodeCount:N0} IEC objects • " +
@@ -461,6 +504,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         EngineeringRows = Array.Empty<ExplorerRow>();
         XmlRows = Array.Empty<ExplorerRow>();
         Problems = Array.Empty<ProblemRow>();
+        SelectedProblemRow = null;
         WhereUsedRows = Array.Empty<SclReferenceProjection>();
         SearchResults = Array.Empty<SclSearchResultProjection>();
 
@@ -473,6 +517,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     partial void OnSelectedXmlRowChanged(ExplorerRow? value) =>
         SelectFromRow(value);
+
+    partial void OnSelectedProblemRowChanged(ProblemRow? value)
+    {
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Node.IsNone)
+        {
+            _selectionService.Select(value.Node);
+        }
+    }
 
     partial void OnSelectedWhereUsedRowChanged(SclReferenceProjection? value)
     {
@@ -542,8 +596,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         XmlRows = rows;
     }
 
-    private void PublishDiagnostics(IReadOnlyList<Diagnostic> diagnostics)
+    private void PublishDiagnostics(
+        IReadOnlyList<Diagnostic> diagnostics,
+        SclDocumentState? state = null)
     {
+        SelectedProblemRow = null;
         if (diagnostics.Count == 0)
         {
             Problems = Array.Empty<ProblemRow>();
@@ -558,7 +615,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         for (var i = 0; i < diagnostics.Count; i++)
         {
             var diagnostic = diagnostics[i];
-            rows[i] = ProblemRow.FromDiagnostic(diagnostic);
+            var objectName = state is not null &&
+                !diagnostic.Node.IsNone &&
+                state.SemanticIndex.TryGetNode(diagnostic.Node, out var semanticNode) &&
+                semanticNode is not null
+                    ? semanticNode.DisplayName
+                    : null;
+
+            rows[i] = ProblemRow.FromDiagnostic(diagnostic, objectName);
 
             if (diagnostic.Severity is DiagnosticSeverity.Error or DiagnosticSeverity.Blocker)
             {
@@ -645,6 +709,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             SelectedXmlRow =
                 _xmlIndex.GetValueOrDefault(args.SelectedNode);
 
+            SelectedProblemRow = null;
             SelectedWhereUsedRow = null;
             SelectedSearchResult = null;
             RefreshEditCommands();
