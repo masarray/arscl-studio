@@ -86,6 +86,10 @@ public sealed class ProblemNavigationTests
             var problem = vm.Problems.Single(row =>
                 row.Code == "SCL-ENG-GOOSE-0002");
 
+            StringAssert.Contains(
+                problem.Explanation,
+                "schema validation");
+
             vm.SelectedProblemRow = problem;
 
             Assert.IsNotNull(vm.SelectedGooseWorkspace);
