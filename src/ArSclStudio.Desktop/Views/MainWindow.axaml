@@ -261,7 +261,7 @@
         </Grid>
       </Border>
 
-      <GridSplitter      <GridSplitter
+      <GridSplitter
         Grid.Column="1"
         Width="5"
         ResizeDirection="Columns" />
