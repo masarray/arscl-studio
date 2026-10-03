@@ -375,6 +375,97 @@ public sealed class SclValidationTests
         }
     }
 
+    [TestMethod]
+    public async Task DataModelDiagnosticsReportOnlyTopmostUnmatchedInstanceBranch()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN lnClass="XCBR" inst="1" lnType="LT_XCBR">
+                        <DOI name="Pos">
+                          <DAI name="stVal">
+                            <Val>on</Val>
+                          </DAI>
+                          <DAI name="unexpected">
+                            <Val>vendor-value</Val>
+                          </DAI>
+                        </DOI>
+                        <DOI name="Unknown">
+                          <SDI name="nested">
+                            <DAI name="value">
+                              <Val>1</Val>
+                            </DAI>
+                          </SDI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_XCBR" lnClass="XCBR">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="stVal" fc="ST" bType="Dbpos" />
+                </DOType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var findings = result.Value.Diagnostics
+                .Where(diagnostic =>
+                    diagnostic.Code == "SCL-ENG-MODEL-0001")
+                .ToArray();
+
+            Assert.AreEqual(2, findings.Length);
+
+            Assert.IsTrue(findings.Any(diagnostic =>
+                diagnostic.Message.Contains(
+                    "Pos/unexpected",
+                    StringComparison.Ordinal)));
+
+            Assert.IsTrue(findings.Any(diagnostic =>
+                diagnostic.Message.Contains(
+                    "'Unknown'",
+                    StringComparison.Ordinal)));
+
+            Assert.IsFalse(findings.Any(diagnostic =>
+                diagnostic.Message.Contains(
+                    "Unknown/nested",
+                    StringComparison.Ordinal)));
+
+            Assert.IsFalse(findings.Any(diagnostic =>
+                diagnostic.Message.Contains(
+                    "Pos/stVal",
+                    StringComparison.Ordinal)));
+
+            Assert.IsTrue(findings.All(diagnostic =>
+                diagnostic.Domain == DiagnosticDomain.Engineering &&
+                diagnostic.Severity == DiagnosticSeverity.Warning &&
+                diagnostic.SourceSpan.IsKnown &&
+                diagnostic.Revision == open.State.Revision));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
