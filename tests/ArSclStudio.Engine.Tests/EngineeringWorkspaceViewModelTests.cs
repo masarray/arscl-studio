@@ -124,7 +124,7 @@ public sealed class EngineeringWorkspaceViewModelTests
                 <AccessPoint name="P1">
                   <Server>
                     <LDevice inst="LD0">
-                      <LN0 lnClass="LLN0" inst="">
+                      <LN0 lnClass="LLN0" inst="" lnType="LT_LLN0">
                         <DataSet name="Events">
                           <FCDA ldInst="LD0" lnClass="XCBR" lnInst="1"
                                 doName="Pos" fc="ST" />
@@ -138,11 +138,24 @@ public sealed class EngineeringWorkspaceViewModelTests
                                     appID="IED_A/LD0/LLN0/GOOSE_CB"
                                     confRev="1" />
                       </LN0>
-                      <LN lnClass="XCBR" inst="1" />
+                      <LN lnClass="XCBR" inst="1" lnType="LT_XCBR">
+                        <DOI name="Pos" desc="Breaker position">
+                          <DAI name="stVal"><Val>on</Val></DAI>
+                        </DOI>
+                      </LN>
                     </LDevice>
                   </Server>
                 </AccessPoint>
               </IED>
+              <DataTypeTemplates>
+                <LNodeType id="LT_LLN0" lnClass="LLN0" />
+                <LNodeType id="LT_XCBR" lnClass="XCBR">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="stVal" fc="ST" bType="Dbpos" />
+                </DOType>
+              </DataTypeTemplates>
             </SCL>
             """);
 
@@ -169,6 +182,18 @@ public sealed class EngineeringWorkspaceViewModelTests
 
             vm.SelectedEngineeringWorkspaceIndex = 4;
             Assert.AreEqual("BRCB01", vm.DetailTitle);
+
+            vm.SelectedDataModelLogicalNode = vm.DataModelLogicalNodes.Single(
+                row => row.LogicalNode == "XCBR1");
+            vm.SelectedEngineeringWorkspaceIndex = 5;
+
+            Assert.AreEqual("XCBR1", vm.DetailTitle);
+            Assert.IsTrue(vm.DataModelRows.Any(
+                row => row.Path == "Pos" && row.Cdc == "DPC"));
+            Assert.IsTrue(vm.DataModelRows.Any(
+                row => row.Path == "Pos/stVal" &&
+                       row.Value == "on" &&
+                       row.FunctionalConstraint == "ST"));
         }
         finally
         {
