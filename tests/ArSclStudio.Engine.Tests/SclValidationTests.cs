@@ -367,6 +367,230 @@ public sealed class SclValidationTests
         }
     }
 
+    [TestMethod]
+    public async Task FastValidationAcceptsDeepResolvedDoiSdiDaiInstanceChain()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="CTRL">
+                      <LN lnClass="CSWI" inst="1" lnType="LT_CSWI">
+                        <DOI name="Pos">
+                          <SDI name="origin">
+                            <DAI name="orCat"><Val>bay-control</Val></DAI>
+                            <SDI name="orIdent">
+                              <DAI name="station"><Val>HMI01</Val></DAI>
+                            </SDI>
+                          </SDI>
+                          <SDI name="Oper">
+                            <DAI name="ctlNum"><Val>7</Val></DAI>
+                          </SDI>
+                          <DAI name="ctlModel">
+                            <Val>sbo-with-enhanced-security</Val>
+                          </DAI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_CSWI" lnClass="CSWI">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="origin" fc="ST" bType="Struct" type="DAT_ORIGIN" />
+                  <SDO name="Oper" type="DOT_OPER" />
+                  <DA name="ctlModel" fc="CF" bType="Enum" type="ENUM_CTL" />
+                </DOType>
+
+                <DOType id="DOT_OPER" cdc="ACT">
+                  <DA name="ctlNum" fc="CO" bType="INT8U" />
+                </DOType>
+
+                <DAType id="DAT_ORIGIN">
+                  <BDA name="orCat" bType="Enum" type="ENUM_ORCAT" />
+                  <BDA name="orIdent" bType="Struct" type="DAT_IDENT" />
+                </DAType>
+
+                <DAType id="DAT_IDENT">
+                  <BDA name="station" bType="VisString64" />
+                </DAType>
+
+                <EnumType id="ENUM_CTL">
+                  <EnumVal ord="4">sbo-with-enhanced-security</EnumVal>
+                </EnumType>
+                <EnumType id="ENUM_ORCAT">
+                  <EnumVal ord="2">bay-control</EnumVal>
+                </EnumType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            Assert.IsFalse(result.Value.Diagnostics.Any(
+                diagnostic =>
+                    diagnostic.Code.StartsWith(
+                        "SCL-SEM-MODEL-",
+                        StringComparison.Ordinal)));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task FastValidationReportsUnknownAndStructurallyInvalidNestedInstances()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="CTRL">
+                      <LN lnClass="CSWI" inst="1" lnType="LT_CSWI">
+                        <DOI name="Pos">
+                          <SDI name="UnknownStruct">
+                            <DAI name="x"><Val>1</Val></DAI>
+                          </SDI>
+                          <DAI name="UnknownLeaf"><Val>1</Val></DAI>
+                          <SDI name="ctlModel">
+                            <DAI name="x"><Val>1</Val></DAI>
+                          </SDI>
+                          <DAI name="origin"><Val>bad</Val></DAI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_CSWI" lnClass="CSWI">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="origin" fc="ST" bType="Struct" type="DAT_ORIGIN" />
+                  <DA name="ctlModel" fc="CF" bType="Enum" type="ENUM_CTL" />
+                </DOType>
+                <DAType id="DAT_ORIGIN">
+                  <BDA name="orCat" bType="Enum" type="ENUM_ORCAT" />
+                </DAType>
+                <EnumType id="ENUM_CTL">
+                  <EnumVal ord="0">status-only</EnumVal>
+                </EnumType>
+                <EnumType id="ENUM_ORCAT">
+                  <EnumVal ord="0">not-supported</EnumVal>
+                </EnumType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var codes = result.Value.Diagnostics
+                .Where(diagnostic =>
+                    diagnostic.Code.StartsWith(
+                        "SCL-SEM-MODEL-",
+                        StringComparison.Ordinal))
+                .Select(diagnostic => diagnostic.Code)
+                .ToArray();
+
+            CollectionAssert.Contains(codes, "SCL-SEM-MODEL-0002");
+            CollectionAssert.Contains(codes, "SCL-SEM-MODEL-0003");
+            CollectionAssert.Contains(codes, "SCL-SEM-MODEL-0005");
+            CollectionAssert.Contains(codes, "SCL-SEM-MODEL-0006");
+
+            var structuredAsLeaf = result.Value.Diagnostics.Single(
+                diagnostic => diagnostic.Code == "SCL-SEM-MODEL-0006");
+
+            StringAssert.Contains(structuredAsLeaf.Message, "origin");
+            Assert.IsTrue(structuredAsLeaf.SourceSpan.IsKnown);
+            Assert.AreEqual<DocumentRevision?>(
+                open.State?.Revision,
+                structuredAsLeaf.Revision);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task FastValidationDoesNotGuessDuplicateTemplateMember()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="CTRL">
+                      <LN lnClass="CSWI" inst="1" lnType="LT_CSWI">
+                        <DOI name="Pos">
+                          <DAI name="stVal"><Val>on</Val></DAI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_CSWI" lnClass="CSWI">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="stVal" fc="ST" bType="Dbpos" />
+                  <DA name="stVal" fc="ST" bType="BOOLEAN" />
+                </DOType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var ambiguous = result.Value.Diagnostics.Single(
+                diagnostic => diagnostic.Code == "SCL-SEM-MODEL-0004");
+
+            Assert.AreEqual(DiagnosticDomain.Semantic, ambiguous.Domain);
+            StringAssert.Contains(ambiguous.Message, "stVal");
+            StringAssert.Contains(
+                ambiguous.Explanation ?? string.Empty,
+                "did not guess");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
