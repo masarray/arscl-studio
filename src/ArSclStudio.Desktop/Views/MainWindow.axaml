@@ -116,14 +116,25 @@
       Margin="0">
 
       <Border Grid.Column="0" Classes="panel">
-        <Grid RowDefinitions="Auto,*">
+        <Grid RowDefinitions="30,Auto,*">
+          <Border Grid.Row="0" Classes="paneHeader" Padding="8,4">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="Project Explorer" Classes="paneTitle" />
+              <TextBlock
+                Grid.Column="1"
+                Text="{Binding IedWorkspaceHeader}"
+                Opacity="0.58"
+                FontSize="11" />
+            </Grid>
+          </Border>
+
           <TextBox
-            Grid.Row="0"
+            Grid.Row="1"
             PlaceholderText="Find IEC object...  Ctrl+F"
             TextChanged="SearchTextChanged"
             Margin="6" />
 
-          <TabControl Grid.Row="1">
+          <TabControl Grid.Row="2">
             <TabItem Header="{Binding IedWorkspaceHeader}">
               <ListBox
                 ItemsSource="{Binding IedWorkspaceRows}"
