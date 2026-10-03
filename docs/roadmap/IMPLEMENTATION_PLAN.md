@@ -128,6 +128,19 @@ This visual/interaction slice corrects the remaining dashboard/web-like presenta
 
 Manual Windows/high-DPI screenshot acceptance remains the merge gate. See `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`.
 
+### M3UX2 — screenshot-driven workstation refinement — implemented
+
+Windows screenshots of M3UX1 identified remaining web/dashboard behavior. M3UX2 delivers:
+- forced single-line engineering workspace selector with stable short task names;
+- compact Overview summary + full-height Services table;
+- explicit Setting Groups empty-state;
+- severity/domain/text filtering in Problems with preserved source navigation;
+- true property-grid Inspector rows including Namespace and long-value tooltips;
+- Data Model hierarchy-width prioritization;
+- shared subtle row separators for engineering tables.
+
+Evidence: `docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md`.
+
 ## M4 — SCL surgery
 
 Acceptance:
