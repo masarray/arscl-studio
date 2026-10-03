@@ -20,16 +20,6 @@ public sealed partial class MainWindowViewModel
             ? "IEDs"
             : $"IEDs ({IedWorkspaceRows.Count})";
 
-    partial void OnSelectedIedWorkspaceChanged(SclIedWorkspaceProjection? value)
-    {
-        if (!_synchronizingSelection &&
-            value is not null &&
-            !value.Handle.IsNone)
-        {
-            _selectionService.Select(value.Handle);
-        }
-    }
-
     private void RefreshIedWorkspace(SclDocumentState state)
     {
         var previous = SelectedIedWorkspace?.Handle;
