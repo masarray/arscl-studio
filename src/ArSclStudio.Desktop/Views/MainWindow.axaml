@@ -1185,7 +1185,10 @@
             </TabItem>
 
             <TabItem Header="Settings">
-              <Grid ColumnDefinitions="225,5,*">
+              <Grid>
+                <Grid
+                  IsVisible="{Binding HasSettingGroups}"
+                  ColumnDefinitions="225,5,*">
                 <Grid Grid.Column="0" RowDefinitions="29,*">
                   <Grid
                     Background="{DynamicResource ThemeControlLowBrush}"
@@ -1355,6 +1358,38 @@
                     </Grid>
                   </Border>
                 </Grid>
+              </Grid>
+
+                <Border
+                  IsVisible="{Binding HasNoSettingGroups}"
+                  Margin="12"
+                  BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                  BorderThickness="1">
+                  <Grid
+                    RowDefinitions="Auto,Auto,Auto"
+                    VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    MaxWidth="520"
+                    Margin="30">
+                    <TextBlock
+                      Text="No Setting Groups declared for this IED"
+                      FontWeight="SemiBold"
+                      HorizontalAlignment="Center" />
+                    <TextBlock
+                      Grid.Row="1"
+                      Text="No SettingControl is present in the selected IED model."
+                      Margin="0,8,0,0"
+                      Opacity="0.72"
+                      HorizontalAlignment="Center" />
+                    <TextBlock
+                      Grid.Row="2"
+                      Text="Select another IED to inspect its setting groups, or use Data Model to review configured CF/SG attributes."
+                      Margin="0,5,0,0"
+                      Opacity="0.58"
+                      TextAlignment="Center"
+                      TextWrapping="Wrap" />
+                  </Grid>
+                </Border>
               </Grid>
             </TabItem>
 
