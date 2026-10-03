@@ -5,7 +5,7 @@ using ArSclStudio.Scl.Source;
 
 namespace ArSclStudio.Scl.Syntax;
 
-public sealed class SclSyntaxDocument
+public sealed partial class SclSyntaxDocument
 {
     private readonly SclNodeRegistry _registry;
 
@@ -131,7 +131,7 @@ public sealed class SclSyntaxDocument
                 if (string.Equals(
                     attribute.LocalName,
                     localName,
-                    StringComparison.Ordinal))
+                    StringComparison.Ordinal) && attribute.NamespaceURI.Length == 0)
                 {
                     value = attribute.Value;
                     return true;
@@ -182,3 +182,4 @@ public sealed class SclSyntaxDocument
             _ => null
         };
 }
+
