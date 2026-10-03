@@ -31,7 +31,7 @@ public static class SclSemanticIndexBuilder
             var semanticParent = item.SemanticParent;
 
             if (IsSclElement(element, rootNamespace) &&
-                TryClassify(element.LocalName, out var kind) &&
+                TryClassify(element, rootNamespace, out var kind) &&
                 document.TryGetHandle(element, out var handle))
             {
                 var node = new SclSemanticNode(
@@ -92,6 +92,41 @@ public static class SclSemanticIndexBuilder
         string.Equals(
             element.NamespaceURI ?? string.Empty,
             rootNamespace,
+            StringComparison.Ordinal);
+
+    private static bool TryClassify(
+        XmlElement element,
+        string rootNamespace,
+        out SclSemanticKind kind)
+    {
+        if (IsDirectServiceCapability(
+                element,
+                rootNamespace))
+        {
+            kind = SclSemanticKind.ServiceCapability;
+            return true;
+        }
+
+        return TryClassify(
+            element.LocalName,
+            out kind);
+    }
+
+    private static bool IsDirectServiceCapability(
+        XmlElement element,
+        string rootNamespace) =>
+        !string.Equals(
+            element.LocalName,
+            "Private",
+            StringComparison.Ordinal) &&
+        element.ParentNode is XmlElement parent &&
+        string.Equals(
+            parent.NamespaceURI ?? string.Empty,
+            rootNamespace,
+            StringComparison.Ordinal) &&
+        string.Equals(
+            parent.LocalName,
+            "Services",
             StringComparison.Ordinal);
 
     private static bool TryClassify(
@@ -188,6 +223,7 @@ public static class SclSemanticIndexBuilder
         kind switch
         {
             SclSemanticKind.Document => "SCL",
+            SclSemanticKind.ServiceCapability => element.LocalName,
             SclSemanticKind.LogicalNodeZero or
             SclSemanticKind.LogicalNode => CreateLogicalNodeName(element),
             SclSemanticKind.LogicalDevice =>
