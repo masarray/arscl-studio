@@ -11,7 +11,7 @@ The product direction combines:
 
 ## Status
 
-**M1B Deep IEC Semantic Browser & Lazy Tree — complete**
+**M2A Transaction Kernel & Safe Property Editing**
 
 Current viewer capabilities include:
 - secure real SCL loading
@@ -29,7 +29,11 @@ Current viewer capabilities include:
 - semantic source paths and source line/column
 - large-model lazy projection regression gates
 
-The next milestone is **M2 — Editing Kernel**.
+Editing now supports safe IED descriptions through Engine transactions, compound edits, rollback, undo/redo, bounded Changes history and verified atomic Save/Save As. The Desktop includes dirty-state prompts; the CLI uses the same transaction path.
+
+This does not yet provide full IEC/schema validation or destructive SCL surgery. See [M2A acceptance](docs/testing/M2A_ACCEPTANCE.md) and [handoff](docs/continuation/HANDOFF.md) for exact scope and verification status.
+
+The next milestone is **M2B — Validation & Reference Diagnostics**.
 
 ## Architecture
 
@@ -47,7 +51,7 @@ Key rules:
 - syntax is authoritative; semantic models are projections/indexes
 - semantic references resolve through typed graph edges
 - ambiguous identity is never resolved by choosing an arbitrary first match
-- all future edits go through commands/transactions
+- all edits go through commands/transactions
 - large models use lazy/virtualized projections
 - background work is cancellable, bounded, coalesced, and revision-aware
 - target compatibility is separate from IEC validity
@@ -94,3 +98,4 @@ dotnet run --project src/ArSclStudio.Cli -- probe path/to/station.scd
 The repository treats secure XML handling, canonical identity, reference ambiguity, cancellation, worker coalescing, memory ownership, source traceability, lazy virtualization, round-trip fidelity, and deterministic IEC semantics as implementation requirements rather than late-stage cleanup.
 
 See `AGENTS.md` for the full engineering contract.
+

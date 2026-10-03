@@ -41,7 +41,7 @@ public sealed partial class MainWindow : Window
             if (!await ConfirmReplacementAsync(viewModel)) { return; }
             await viewModel.DisposeAsync();
             _closeConfirmed = true;
-            Close();
+            Avalonia.Threading.Dispatcher.UIThread.Post(Close);
         }
         catch (Exception exception)
         {

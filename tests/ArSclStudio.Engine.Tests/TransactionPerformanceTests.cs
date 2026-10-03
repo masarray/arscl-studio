@@ -51,22 +51,16 @@ public sealed class TransactionPerformanceTests
     {
         // Keep fixture creation outside an async completion continuation: an inline parent
         // continuation can legitimately keep its OpenResult alive on the stack during GC.
-        var (fixture, weak) = CreateEditedFixture();
+        var fixture = EditingFixture.CreateAsync().GetAwaiter().GetResult();
         try
         {
+            var weak = EditAndCapturePrevious(fixture.Session);
             Collect();
             Assert.IsFalse(HasTarget(weak), "Undo history retained an entire old syntax document.");
             Assert.IsTrue(fixture.Session.CanUndo);
             Assert.IsTrue(fixture.Session.UndoAsync(fixture.Session.CurrentRevision).GetAwaiter().GetResult().Succeeded);
         }
         finally { fixture.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static (EditingFixture Fixture, WeakReference<SclSyntaxDocument> Weak) CreateEditedFixture()
-    {
-        var fixture = EditingFixture.CreateAsync().GetAwaiter().GetResult();
-        return (fixture, EditAndCapturePrevious(fixture.Session));
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

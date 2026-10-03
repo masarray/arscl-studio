@@ -334,6 +334,7 @@
             Padding="10,6">
             <TextBlock
               Text="Safe editing: IED descriptions • Undo / redo • Verified save. IEC schema validation is not yet available."
+              TextWrapping="Wrap"
               Opacity="0.62" />
           </Border>
         </Grid>

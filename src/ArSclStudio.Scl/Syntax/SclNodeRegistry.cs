@@ -15,7 +15,14 @@ internal sealed class SclNodeRegistry
 
     public int Count => _nodes.Count;
 
-    internal SclNodeRegistry CreateSuccessor() => new() { _nextHandle = _nextHandle };
+    internal SclNodeRegistry CreateSuccessor()
+    {
+        var successor = new SclNodeRegistry { _nextHandle = _nextHandle };
+        successor._handles.EnsureCapacity(Count + 1);
+        successor._nodes.EnsureCapacity(Count + 1);
+        successor._spans.EnsureCapacity(Count + 1);
+        return successor;
+    }
 
     internal void RegisterAt(XmlNode node, SclNodeHandle handle, SclSourceSpan span)
     {

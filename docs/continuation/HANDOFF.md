@@ -4,280 +4,96 @@ Last updated: 2026-10-03
 
 ## Current phase
 
-**M1B — Deep IEC Semantic Browser & Lazy Tree: COMPLETE**
+**M2A — Transaction Kernel & Safe Property Editing: implementation complete; final verification in progress.**
 
-Implementation branch:
-`feature/m1b-deep-semantic-browser`
+- Repository: `masarray/arscl-studio`
+- Branch: `feature/m2a-transaction-kernel`
+- PR: [#3](https://github.com/masarray/arscl-studio/pull/3)
+- Base: M1B main `dbfd84461aacfb81eb3cd502c176aee91ba54bc3`
+- First engine build passed Windows/Ubuntu/macOS: run `37114720037`.
+- Full test matrix is being finalized; inspect PR #3 checks for the current exact head.
 
-Pull request:
-`#2 — M1B: deep IEC semantic browser and lazy tree`
+## Read first
 
-Latest verified code commit before this documentation update:
-`63489b148aeddf8bc86ca17fdaae936a7afbef10`
+1. `AGENTS.md` — mandatory reliability, ownership and architectural contract.
+2. `docs/adr/0007-isolated-property-transactions.md` — M2A invariants, costs and limits.
+3. `docs/testing/M2A_ACCEPTANCE.md` — automated gates and real desktop smoke procedure.
+4. Existing architecture/IEC strategy and ADRs 0001–0006.
 
-Verified cross-platform CI run:
-`37105965479`
+The product remains a cross-platform Avalonia/.NET 10 IEC 61850 engineering workbench. Desktop never mutates XML. There is one authoritative preservation-oriented syntax document; semantic/reference indexes are projections. Unknown XML is preserved even when its semantics are not understood.
 
-Result:
-- Windows: build + tests passed
-- Ubuntu: build + tests passed
-- macOS: build + tests passed
+## Existing M1B baseline retained
 
-## Product intent
+- Secure SCL loader, stable node handles and loaded-source spans.
+- Lazy flattened Engineering/XML trees and virtualized lists.
+- IED/AP/Server/LD/LN, DataSet/FCDA, report/log/GOOSE/SV controls, inputs/ExtRef, DOI/SDI/DAI and type templates.
+- Typed resolved reference graph, ambiguity-sensitive lookup, Where Used and semantic search.
+- Search debounce/coalescing, revision guards, bounded background workers and lifecycle tests.
 
-ARSCL Studio is a cross-platform Avalonia IEC 61850 SCL viewer/editor/validator/surgery workbench. The primary use case is preparing trustworthy SCL for HMI/workstation/gateway import, especially when engineers must inspect or repair multi-vendor files without the original vendor engineer.
+## M2A implemented scope
 
-## M1B architecture
+### Engine
 
-The authoritative document remains the preservation-oriented SCL syntax tree.
+- `ISclEditCommand`, `SetIedDescriptionCommand`, `CompoundEditCommand`.
+- Only direct standard-namespace `IED.desc` is editable; identities/references/vendor properties are not exposed for mutation.
+- Explicit expected revision and expected old value; absent and empty are distinct.
+- Bounded exclusive operation queue shared by edit/save/open publication.
+- One cancellable staging syntax copy per compound transaction; published readers stay immutable.
+- Fast policy/postcondition validation, optional validator veto, discard-on-failure rollback.
+- Stable surviving node handles and reuse of unaffected semantic/reference indexes for description-only edits.
+- Undo/redo and redo invalidation; no-op does not advance revision or clear redo.
+- Patch-only bounded history/journal, independent saved-content identity and dirty state.
+- Open request/revision checks repeated at the commit boundary; stale search result checks at Engine and UI publication.
+- Document close cancels/drains work and releases owned state.
 
-M1B adds a lightweight semantic layer and typed reference graph over the same stable `SclNodeHandle` identities:
+### Save
 
-```text
-SclSyntaxDocument
-        |
-        +--> SclSemanticIndex
-        |      +--> IEC semantic hierarchy
-        |      +--> lightweight immutable semantic nodes
-        |      +--> typed resolved reference graph
-        |
-        +--> Engineering lazy projector
-        +--> XML lazy projector
-        +--> source-linked details
-```
+- Same-directory unique temporary file, cancellable streaming serialization and file flush.
+- Production-parser reopen and complete XML content comparison, including vendor data.
+- Rebind original handles to verified output with refreshed source locations.
+- Atomic replace for an existing file; atomic non-overwriting move for a new file.
+- SHA-256 checks reject observed external modifications.
+- Save As preserves the SCL file role/extension and requires explicit overwrite for an existing different path.
+- UTF-8 output; UTF-16/BOM input and declaration-free input covered by tests.
+- Failed/cancelled save preserves destination, dirty state and history.
 
-There is still only one editable source of truth.
+### Desktop and CLI
 
-## M1B completed scope
+- IED description editor with Apply, Cancel and explicit removal.
+- Draft retains its original IED/revision even when selection changes.
+- Read-only description field, dirty indicator, Undo/Redo and virtualized recent Changes.
+- Save/Save As and unsaved-change Open/Close prompts.
+- Async close/disposal avoids the former UI-thread blocking wait.
+- CLI: `arscl set-description input.scd Relay_A "Feeder A" output.scd` uses the same Engine.
+- CI provides a self-contained Windows desktop artifact and per-OS TRX test evidence.
 
-### Deep Engineering hierarchy
+## Tests and evidence
 
-The semantic browser now recognizes and navigates:
-- SCL document
-- Header
-- Substation
-- Communication
-- SubNetwork
-- ConnectedAP
-- Address
-- IED
-- Services
-- AccessPoint
-- Server
-- LDevice
-- LN0 / LN
-- DataSet
-- FCDA
-- ReportControl
-- LogControl
-- GSEControl
-- SampledValueControl
-- Inputs
-- ExtRef
-- SettingControl
-- DOI
-- SDI
-- DAI
-- DataTypeTemplates
-- LNodeType
-- DOType
-- DAType
-- EnumType
-- DO
-- SDO
-- DA
-- BDA
-- Private/vendor extension nodes
+See `docs/testing/M2A_ACCEPTANCE.md`. Existing M1B gates remain in CI.
 
-Semantic rows continue to point to the original syntax node handle.
+The full test run includes transactions, compound rollback, revision races, cancellation/disposal, bounded history/registry, snapshot collectability, preservation/encoding, failed save paths and Desktop ViewModel integration. A 100k-DAI fixture measures staging time/allocation and asserts index reuse and collapsed-tree laziness. Measurements are printed in CI/TRX; do not extrapolate them to all vendor SCDs or all machines.
 
-### Lazy flattened trees
+## Important limits
 
-Engineering and XML explorers now use explicit expanded-handle sets.
+- M2A fast validation is not complete IEC/XSD/NSD validation or target compatibility certification.
+- Staging remains O(N) XML/registry copy time and temporary memory. History does not retain whole documents. Do not claim incremental DOM storage.
+- Existing source spans describe loaded input until successful save; new attributes have unknown spans until save.
+- Fidelity is structural/semantic/vendor content, not byte-for-byte source identity.
+- Recent history is bounded, not a permanent audit log.
+- Real native-dialog, DPI/layout and vendor-tool import testing remains a manual acceptance step.
+- No reference deletion/rename, DataSet surgery, RCB editing, merge, schema packs, SICAM rules or live MMS work is included.
+- File fingerprint checks cannot completely eliminate a race with a non-cooperating external writer between check and filesystem rename. See ADR-0007.
 
-Only visible branches become row projections.
-
-The GUI does not construct a recursive Avalonia tree or one ViewModel per document node.
-
-Expand/collapse is implemented for both Engineering and XML views.
-
-Selecting a deep result can expand the ancestor path so Engineering/XML navigation remains synchronized.
-
-### DataSet and control-block relationships
-
-The typed graph resolves, when identity is unambiguous:
-- ReportControl -> DataSet
-- LogControl -> DataSet
-- GSEControl -> DataSet
-- SampledValueControl -> DataSet
-- FCDA -> referenced Logical Node
-- ConnectedAP -> IED
-- ConnectedAP -> AccessPoint
-- ExtRef -> referenced source Logical Node
-
-Reference text such as DO/DA identity is retained on graph edges where applicable.
-
-### DataType reference chains
-
-The graph resolves:
-- LN/LN0 `lnType` -> LNodeType
-- DO/SDO `type` -> DOType
-- DA/BDA with `bType="Struct"` -> DAType
-- DA/BDA with `bType="Enum"` -> EnumType
-
-These are case-sensitive identity lookups.
-
-### Ambiguity policy
-
-Reference resolution never chooses the first match when identity is duplicated.
-
-Duplicate/ambiguous identities are removed from the unique-resolution index, so dependent references remain unresolved rather than being attached to an arbitrary target.
-
-This currently applies to:
-- type IDs
-- IED names
-- AccessPoint identities
-- Logical Device identities
-- Logical Node identities
-- DataSet identities
-
-A later validation milestone will turn unresolved/ambiguous identities into explicit diagnostics and quick-fix/impact workflows.
-
-### Where Used
-
-The right-side `Where Used` view is now functional for resolved graph edges.
-
-Examples:
-- selecting a DataSet shows Report/GOOSE/SV/Log controls that reference it
-- selecting an IED or AccessPoint can show ConnectedAP bindings
-- selecting a type template shows resolved semantic users
-- selecting a Logical Node can show FCDA/ExtRef references
-
-Selecting a Where Used result navigates back to the source object.
-
-### Semantic search
-
-Search now operates on the semantic index rather than traversing Avalonia rows.
-
-Properties:
-- 180 ms UI debounce
-- Engine `WorkKind.Search`
-- latest-wins coalescing
-- cancellation
-- document-revision stale-result protection
-- background execution
-- capped result publication
-- result navigation expands the semantic/XML ancestor path
-
-Search currently indexes semantic display identity, badge/context, and semantic kind.
-
-### Semantic paths
-
-Context/search paths now prefer IEC identity where available.
-
-Examples:
-- `IED[Relay_A]`
-- `LDevice[Protection]`
-- `LN[XCBR1]`
-
-rather than presenting only generic XML tag names.
-
-### Performance / regression gates
-
-Added:
-- deep lazy-projection regression with 100 Logical Devices x 100 Logical Nodes
-- assertion that a collapsed model does not materialize the full semantic tree as visible rows
-- existing large 5,000-IED load/projection gate remains active
-- session collectability/leak regression remains active
-
-### GUI
-
-The Avalonia shell now exposes:
-- real expandable Engineering tree
-- real expandable XML tree
-- semantic search
-- clickable search results
-- functional Where Used
-- exact source location/context
-- semantic object/reference counts in status
-- virtualized lists for tree/search/reference panes
-
-Editing remains intentionally disabled.
-
-## Tests at M1B baseline
-
-Coverage now includes:
-- secure XML / DTD rejection
-- preservation of vendor/private content
-- real open/failed-open transaction behavior
-- session collectability
-- worker cancellation/coalescing/stale-result rejection
-- deep semantic hierarchy
-- DataSet/control-block reference graph
-- ConnectedAP bindings
-- ExtRef source resolution
-- LN -> LNodeType
-- DO -> DOType
-- DA -> EnumType/DAType paths
-- duplicate type identity must not be guessed
-- Engineering/XML stable handle identity
-- lazy XML expansion
-- lazy Engineering expansion
-- semantic Where Used
-- semantic search
-- large/deep model projection regression
-
-## Known limitations
-
-M1B is a semantic browser/reference foundation, not yet a complete IEC validator.
-
-Still pending:
-- full Substation VoltageLevel/Bay/ConductingEquipment engineering hierarchy
-- detailed service-capability interpretation below Services
-- Communication P/IP/MAC/APPID/VLAN semantic decoding
-- GSE/SMV communication endpoint semantic linking
-- DOI/SDI/DAI-to-template instance binding for every nested case
-- explicit unresolved/ambiguous reference diagnostics
-- schema/NSD/rule-pack validation
-- edition-specific semantic rule packs
-- transaction editing
-- undo/redo
-- save/export
-- semantic diff/merge
-- SICAM compatibility execution
-- live MMS verification
-
-Unknown/vendor XML remains available in XML View and preserved by the syntax layer even when not semantically interpreted.
-
-## Next milestone
-
-**M2 — Editing Kernel**
-
-Recommended first slice: **M2A — Transaction Kernel & Safe Property Editing**
+## Next milestone: M2B — Validation & Reference Diagnostics
 
 Acceptance target:
-1. command interface with explicit preconditions
-2. document write/exclusive transaction boundary
-3. compound transaction
-4. rollback on failure
-5. undo / redo
-6. redo invalidation after a new edit
-7. change journal
-8. one safe property edit end-to-end through Engine, never direct XML from Desktop
-9. fast post-edit integrity validation
-10. dirty-state/document revision integration
-11. atomic save to temporary output
-12. production-parser reopen before replacement
-13. no-edit and edited round-trip preservation tests
-14. Windows/Linux/macOS CI green
 
-Do not begin destructive SCL surgery until the transaction/undo/reference-impact foundation is proven.
+1. Add revision-stamped, source-linked unresolved/ambiguous reference diagnostics (M1B currently stores resolved graph edges only).
+2. Introduce legally sourced schema-provider plumbing and make skipped/unavailable validation explicit.
+3. Separate XML, schema, model/reference, engineering and target-compatibility findings.
+4. Add cancellable/coalesced fast validation publication with source navigation.
+5. Preserve recovery viewing for pre-existing invalid SCL without silently repairing it.
+6. Prove reference/validation gates before broadening the edit policy or beginning identity/delete operations.
+7. Keep no-edit/edited preservation, compound rollback, memory/lifetime and cross-platform CI green.
 
-## Continuation rule
-
-Before changing implementation:
-1. read `AGENTS.md`
-2. read architecture ADRs
-3. read this handoff
-4. confirm current main/PR/CI state
-5. begin M2 through Engine transactions rather than adding XML mutation to ViewModels
+Do not add generic XML mutation to Desktop or treat absent graph edges as proof that an object is safe to delete. New editable fields require a typed command, impact classification, affected-index plan, reversible patch and tests.
