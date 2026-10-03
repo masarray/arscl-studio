@@ -245,3 +245,20 @@ IEDs | Network | GOOSE | DataSets | Reports & Logs | Data Model | Setting Groups
 XML remains an expert/source view.
 
 Substation remains intentionally deferred. Broad SCL surgery remains locked until semantic/engineering diagnostics and reference-impact coverage for the affected operation are proven.
+
+## M3UX1 — engineering desktop density correction
+
+User visual acceptance of the real golden SCD showed that correct domain projections alone were insufficient: the application still read visually like a web/dashboard shell.
+
+M3UX1 therefore locks these presentation rules:
+- engineering panes are square/docked, not card-like;
+- Project Explorer rows prioritize scan density over marketing-card layout;
+- workspace tabs are compact task selectors rather than oversized navigation links;
+- Properties is a two-column inspector first, prose explanation second;
+- Problems/Search/Changes is a resizable dock;
+- engineering data tables own the majority of horizontal space;
+- hierarchical model depth must be rendered as actual indentation, not string padding.
+
+The visual reference remains the workflow density of IEDScout/System Configurator, not a literal copy of either product's colors or proprietary styling.
+
+Acceptance evidence: `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`.
