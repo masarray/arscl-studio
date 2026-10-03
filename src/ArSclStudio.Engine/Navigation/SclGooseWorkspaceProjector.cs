@@ -475,7 +475,7 @@ public static class SclGooseWorkspaceProjector
     private static List<SclGooseSubscriberProjection> MatchSubscribers(
         SclDocumentState state,
         string publisherIed,
-        IReadOnlyList<SclNodeHandle> members,
+        List<SclNodeHandle> members,
         Dictionary<SignalKey, List<SclGooseSubscriberProjection>> subscriberIndex)
     {
         var result = new List<SclGooseSubscriberProjection>();
