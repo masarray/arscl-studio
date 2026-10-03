@@ -202,6 +202,11 @@ internal static class SclValidationEngine
         List<Diagnostic> diagnostics,
         CancellationToken cancellationToken)
     {
+        SclDataModelConsistencyValidator.AppendDiagnostics(
+            state,
+            diagnostics,
+            cancellationToken);
+
         foreach (var node in state.SemanticIndex.Nodes)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -222,12 +227,6 @@ internal static class SclValidationEngine
                         diagnostics);
                     break;
 
-                case SclSemanticKind.Doi:
-                    AppendDataModelInstanceDiagnostics(
-                        state,
-                        node,
-                        diagnostics);
-                    break;
             }
         }
     }
@@ -395,81 +394,6 @@ internal static class SclValidationEngine
         }
     }
 
-    private static void AppendDataModelInstanceDiagnostics(
-        SclDocumentState state,
-        SclSemanticNode doi,
-        List<Diagnostic> diagnostics)
-    {
-        if (!state.SemanticIndex.TryFindAncestor(
-                doi.Handle,
-                SclSemanticKind.LogicalNodeZero,
-                out var logicalNode) ||
-            logicalNode is null)
-        {
-            if (!state.SemanticIndex.TryFindAncestor(
-                    doi.Handle,
-                    SclSemanticKind.LogicalNode,
-                    out logicalNode) ||
-                logicalNode is null)
-            {
-                return;
-            }
-        }
-
-        var logicalNodeType = FindOutgoingTarget(
-            state,
-            logicalNode.Handle,
-            SclReferenceKind.TypeDefinition,
-            SclSemanticKind.LogicalNodeType);
-
-        if (logicalNodeType.IsNone)
-        {
-            // Reference diagnostics already explain an unresolved/ambiguous
-            // lnType. Do not duplicate that root-cause finding here.
-            return;
-        }
-
-        var instanceName = SclWorkspaceSyntaxReader.Attribute(
-            state.Syntax,
-            doi.Handle,
-            "name");
-
-        if (string.IsNullOrWhiteSpace(instanceName))
-        {
-            return;
-        }
-
-        var definitions = state.SemanticIndex.GetChildren(
-            logicalNodeType);
-
-        for (var i = 0; i < definitions.Count; i++)
-        {
-            var definition = definitions[i];
-
-            if (definition.Kind ==
-                    SclSemanticKind.DataObjectDefinition &&
-                string.Equals(
-                    SclWorkspaceSyntaxReader.Attribute(
-                        state.Syntax,
-                        definition.Handle,
-                        "name"),
-                    instanceName,
-                    StringComparison.Ordinal))
-            {
-                return;
-            }
-        }
-
-        diagnostics.Add(CreateDiagnostic(
-            state,
-            "SCL-SEM-MODEL-0001",
-            DiagnosticSeverity.Warning,
-            DiagnosticDomain.Semantic,
-            doi.Handle,
-            $"DOI '{instanceName}' is not declared by resolved LNodeType '{logicalNode.DisplayName}'.",
-            "The instance is preserved, but it cannot be projected as a typed IEC 61850 data object from the resolved logical-node template."));
-    }
-
     private static SclNodeHandle FindIncomingCommunicationEndpoint(
         SclDocumentState state,
         SclNodeHandle control,
@@ -495,37 +419,6 @@ internal static class SclValidationEngine
                 source.Kind == endpointKind)
             {
                 return edge.Source;
-            }
-        }
-
-        return SclNodeHandle.None;
-    }
-
-    private static SclNodeHandle FindOutgoingTarget(
-        SclDocumentState state,
-        SclNodeHandle source,
-        SclReferenceKind kind,
-        SclSemanticKind expectedKind)
-    {
-        var outgoing = state.SemanticIndex.References.GetOutgoing(
-            source);
-
-        for (var i = 0; i < outgoing.Count; i++)
-        {
-            var edge = outgoing[i];
-
-            if (edge.Kind != kind)
-            {
-                continue;
-            }
-
-            if (state.SemanticIndex.TryGetNode(
-                    edge.Target,
-                    out var target) &&
-                target is not null &&
-                target.Kind == expectedKind)
-            {
-                return edge.Target;
             }
         }
 
