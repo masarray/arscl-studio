@@ -4,14 +4,18 @@ Last updated: 2026-10-03
 
 ## Current phase
 
-**M2A — Transaction Kernel & Safe Property Editing: implementation complete; final verification in progress.**
+**M2A — Transaction Kernel & Safe Property Editing: COMPLETE (automated acceptance).**
 
 - Repository: `masarray/arscl-studio`
 - Branch: `feature/m2a-transaction-kernel`
 - PR: [#3](https://github.com/masarray/arscl-studio/pull/3)
 - Base: M1B main `dbfd84461aacfb81eb3cd502c176aee91ba54bc3`
-- First engine build passed Windows/Ubuntu/macOS: run `37114720037`.
-- Full test matrix is being finalized; inspect PR #3 checks for the current exact head.
+- Verified code commit: `2f425acabada770dc89a5370314a0b8c54f32dc3`.
+- Verified full CI: [37116099309](https://github.com/masarray/arscl-studio/actions/runs/37116099309).
+- Windows / Ubuntu / macOS: build + **50 tests per OS passed** (10 SCL + 40 Engine/Desktop integration).
+- Windows self-contained desktop artifact: [ARSCL-Studio-win-x64](https://github.com/masarray/arscl-studio/actions/runs/37116099309/artifacts/11270579455).
+- Subsequent documentation-only commits do not change the verified executable code. PR #3 checks and main Actions retain the final merge validation.
+- Real desktop native-dialog/DPI/vendor-import acceptance remains manual, as documented below.
 
 ## Read first
 
@@ -72,6 +76,18 @@ The product remains a cross-platform Avalonia/.NET 10 IEC 61850 engineering work
 See `docs/testing/M2A_ACCEPTANCE.md`. Existing M1B gates remain in CI.
 
 The full test run includes transactions, compound rollback, revision races, cancellation/disposal, bounded history/registry, snapshot collectability, preservation/encoding, failed save paths and Desktop ViewModel integration. A 100k-DAI fixture measures staging time/allocation and asserts index reuse and collapsed-tree laziness. Measurements are printed in CI/TRX; do not extrapolate them to all vendor SCDs or all machines.
+
+### Measured 100k-DAI evidence
+
+CI run `37116099309`, Release build, one edit over **205,010 indexed syntax nodes**:
+
+| Runner | Staging/edit elapsed | Allocated bytes |
+| --- | ---: | ---: |
+| Ubuntu | 219.8 ms | 36,312,872 |
+| Windows | 204.7 ms | 36,304,544 |
+| macOS | 189.6 ms | 36,304,712 |
+
+These are single-run synthetic regression observations, not end-user latency guarantees. Preallocating the staging registries reduced measured allocation from roughly 70 MB in run `37115550010` to 36.3 MB. No performance assertion relies on that earlier failing run; the final run passed all gates, including old-snapshot collectability with live undo history.
 
 ## Important limits
 

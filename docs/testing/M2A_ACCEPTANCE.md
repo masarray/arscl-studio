@@ -2,6 +2,8 @@
 
 Automated gates run with `dotnet test ArSclStudio.sln --configuration Release` on Windows, Ubuntu and macOS. CI attaches TRX evidence and a self-contained Windows desktop build.
 
+Verified implementation: `2f425acabada770dc89a5370314a0b8c54f32dc3`, [CI 37116099309](https://github.com/masarray/arscl-studio/actions/runs/37116099309), **50/50 tests passed on each OS**. The 100k-DAI edit measured 189.6–219.8 ms and approximately 36.3 MB allocated on these runners. See the handoff for per-platform values and the manual acceptance boundary.
+
 ## Automated coverage
 
 - apply, old-value/revision preconditions, compound single commit;
