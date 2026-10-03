@@ -591,6 +591,83 @@ public sealed class SclEngineeringWorkspaceProjectorTests
         }
     }
 
+    [TestMethod]
+    public async Task ServicesWorkspaceProjectsOnlyExplicitDeclarationsAndParameters()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <Services>
+                  <GetDirectory />
+                  <ConfReportControl
+                    max="6"
+                    bufMode="both" />
+                  <GOOSE max="8">
+                    <Private type="vendor-detail" />
+                  </GOOSE>
+                  <Private type="services-private" />
+                </Services>
+                <AccessPoint name="P1" />
+              </IED>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var ied = SclIedWorkspaceProjector
+                .Build(open.State)
+                .Single();
+
+            var services = SclServicesWorkspaceProjector.Build(
+                open.State,
+                ied.Handle);
+
+            Assert.AreEqual(3, services.Length);
+
+            var directory = services.Single(row =>
+                row.Name == "GetDirectory");
+
+            Assert.AreEqual(
+                string.Empty,
+                directory.Parameters);
+            Assert.AreEqual(
+                0,
+                directory.NestedElementCount);
+
+            var reports = services.Single(row =>
+                row.Name == "ConfReportControl");
+
+            Assert.AreEqual(
+                "bufMode=both, max=6",
+                reports.Parameters);
+            Assert.AreEqual(
+                0,
+                reports.NestedElementCount);
+
+            var goose = services.Single(row =>
+                row.Name == "GOOSE");
+
+            Assert.AreEqual(
+                "max=8",
+                goose.Parameters);
+            Assert.AreEqual(
+                1,
+                goose.NestedElementCount);
+
+            Assert.IsFalse(services.Any(row =>
+                row.Name == "Private"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
