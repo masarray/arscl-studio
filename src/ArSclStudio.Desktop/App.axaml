@@ -16,6 +16,11 @@
       <Setter Property="FontSize" Value="12" />
       <Setter Property="MinHeight" Value="30" />
       <Setter Property="Padding" Value="9,4" />
+      <Setter Property="Margin" Value="0" />
+    </Style>
+    <Style Selector="TabItem:selected">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Background" Value="{DynamicResource ThemeControlLowBrush}" />
     </Style>
     <Style Selector="ListBoxItem">
       <Setter Property="Padding" Value="0" />
