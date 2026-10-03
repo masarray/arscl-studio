@@ -262,3 +262,18 @@ M3UX1 therefore locks these presentation rules:
 The visual reference remains the workflow density of IEDScout/System Configurator, not a literal copy of either product's colors or proprietary styling.
 
 Acceptance evidence: `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`.
+
+## M3UX2 — screenshot-driven refinement
+
+Real Windows screenshots of M3UX1 lock the following additional workstation rules:
+- task/workspace navigation must never wrap into multiple header rows;
+- dynamic object counts must not control tab width;
+- empty engineering domains must explain why they are empty;
+- diagnostic docks must support fast narrowing by severity/domain/text;
+- Inspector must privilege raw property/source readability over prose;
+- Data Model hierarchy width has priority over secondary value/type columns;
+- subtle row separators are preferred for long scanning tables.
+
+These rules address the specific Overview/Network/GOOSE/DataSets/Reports/Data Model/Settings screenshots supplied during visual acceptance.
+
+Acceptance evidence: `docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md`.
