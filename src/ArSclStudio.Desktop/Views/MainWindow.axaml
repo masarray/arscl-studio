@@ -1322,88 +1322,166 @@
         ResizeDirection="Columns" />
 
       <Border Grid.Column="4" Classes="panel">
-        <TabControl>
-          <TabItem Header="Context">
-            <ScrollViewer>
-              <StackPanel Margin="14" Spacing="10">
-                <TextBlock
-                  Text="{Binding DetailTitle}"
-                  FontSize="16"
-                  FontWeight="SemiBold" />
-                <TextBlock Text="{Binding DetailKind}" Opacity="0.68" />
+        <Grid RowDefinitions="30,*">
+          <Border Grid.Row="0" Classes="paneHeader" Padding="8,4">
+            <TextBlock Text="Inspector" Classes="paneTitle" />
+          </Border>
 
-                <Border
-                  Background="{DynamicResource ThemeControlLowBrush}"
-                  Padding="10"
-                  CornerRadius="4">
-                  <TextBlock
-                    Text="{Binding DetailDescription}"
-                    TextWrapping="Wrap" />
-                </Border>
-
-                <TextBlock
-                  Text="Semantic path"
-                  FontWeight="SemiBold"
-                  Margin="0,8,0,0" />
-                <TextBlock
-                  Text="{Binding DetailPath}"
-                  TextWrapping="Wrap" />
-
-                <TextBlock
-                  Text="Source"
-                  FontWeight="SemiBold"
-                  Margin="0,8,0,0" />
-                <TextBlock
-                  Text="{Binding DetailSource}"
-                  TextWrapping="Wrap" />
-              </StackPanel>
-            </ScrollViewer>
-          </TabItem>
-
-          <TabItem Header="{Binding WhereUsedHeader}">
-            <ListBox
-              ItemsSource="{Binding WhereUsedRows}"
-              SelectedItem="{Binding SelectedWhereUsedRow, Mode=TwoWay}"
-              BorderThickness="0">
-              <ListBox.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <VirtualizingStackPanel />
-                </ItemsPanelTemplate>
-              </ListBox.ItemsPanel>
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="nav:SclReferenceProjection">
-                  <Grid
-                    RowDefinitions="Auto,Auto"
-                    Margin="8,5">
-                    <Grid ColumnDefinitions="*,Auto">
+          <TabControl Grid.Row="1">
+            <TabItem Header="Properties">
+              <ScrollViewer>
+                <StackPanel Spacing="0">
+                  <Border
+                    Background="{DynamicResource ThemeControlLowBrush}"
+                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="0,0,0,1"
+                    Padding="8,6">
+                    <StackPanel Spacing="2">
                       <TextBlock
-                        Text="{Binding SourceLabel}"
+                        Text="{Binding DetailTitle}"
                         FontWeight="SemiBold"
                         TextTrimming="CharacterEllipsis" />
                       <TextBlock
-                        Grid.Column="1"
-                        Text="{Binding Kind}"
-                        Opacity="0.58"
-                        Margin="8,0,0,0" />
-                    </Grid>
+                        Text="{Binding DetailKind}"
+                        Opacity="0.62"
+                        FontSize="11" />
+                    </StackPanel>
+                  </Border>
+
+                  <Grid
+                    ColumnDefinitions="82,*"
+                    RowDefinitions="Auto,Auto,Auto,Auto"
+                    Margin="8">
+                    <TextBlock Text="Type" Classes="propertyName" />
+                    <TextBlock
+                      Grid.Column="1"
+                      Text="{Binding DetailKind}"
+                      TextTrimming="CharacterEllipsis" />
+
                     <TextBlock
                       Grid.Row="1"
-                      Text="{Binding ReferenceText}"
-                      Opacity="0.68"
-                      TextTrimming="CharacterEllipsis" />
+                      Text="Value"
+                      Classes="propertyName"
+                      Margin="0,6,8,0" />
+                    <TextBlock
+                      Grid.Row="1"
+                      Grid.Column="1"
+                      Text="{Binding DetailValue}"
+                      Margin="0,6,0,0"
+                      TextWrapping="Wrap" />
+
+                    <TextBlock
+                      Grid.Row="2"
+                      Text="Path"
+                      Classes="propertyName"
+                      Margin="0,6,8,0" />
+                    <TextBlock
+                      Grid.Row="2"
+                      Grid.Column="1"
+                      Text="{Binding DetailPath}"
+                      Margin="0,6,0,0"
+                      TextWrapping="Wrap" />
+
+                    <TextBlock
+                      Grid.Row="3"
+                      Text="Source"
+                      Classes="propertyName"
+                      Margin="0,6,8,0" />
+                    <TextBlock
+                      Grid.Row="3"
+                      Grid.Column="1"
+                      Text="{Binding DetailSource}"
+                      Margin="0,6,0,0"
+                      TextWrapping="Wrap" />
                   </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </TabItem>
-        </TabControl>
+
+                  <Border
+                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="8,7">
+                    <StackPanel Spacing="4">
+                      <TextBlock
+                        Text="Engineering context"
+                        FontWeight="SemiBold" />
+                      <TextBlock
+                        Text="{Binding DetailDescription}"
+                        TextWrapping="Wrap"
+                        Opacity="0.78" />
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </ScrollViewer>
+            </TabItem>
+
+            <TabItem Header="{Binding WhereUsedHeader}">
+              <Grid RowDefinitions="26,*">
+                <Grid
+                  Background="{DynamicResource ThemeControlLowBrush}"
+                  ColumnDefinitions="*,82">
+                  <TextBlock
+                    Text="Reference source"
+                    Margin="6,4"
+                    FontWeight="SemiBold" />
+                  <TextBlock
+                    Grid.Column="1"
+                    Text="Kind"
+                    Margin="6,4"
+                    FontWeight="SemiBold" />
+                </Grid>
+
+                <ListBox
+                  Grid.Row="1"
+                  ItemsSource="{Binding WhereUsedRows}"
+                  SelectedItem="{Binding SelectedWhereUsedRow, Mode=TwoWay}"
+                  BorderThickness="0">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <VirtualizingStackPanel />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="nav:SclReferenceProjection">
+                      <Border
+                        BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                        BorderThickness="0,0,0,1">
+                        <Grid
+                          RowDefinitions="22,19"
+                          ColumnDefinitions="*,82"
+                          Margin="5,0">
+                          <TextBlock
+                            Text="{Binding SourceLabel}"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center"
+                            TextTrimming="CharacterEllipsis" />
+                          <TextBlock
+                            Grid.Column="1"
+                            Text="{Binding Kind}"
+                            Opacity="0.62"
+                            VerticalAlignment="Center"
+                            TextTrimming="CharacterEllipsis" />
+                          <TextBlock
+                            Grid.Row="1"
+                            Grid.ColumnSpan="2"
+                            Text="{Binding ReferenceText}"
+                            FontSize="11"
+                            Opacity="0.62"
+                            TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </Grid>
+            </TabItem>
+          </TabControl>
+        </Grid>
       </Border>
     </Grid>
 
     <Border
       Grid.Row="4"
       Classes="panel"
-      Margin="8,5,8,0">
+      Margin="0,4,0,0">
       <TabControl>
         <TabItem Header="Problems">
           <Grid RowDefinitions="30,*">
