@@ -1,3 +1,4 @@
+using ArSclStudio.Engine.Documents;
 using ArSclStudio.Scl.Identity;
 using ArSclStudio.Scl.Source;
 
@@ -30,4 +31,5 @@ public sealed record Diagnostic(
     SclNodeHandle Node,
     SclSourceSpan SourceSpan = default,
     string? SourcePath = null,
-    string? Explanation = null);
+    string? Explanation = null,
+    DocumentRevision? Revision = null);
