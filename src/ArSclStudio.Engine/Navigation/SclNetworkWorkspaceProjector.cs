@@ -98,7 +98,7 @@ public static class SclNetworkWorkspaceProjector
     }
 
     private static string Get(
-        IReadOnlyDictionary<string, string> values,
+        Dictionary<string, string> values,
         string key) =>
         values.TryGetValue(key, out var value)
             ? value
