@@ -35,16 +35,26 @@ public sealed partial class MainWindowViewModel
         var previous = SelectedIedWorkspace?.Handle;
         var rows = SclIedWorkspaceProjector.Build(state);
 
-        IedWorkspaceRows = rows;
-        OnPropertyChanged(nameof(IedWorkspaceHeader));
+        var wasSynchronizing = _synchronizingSelection;
+        _synchronizingSelection = true;
 
-        SelectedIedWorkspace = previous is { } previousHandle
-            ? rows.FirstOrDefault(row => row.Handle == previousHandle)
-            : null;
-
-        if (SelectedIedWorkspace is null && rows.Length != 0)
+        try
         {
-            SelectedIedWorkspace = rows[0];
+            IedWorkspaceRows = rows;
+            OnPropertyChanged(nameof(IedWorkspaceHeader));
+
+            SelectedIedWorkspace = previous is { } previousHandle
+                ? rows.FirstOrDefault(row => row.Handle == previousHandle)
+                : null;
+
+            if (SelectedIedWorkspace is null && rows.Length != 0)
+            {
+                SelectedIedWorkspace = rows[0];
+            }
+        }
+        finally
+        {
+            _synchronizingSelection = wasSynchronizing;
         }
     }
 
