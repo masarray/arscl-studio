@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ArSclStudio.Engine</AssemblyName>
+    <RootNamespace>ArSclStudio.Engine</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ArSclStudio.Scl/ArSclStudio.Scl.csproj" />
+  </ItemGroup>
+</Project>

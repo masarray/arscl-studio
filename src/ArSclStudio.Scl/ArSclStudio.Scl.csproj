@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ArSclStudio.Scl</AssemblyName>
+    <RootNamespace>ArSclStudio.Scl</RootNamespace>
+  </PropertyGroup>
+</Project>

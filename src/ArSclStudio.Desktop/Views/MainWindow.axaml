@@ -1,0 +1,252 @@
+<Window
+  x:Class="ArSclStudio.Desktop.Views.MainWindow"
+  x:DataType="vm:MainWindowViewModel"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:ArSclStudio.Desktop.ViewModels"
+  Title="{Binding WindowTitle}"
+  Width="1500"
+  Height="920"
+  MinWidth="1100"
+  MinHeight="700">
+
+  <Grid RowDefinitions="Auto,Auto,Auto,*,210,Auto">
+    <Menu Grid.Row="0">
+      <MenuItem Header="_File" />
+      <MenuItem Header="_Edit" />
+      <MenuItem Header="_View" />
+      <MenuItem Header="_SCL" />
+      <MenuItem Header="_Tools" />
+      <MenuItem Header="_Window" />
+      <MenuItem Header="_Help" />
+    </Menu>
+
+    <Border Grid.Row="1" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="0,0,0,1" Padding="8,6">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,180,Auto">
+        <Button Classes="compact" Grid.Column="0" Content="Open" />
+        <Button Classes="compact" Grid.Column="1" Content="Save" Margin="6,0,0,0" />
+        <Button Classes="compact" Grid.Column="2" Content="Merge SCL..." Margin="14,0,0,0" />
+        <Button Classes="compact" Grid.Column="3" Content="Add IED..." Margin="6,0,0,0" />
+        <Button Classes="compact" Grid.Column="4" Content="Extract IED..." Margin="6,0,0,0" />
+        <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+          <TextBlock Text="✓ Validate" FontWeight="SemiBold" />
+          <TextBlock Text="0 Errors" />
+          <TextBlock Text="3 Warnings" />
+        </StackPanel>
+        <ComboBox Grid.Column="7" Margin="12,0" SelectedItem="{Binding TargetProfile}">
+          <ComboBoxItem Content="SICAM SCC" />
+        </ComboBox>
+        <Button Classes="compact" Grid.Column="8" Content="Export..." />
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="2" Background="{DynamicResource ThemeControlLowBrush}" Padding="10,5">
+      <StackPanel Orientation="Horizontal" Spacing="18">
+        <TextBlock Text="Station_A.scd  ×" FontWeight="SemiBold" />
+        <TextBlock Text="REL670.icd  ×" />
+        <TextBlock Text="SICAM_Client.iid  ×" />
+        <TextBlock Text="Gateway.cid  ×" />
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="3" ColumnDefinitions="310,5,*,5,315" Margin="8,8,8,0">
+      <Border Grid.Column="0" Classes="panel">
+        <Grid RowDefinitions="Auto,Auto,*">
+          <TabControl Grid.Row="0">
+            <TabItem Header="Engineering View" />
+            <TabItem Header="XML View" />
+          </TabControl>
+          <TextBox Grid.Row="1" Watermark="Search in SCL... (Ctrl+F)" Margin="8" />
+          <ListBox Grid.Row="2" ItemsSource="{Binding ExplorerRows}" BorderThickness="0">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate>
+                <VirtualizingStackPanel />
+              </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:ExplorerRow">
+                <Grid ColumnDefinitions="Auto,*,Auto" Height="26" Margin="{Binding Indent, Converter={x:Static ObjectConverters.DoubleToThicknessConverter}}">
+                  <TextBlock Grid.Column="0" Text="{Binding Glyph}" Width="20" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="2" Text="{Binding Badge}" VerticalAlignment="Center" Opacity="0.65" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+
+      <GridSplitter Grid.Column="1" Width="5" ResizeDirection="Columns" />
+
+      <Border Grid.Column="2" Classes="panel">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+          <Border Grid.Row="0" Padding="16,12" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel>
+                <TextBlock Text="IEDs  ›  AA1E1F06R4  ›  DataSets  ›  Digital" Opacity="0.7" />
+                <TextBlock Text="DataSet" FontSize="20" FontWeight="SemiBold" Margin="0,8,0,0" />
+                <TextBlock Text="Digital" FontSize="15" />
+                <TextBlock Text="Collection of FCDA members used by Reports, GOOSE, or clients." Opacity="0.68" Margin="0,4,0,0" />
+              </StackPanel>
+              <Button Grid.Column="1" Content="Edit" VerticalAlignment="Top" />
+            </Grid>
+          </Border>
+
+          <TabControl Grid.Row="1">
+            <TabItem Header="Overview" />
+            <TabItem Header="Members (36)" />
+            <TabItem Header="Relations" />
+            <TabItem Header="Used By (2)" />
+            <TabItem Header="XML" />
+          </TabControl>
+
+          <Grid Grid.Row="2" RowDefinitions="Auto,*" Margin="14">
+            <Grid ColumnDefinitions="*,20,*">
+              <StackPanel>
+                <TextBlock Text="General" FontWeight="SemiBold" />
+                <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" Margin="0,10,0,0">
+                  <TextBlock Text="Name" />
+                  <TextBox Grid.Column="1" Text="Digital" IsReadOnly="True" />
+                  <TextBlock Grid.Row="1" Text="Logical Device" Margin="0,8,0,0" />
+                  <TextBox Grid.Row="1" Grid.Column="1" Text="LLN0" IsReadOnly="True" Margin="0,8,0,0" />
+                  <TextBlock Grid.Row="2" Text="Description" Margin="0,8,0,0" />
+                  <TextBox Grid.Row="2" Grid.Column="1" Text="Digital status and protection signals" IsReadOnly="True" Margin="0,8,0,0" />
+                </Grid>
+              </StackPanel>
+
+              <StackPanel Grid.Column="2">
+                <TextBlock Text="Statistics" FontWeight="SemiBold" />
+                <TextBlock Text="36 members  •  ST 28  •  MX 4  •  SP 3  •  SV 1" Margin="0,12,0,0" />
+                <TextBlock Text="Used by: BR.Buffer01, BR.Buffer02" Margin="0,8,0,0" />
+              </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1" RowDefinitions="Auto,Auto,*" Margin="0,18,0,0">
+              <TextBlock Text="Members" FontWeight="SemiBold" />
+              <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,8,0,8">
+                <Button Classes="compact" Content="+ Add Member" />
+                <Button Classes="compact" Content="Remove" IsEnabled="False" />
+                <Button Classes="compact" Content="Move Up" IsEnabled="False" />
+                <Button Classes="compact" Content="Move Down" IsEnabled="False" />
+              </StackPanel>
+              <Grid Grid.Row="2" RowDefinitions="30,*">
+                <Border BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="1">
+                  <Grid ColumnDefinitions="2*,70,80,80,70,50,60,2*">
+                    <TextBlock Text="Reference" Margin="6" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="LD" Margin="6" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="2" Text="LN" Margin="6" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="3" Text="DO" Margin="6" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="4" Text="DA" Margin="6" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="5" Text="FC" Margin="6" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="6" Text="CDC" Margin="6" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="7" Text="Description" Margin="6" FontWeight="SemiBold" />
+                  </Grid>
+                </Border>
+                <ListBox Grid.Row="1" ItemsSource="{Binding Members}" BorderThickness="1,0,1,1">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <VirtualizingStackPanel />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MemberRow">
+                      <Grid ColumnDefinitions="2*,70,80,80,70,50,60,2*" Height="27">
+                        <TextBlock Text="{Binding Reference}" Margin="6,4" />
+                        <TextBlock Grid.Column="1" Text="{Binding Ld}" Margin="6,4" />
+                        <TextBlock Grid.Column="2" Text="{Binding Ln}" Margin="6,4" />
+                        <TextBlock Grid.Column="3" Text="{Binding DataObject}" Margin="6,4" />
+                        <TextBlock Grid.Column="4" Text="{Binding DataAttribute}" Margin="6,4" />
+                        <TextBlock Grid.Column="5" Text="{Binding Fc}" Margin="6,4" />
+                        <TextBlock Grid.Column="6" Text="{Binding Cdc}" Margin="6,4" />
+                        <TextBlock Grid.Column="7" Text="{Binding Description}" Margin="6,4" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </Grid>
+            </Grid>
+          </Grid>
+
+          <Border Grid.Row="3" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="0,1,0,0" Padding="10,6">
+            <TextBlock Text="Semantic editor shell — mutations will be routed through Engine transactions." Opacity="0.62" />
+          </Border>
+        </Grid>
+      </Border>
+
+      <GridSplitter Grid.Column="3" Width="5" ResizeDirection="Columns" />
+
+      <Border Grid.Column="4" Classes="panel">
+        <Grid RowDefinitions="Auto,*">
+          <TabControl Grid.Row="0">
+            <TabItem Header="Context" />
+            <TabItem Header="Description" />
+            <TabItem Header="Where Used (2)" />
+          </TabControl>
+          <StackPanel Grid.Row="1" Margin="14" Spacing="10">
+            <TextBlock Text="XCBR1.Pos.stVal" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="Data Attribute    ST" />
+            <Border Background="{DynamicResource ThemeControlLowBrush}" Padding="10" CornerRadius="4">
+              <TextBlock TextWrapping="Wrap" Text="Status value of the switch position. The context pane will explain IEC semantics without hiding the exact reference." />
+            </Border>
+            <TextBlock Text="Logical Node   XCBR — Circuit Breaker" />
+            <TextBlock Text="Data Object    Pos — Position" />
+            <TextBlock Text="FC             ST — Status information" />
+            <TextBlock Text="CDC            DPC" />
+            <TextBlock Text="Used By" FontWeight="SemiBold" Margin="0,10,0,0" />
+            <TextBlock Text="• DataSet Digital" />
+            <TextBlock Text="• Report BR.Buffer01" />
+            <TextBlock Text="• Report BR.Buffer02" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="4" Classes="panel" Margin="8,5,8,0">
+      <Grid RowDefinitions="Auto,*">
+        <TabControl>
+          <TabItem Header="Problems (3)" />
+          <TabItem Header="References" />
+          <TabItem Header="Changes" />
+          <TabItem Header="Signal Basket" />
+          <TabItem Header="Diff" />
+          <TabItem Header="Search Results" />
+          <TabItem Header="Output" />
+        </TabControl>
+        <Grid Grid.Row="1" RowDefinitions="30,*">
+          <Grid ColumnDefinitions="90,100,110,160,*" Background="{DynamicResource ThemeControlLowBrush}">
+            <TextBlock Text="Severity" Margin="8,6" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="1" Text="Code" Margin="8,6" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="2" Text="Domain" Margin="8,6" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="3" Text="Object" Margin="8,6" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="4" Text="Message" Margin="8,6" FontWeight="SemiBold" />
+          </Grid>
+          <ListBox Grid.Row="1" ItemsSource="{Binding Problems}" BorderThickness="0">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:ProblemRow">
+                <Grid ColumnDefinitions="90,100,110,160,*" Height="28">
+                  <TextBlock Text="{Binding Severity}" Margin="8,4" />
+                  <TextBlock Grid.Column="1" Text="{Binding Code}" Margin="8,4" />
+                  <TextBlock Grid.Column="2" Text="{Binding Domain}" Margin="8,4" />
+                  <TextBlock Grid.Column="3" Text="{Binding ObjectName}" Margin="8,4" />
+                  <TextBlock Grid.Column="4" Text="{Binding Message}" Margin="8,4" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="5" Padding="8,5" BorderBrush="{DynamicResource ThemeBorderLowBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="Ready" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14">
+          <TextBlock Text="Station_A.scd" />
+          <TextBlock Text="SCD" />
+          <TextBlock Text="IEC 61850" />
+          <TextBlock Text="Offline" />
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

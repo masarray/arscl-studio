@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>ArSclStudio.Desktop</AssemblyName>
+    <RootNamespace>ArSclStudio.Desktop</RootNamespace>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Avalonia.Diagnostics" Condition="'$(Configuration)' == 'Debug'" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ArSclStudio.Scl/ArSclStudio.Scl.csproj" />
+    <ProjectReference Include="../ArSclStudio.Engine/ArSclStudio.Engine.csproj" />
+    <ProjectReference Include="../ArSclStudio.Profiles/ArSclStudio.Profiles.csproj" />
+  </ItemGroup>
+</Project>

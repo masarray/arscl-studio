@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>arscl</AssemblyName>
+    <RootNamespace>ArSclStudio.Cli</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ArSclStudio.Scl/ArSclStudio.Scl.csproj" />
+    <ProjectReference Include="../ArSclStudio.Engine/ArSclStudio.Engine.csproj" />
+    <ProjectReference Include="../ArSclStudio.Profiles/ArSclStudio.Profiles.csproj" />
+  </ItemGroup>
+</Project>
