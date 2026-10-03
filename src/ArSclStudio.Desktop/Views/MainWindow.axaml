@@ -1,0 +1,442 @@
+<Window
+  x:Class="ArSclStudio.Desktop.Views.MainWindow"
+  x:DataType="vm:MainWindowViewModel"
+  xmlns="https://github.com/avaloniaui"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:vm="using:ArSclStudio.Desktop.ViewModels"
+  Title="{Binding WindowTitle}"
+  Width="1500"
+  Height="920"
+  MinWidth="1100"
+  MinHeight="700">
+
+  <Grid RowDefinitions="Auto,Auto,Auto,*,210,Auto">
+    <Menu Grid.Row="0">
+      <MenuItem Header="_File">
+        <MenuItem Header="_Open SCL..." Click="OpenFileClick" />
+        <Separator />
+        <MenuItem Header="E_xit" Click="ExitClick" />
+      </MenuItem>
+      <MenuItem Header="_Edit" />
+      <MenuItem Header="_View" />
+      <MenuItem Header="_SCL" />
+      <MenuItem Header="_Tools" />
+      <MenuItem Header="_Window" />
+      <MenuItem Header="_Help" />
+    </Menu>
+
+    <Border
+      Grid.Row="1"
+      BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+      BorderThickness="0,0,0,1"
+      Padding="8,6">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,180,Auto">
+        <Button
+          Classes="compact"
+          Grid.Column="0"
+          Content="Open"
+          Click="OpenFileClick" />
+        <Button
+          Classes="compact"
+          Grid.Column="1"
+          Content="Save"
+          IsEnabled="False"
+          Margin="6,0,0,0" />
+        <Button
+          Classes="compact"
+          Grid.Column="2"
+          Content="Merge SCL..."
+          IsEnabled="False"
+          Margin="14,0,0,0" />
+        <Button
+          Classes="compact"
+          Grid.Column="3"
+          Content="Add IED..."
+          IsEnabled="False"
+          Margin="6,0,0,0" />
+        <Button
+          Classes="compact"
+          Grid.Column="4"
+          Content="Extract IED..."
+          IsEnabled="False"
+          Margin="6,0,0,0" />
+
+        <StackPanel
+          Grid.Column="6"
+          Orientation="Horizontal"
+          VerticalAlignment="Center"
+          Spacing="8">
+          <TextBlock Text="Validation" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding ProblemSummary}" Opacity="0.72" />
+        </StackPanel>
+
+        <ComboBox
+          Grid.Column="7"
+          Margin="12,0"
+          ItemsSource="{Binding TargetProfiles}"
+          SelectedItem="{Binding TargetProfile}" />
+
+        <Button
+          Classes="compact"
+          Grid.Column="8"
+          Content="Export..."
+          IsEnabled="False" />
+      </Grid>
+    </Border>
+
+    <Border
+      Grid.Row="2"
+      Background="{DynamicResource ThemeControlLowBrush}"
+      Padding="10,5">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock
+          Text="{Binding DocumentDisplayName}"
+          FontWeight="SemiBold" />
+        <StackPanel
+          Grid.Column="1"
+          Orientation="Horizontal"
+          Spacing="12">
+          <TextBlock Text="{Binding DocumentKind}" />
+          <TextBlock Text="{Binding DocumentRevision}" Opacity="0.7" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Grid
+      Grid.Row="3"
+      ColumnDefinitions="320,5,*,5,320"
+      Margin="8,8,8,0">
+
+      <Border Grid.Column="0" Classes="panel">
+        <Grid RowDefinitions="Auto,*">
+          <TextBox
+            Grid.Row="0"
+            PlaceholderText="Search in SCL... (planned M1B)"
+            IsReadOnly="True"
+            Margin="8" />
+
+          <TabControl Grid.Row="1">
+            <TabItem Header="Engineering">
+              <ListBox
+                ItemsSource="{Binding EngineeringRows}"
+                SelectedItem="{Binding SelectedEngineeringRow, Mode=TwoWay}"
+                BorderThickness="0">
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <VirtualizingStackPanel />
+                  </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ExplorerRow">
+                    <Grid
+                      ColumnDefinitions="Auto,*,Auto"
+                      Height="26"
+                      Margin="{Binding IndentMargin}">
+                      <TextBlock
+                        Grid.Column="0"
+                        Text="{Binding Glyph}"
+                        Width="20"
+                        VerticalAlignment="Center"
+                        Opacity="0.72" />
+                      <TextBlock
+                        Grid.Column="1"
+                        Text="{Binding Name}"
+                        VerticalAlignment="Center" />
+                      <TextBlock
+                        Grid.Column="2"
+                        Text="{Binding Badge}"
+                        VerticalAlignment="Center"
+                        Opacity="0.55"
+                        Margin="8,0,6,0" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </TabItem>
+
+            <TabItem Header="XML">
+              <ListBox
+                ItemsSource="{Binding XmlRows}"
+                SelectedItem="{Binding SelectedXmlRow, Mode=TwoWay}"
+                BorderThickness="0">
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <VirtualizingStackPanel />
+                  </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ExplorerRow">
+                    <Grid
+                      ColumnDefinitions="Auto,*,Auto"
+                      Height="26"
+                      Margin="{Binding IndentMargin}">
+                      <TextBlock
+                        Grid.Column="0"
+                        Text="{Binding Glyph}"
+                        Width="20"
+                        VerticalAlignment="Center"
+                        Opacity="0.72" />
+                      <TextBlock
+                        Grid.Column="1"
+                        Text="{Binding Name}"
+                        VerticalAlignment="Center"
+                        TextTrimming="CharacterEllipsis" />
+                      <TextBlock
+                        Grid.Column="2"
+                        Text="{Binding Badge}"
+                        VerticalAlignment="Center"
+                        Opacity="0.55"
+                        Margin="8,0,6,0" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </TabItem>
+          </TabControl>
+        </Grid>
+      </Border>
+
+      <GridSplitter
+        Grid.Column="1"
+        Width="5"
+        ResizeDirection="Columns" />
+
+      <Border Grid.Column="2" Classes="panel">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+          <Border
+            Grid.Row="0"
+            Padding="16,12"
+            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+            BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel>
+                <TextBlock
+                  Text="{Binding DetailPath}"
+                  Opacity="0.62"
+                  TextTrimming="CharacterEllipsis" />
+                <TextBlock
+                  Text="{Binding DetailKind}"
+                  FontSize="18"
+                  FontWeight="SemiBold"
+                  Margin="0,8,0,0" />
+                <TextBlock
+                  Text="{Binding DetailTitle}"
+                  FontSize="14"
+                  Margin="0,2,0,0" />
+                <TextBlock
+                  Text="{Binding DetailDescription}"
+                  TextWrapping="Wrap"
+                  Opacity="0.72"
+                  Margin="0,6,0,0" />
+              </StackPanel>
+
+              <Button
+                Grid.Column="1"
+                Content="Edit"
+                IsEnabled="False"
+                VerticalAlignment="Top" />
+            </Grid>
+          </Border>
+
+          <TabControl Grid.Row="1">
+            <TabItem Header="Overview" />
+            <TabItem Header="Relations" IsEnabled="False" />
+            <TabItem Header="Where Used" IsEnabled="False" />
+            <TabItem Header="XML" IsEnabled="False" />
+          </TabControl>
+
+          <Grid
+            Grid.Row="2"
+            ColumnDefinitions="150,*"
+            RowDefinitions="Auto,Auto,Auto,Auto"
+            Margin="16">
+            <TextBlock Text="Source" FontWeight="SemiBold" />
+            <TextBlock
+              Grid.Column="1"
+              Text="{Binding DetailSource}"
+              TextWrapping="Wrap" />
+
+            <TextBlock
+              Grid.Row="1"
+              Text="Namespace"
+              FontWeight="SemiBold"
+              Margin="0,12,0,0" />
+            <TextBlock
+              Grid.Row="1"
+              Grid.Column="1"
+              Text="{Binding DetailNamespace}"
+              Margin="0,12,0,0"
+              TextWrapping="Wrap" />
+
+            <TextBlock
+              Grid.Row="2"
+              Text="Value"
+              FontWeight="SemiBold"
+              Margin="0,12,0,0" />
+            <TextBlock
+              Grid.Row="2"
+              Grid.Column="1"
+              Text="{Binding DetailValue}"
+              Margin="0,12,0,0"
+              TextWrapping="Wrap" />
+
+            <TextBlock
+              Grid.Row="3"
+              Text="Document"
+              FontWeight="SemiBold"
+              Margin="0,12,0,0" />
+            <StackPanel
+              Grid.Row="3"
+              Grid.Column="1"
+              Margin="0,12,0,0">
+              <TextBlock Text="{Binding DocumentDisplayName}" />
+              <TextBlock Text="{Binding DocumentNamespace}" Opacity="0.65" />
+            </StackPanel>
+          </Grid>
+
+          <Border
+            Grid.Row="3"
+            BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+            BorderThickness="0,1,0,0"
+            Padding="10,6">
+            <TextBlock
+              Text="Read-only M1A workspace — editing remains locked until the transaction kernel is implemented."
+              Opacity="0.62" />
+          </Border>
+        </Grid>
+      </Border>
+
+      <GridSplitter
+        Grid.Column="3"
+        Width="5"
+        ResizeDirection="Columns" />
+
+      <Border Grid.Column="4" Classes="panel">
+        <Grid RowDefinitions="Auto,*">
+          <TabControl Grid.Row="0">
+            <TabItem Header="Context" />
+            <TabItem Header="Description" />
+            <TabItem Header="Where Used" IsEnabled="False" />
+          </TabControl>
+
+          <StackPanel
+            Grid.Row="1"
+            Margin="14"
+            Spacing="10">
+            <TextBlock
+              Text="{Binding DetailTitle}"
+              FontSize="16"
+              FontWeight="SemiBold" />
+            <TextBlock Text="{Binding DetailKind}" Opacity="0.68" />
+
+            <Border
+              Background="{DynamicResource ThemeControlLowBrush}"
+              Padding="10"
+              CornerRadius="4">
+              <TextBlock
+                Text="{Binding DetailDescription}"
+                TextWrapping="Wrap" />
+            </Border>
+
+            <TextBlock
+              Text="Semantic path"
+              FontWeight="SemiBold"
+              Margin="0,8,0,0" />
+            <TextBlock
+              Text="{Binding DetailPath}"
+              TextWrapping="Wrap" />
+
+            <TextBlock
+              Text="Source"
+              FontWeight="SemiBold"
+              Margin="0,8,0,0" />
+            <TextBlock
+              Text="{Binding DetailSource}"
+              TextWrapping="Wrap" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <Border
+      Grid.Row="4"
+      Classes="panel"
+      Margin="8,5,8,0">
+      <Grid RowDefinitions="Auto,*">
+        <TabControl>
+          <TabItem Header="Problems" />
+          <TabItem Header="References" IsEnabled="False" />
+          <TabItem Header="Changes" IsEnabled="False" />
+          <TabItem Header="Signal Basket" IsEnabled="False" />
+          <TabItem Header="Diff" IsEnabled="False" />
+          <TabItem Header="Search Results" IsEnabled="False" />
+          <TabItem Header="Output" IsEnabled="False" />
+        </TabControl>
+
+        <Grid Grid.Row="1" RowDefinitions="30,*">
+          <Grid
+            ColumnDefinitions="85,105,105,120,*,150"
+            Background="{DynamicResource ThemeControlLowBrush}">
+            <TextBlock Text="Severity" Margin="8,6" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="1" Text="Code" Margin="8,6" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="2" Text="Domain" Margin="8,6" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="3" Text="Object" Margin="8,6" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="4" Text="Message" Margin="8,6" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="5" Text="Source" Margin="8,6" FontWeight="SemiBold" />
+          </Grid>
+
+          <ListBox
+            Grid.Row="1"
+            ItemsSource="{Binding Problems}"
+            BorderThickness="0">
+            <ListBox.ItemsPanel>
+              <ItemsPanelTemplate>
+                <VirtualizingStackPanel />
+              </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:ProblemRow">
+                <Grid
+                  ColumnDefinitions="85,105,105,120,*,150"
+                  Height="28">
+                  <TextBlock Text="{Binding Severity}" Margin="8,4" />
+                  <TextBlock Grid.Column="1" Text="{Binding Code}" Margin="8,4" />
+                  <TextBlock Grid.Column="2" Text="{Binding Domain}" Margin="8,4" />
+                  <TextBlock Grid.Column="3" Text="{Binding ObjectName}" Margin="8,4" />
+                  <TextBlock
+                    Grid.Column="4"
+                    Text="{Binding Message}"
+                    Margin="8,4"
+                    TextTrimming="CharacterEllipsis" />
+                  <TextBlock
+                    Grid.Column="5"
+                    Text="{Binding Source}"
+                    Margin="8,4"
+                    TextTrimming="CharacterEllipsis" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Border
+      Grid.Row="5"
+      Padding="8,5"
+      BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+      BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="{Binding StatusText}" />
+        <StackPanel
+          Grid.Column="1"
+          Orientation="Horizontal"
+          Spacing="14">
+          <TextBlock Text="{Binding DocumentDisplayName}" />
+          <TextBlock Text="{Binding DocumentKind}" />
+          <TextBlock Text="Offline" />
+        </StackPanel>
+      </Grid>
+    </Border>
+  </Grid>
+</Window>
