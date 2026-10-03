@@ -217,6 +217,56 @@ and join instance data with type templates.
 
 Raw `lnType`, `DOType`, `DAType` IDs are useful expert metadata but must not be the only representation.
 
+## Declared Services in IED Overview
+
+The IED Overview must project each IED's actual `<Services>` declaration as engineering capability rows. It must not display a global hard-coded checklist and must not claim runtime verification.
+
+Golden-fixture expectations:
+
+### SIEBCU
+- `SettingGroups / SGEdit`;
+- `ConfDataSet`: max 50, maxAttributes 200, modify true;
+- `DynDataSet`: max 30, maxAttributes 60;
+- `ConfReportControl`: max 60;
+- `ReportSettings`: cbName Conf, datSet Dyn, rptID Dyn, optFields Dyn, bufTime Dyn, trgOps Dyn, intgPd Dyn;
+- `GSESettings`: cbName Conf, datSet Conf, appID Conf, dataLabel Fix;
+- `ConfLNs`: fixPrefix false, fixLnInst false;
+- `GOOSE`: max 16;
+- `FileHandling`.
+
+### E016MD66
+- includes `SetDataSetValue`;
+- `ConfDataSet`: max 2, modify false;
+- `DynDataSet`: max 42;
+- `ConfReportControl`: max 176;
+- `GOOSE`: max 1;
+- `GSSE`: max 0;
+- `FileHandling`.
+
+### BCUGE
+- `ConfDataSet`: max 20, maxAttributes 64;
+- `ConfReportControl`: max 20;
+- `ReportSettings`: cbName Fix, datSet Fix, rptID Dyn and dynamic option/timing settings;
+- `GSESettings`: cbName Fix, datSet Fix, appID Dyn;
+- `GSSE`: max 1;
+- `GOOSE`: max 4;
+- `FileHandling`.
+
+### SE_C264
+- `ConfDataSet`: max 100, maxAttributes 500, modify false;
+- `ConfReportControl`: max 30;
+- `GOOSE`: max 1;
+- `FileHandling`;
+- `ConfLNs`: fixPrefix true, fixLnInst true.
+
+### C264
+- `ConfDataSet`: max 100, maxAttributes 500;
+- `ConfReportControl`: max 24;
+- `ReportSettings`: cbName Fix, datSet Fix, rptID Fix with dynamic option/timing settings;
+- `GOOSE`: max 5.
+
+Unknown or future Services children must remain visible with raw attributes and source navigation even when ARSCL has no semantic interpretation for them.
+
 ## XML expert view
 
 The complete source remains available here, including:
