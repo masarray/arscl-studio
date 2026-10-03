@@ -20,6 +20,7 @@ internal static class SclReferenceGraphBuilder
         var logicalDevices = new UniqueHandleIndex<LogicalDeviceKey>();
         var logicalNodes = new UniqueHandleIndex<LogicalNodeKey>();
         var dataSets = new UniqueHandleIndex<DataSetKey>();
+        var gseControls = new UniqueHandleIndex<GseControlKey>();
 
         foreach (var node in index.Nodes)
         {
@@ -51,6 +52,14 @@ internal static class SclReferenceGraphBuilder
 
                 case SclSemanticKind.DataSet:
                     AddDataSet(syntax, node, dataSets);
+                    break;
+
+                case SclSemanticKind.GseControl:
+                    AddGseControl(
+                        syntax,
+                        index,
+                        node,
+                        gseControls);
                     break;
             }
         }
@@ -109,6 +118,16 @@ internal static class SclReferenceGraphBuilder
                         node,
                         ieds,
                         accessPoints,
+                        edges,
+                        issues);
+                    break;
+
+                case SclSemanticKind.GseCommunication:
+                    AddGseCommunicationBinding(
+                        syntax,
+                        index,
+                        node,
+                        gseControls,
                         edges,
                         issues);
                     break;
@@ -261,6 +280,107 @@ internal static class SclReferenceGraphBuilder
                 new DataSetKey(node.Parent, name),
                 node.Handle);
         }
+    }
+
+    private static void AddGseControl(
+        SclSyntaxDocument syntax,
+        SclSemanticIndex index,
+        SclSemanticNode node,
+        UniqueHandleIndex<GseControlKey> destination)
+    {
+        if (!TryGetAncestorAttribute(
+                syntax,
+                index,
+                node.Parent,
+                SclSemanticKind.Ied,
+                "name",
+                out var iedName) ||
+            !TryGetAncestorAttribute(
+                syntax,
+                index,
+                node.Parent,
+                SclSemanticKind.LogicalDevice,
+                "inst",
+                out var ldInst) ||
+            !syntax.TryGetAttributeValue(
+                node.Handle,
+                "name",
+                out var name) ||
+            string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        destination.TryAdd(
+            new GseControlKey(
+                iedName,
+                ldInst,
+                name),
+            node.Handle);
+    }
+
+    private static void AddGseCommunicationBinding(
+        SclSyntaxDocument syntax,
+        SclSemanticIndex index,
+        SclSemanticNode node,
+        UniqueHandleIndex<GseControlKey> gseControls,
+        List<SclReferenceEdge> edges,
+        List<SclReferenceIssue> issues)
+    {
+        if (!TryGetAncestorAttribute(
+                syntax,
+                index,
+                node.Parent,
+                SclSemanticKind.ConnectedAccessPoint,
+                "iedName",
+                out var iedName) ||
+            !syntax.TryGetAttributeValue(
+                node.Handle,
+                "ldInst",
+                out var ldInst) ||
+            string.IsNullOrWhiteSpace(ldInst) ||
+            !syntax.TryGetAttributeValue(
+                node.Handle,
+                "cbName",
+                out var cbName) ||
+            string.IsNullOrWhiteSpace(cbName))
+        {
+            return;
+        }
+
+        var key = new GseControlKey(
+            iedName,
+            ldInst,
+            cbName);
+
+        var resolution = gseControls.Resolve(
+            key,
+            out var target);
+
+        var referenceText = string.Concat(
+            iedName,
+            "/",
+            ldInst,
+            "/",
+            cbName);
+
+        if (resolution == HandleResolutionStatus.Unique)
+        {
+            edges.Add(new SclReferenceEdge(
+                node.Handle,
+                target,
+                SclReferenceKind.CommunicationControlBinding,
+                referenceText));
+            return;
+        }
+
+        AddReferenceIssue(
+            issues,
+            node.Handle,
+            SclReferenceKind.CommunicationControlBinding,
+            resolution,
+            referenceText,
+            SclSemanticKind.GseControl);
     }
 
     private static void AddLogicalNodeTypeReference(
@@ -791,5 +911,10 @@ internal static class SclReferenceGraphBuilder
 
     private readonly record struct DataSetKey(
         SclNodeHandle LogicalNode,
+        string Name);
+
+    private readonly record struct GseControlKey(
+        string IedName,
+        string LdInst,
         string Name);
 }
