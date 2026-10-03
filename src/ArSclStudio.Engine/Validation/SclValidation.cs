@@ -94,6 +94,7 @@ internal static class SclValidationEngine
         SclEngineeringDiagnosticAnalyzer.AppendDiagnostics(
             state,
             diagnostics,
+            includeDeepModelChecks: false,
             cancellationToken);
 
         var schemaStatus = await schemaProvider
@@ -129,6 +130,7 @@ internal static class SclValidationEngine
         SclEngineeringDiagnosticAnalyzer.AppendDiagnostics(
             state,
             diagnostics,
+            includeDeepModelChecks: true,
             cancellationToken);
 
         var schemaStatus = await schemaProvider
