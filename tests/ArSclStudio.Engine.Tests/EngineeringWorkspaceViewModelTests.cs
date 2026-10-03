@@ -27,6 +27,9 @@ public sealed class EngineeringWorkspaceViewModelTests
                 </SubNetwork>
               </Communication>
               <IED name="IED_A" manufacturer="Vendor A">
+                <Services>
+                  <GOOSE max="2" />
+                </Services>
                 <AccessPoint name="P1">
                   <Server>
                     <LDevice inst="LD_A">
@@ -45,6 +48,9 @@ public sealed class EngineeringWorkspaceViewModelTests
                 </AccessPoint>
               </IED>
               <IED name="IED_B" manufacturer="Vendor B">
+                <Services>
+                  <ConfDataSet max="4" modify="false" />
+                </Services>
                 <AccessPoint name="P1">
                   <Server>
                     <LDevice inst="LD_B">
@@ -78,6 +84,9 @@ public sealed class EngineeringWorkspaceViewModelTests
 
             Assert.IsNotNull(vm.SelectedIedWorkspace);
             Assert.AreEqual("IED_A", vm.SelectedIedWorkspace.Name);
+            Assert.AreEqual(1, vm.ServiceCapabilityRows.Count);
+            Assert.AreEqual("GOOSE", vm.ServiceCapabilityRows[0].Name);
+            Assert.AreEqual("Maximum: 2", vm.ServiceCapabilityRows[0].Interpretation);
             Assert.AreEqual(1, vm.DataSetWorkspaceRows.Count);
             Assert.AreEqual("Events_A", vm.DataSetWorkspaceRows[0].Name);
             Assert.AreEqual(1, vm.DataSetMemberRows.Count);
@@ -87,6 +96,11 @@ public sealed class EngineeringWorkspaceViewModelTests
             vm.SelectedIedWorkspace = vm.IedWorkspaceRows.Single(
                 row => row.Name == "IED_B");
 
+            Assert.AreEqual(1, vm.ServiceCapabilityRows.Count);
+            Assert.AreEqual("ConfDataSet", vm.ServiceCapabilityRows[0].Name);
+            StringAssert.Contains(
+                vm.ServiceCapabilityRows[0].Interpretation,
+                "Modification: not allowed");
             Assert.AreEqual(1, vm.DataSetWorkspaceRows.Count);
             Assert.AreEqual("Events_B", vm.DataSetWorkspaceRows[0].Name);
             Assert.AreEqual(2, vm.DataSetMemberRows.Count);
@@ -121,6 +135,11 @@ public sealed class EngineeringWorkspaceViewModelTests
                 </SubNetwork>
               </Communication>
               <IED name="IED_A">
+                <Services>
+                  <ReportSettings cbName="Conf"
+                                  datSet="Dyn"
+                                  rptID="Fix" />
+                </Services>
                 <AccessPoint name="P1">
                   <Server>
                     <LDevice inst="LD0">
@@ -177,6 +196,13 @@ public sealed class EngineeringWorkspaceViewModelTests
         {
             await using var vm = new MainWindowViewModel();
             await vm.OpenFileAsync(path);
+
+            Assert.AreEqual(1, vm.ServiceCapabilityRows.Count);
+            var service = vm.ServiceCapabilityRows.Single();
+            vm.SelectedServiceCapability = service;
+
+            Assert.AreEqual("ReportSettings", vm.DetailTitle);
+            StringAssert.Contains(service.Interpretation, "cbName: Configurable");
 
             vm.SelectedEngineeringWorkspaceIndex = 1;
             Assert.AreEqual("IED_A / P1", vm.DetailTitle);
