@@ -37,57 +37,68 @@
       BorderBrush="{DynamicResource ThemeBorderLowBrush}"
       BorderThickness="0,0,0,1"
       Padding="7,4">
-      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto,180,Auto">
-        <Button
-          Classes="compact"
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto">
+        <StackPanel
           Grid.Column="0"
-          Content="Open"
-          Click="OpenFileClick" />
-        <Button
-          Classes="compact"
+          Orientation="Horizontal"
+          Spacing="4">
+          <Button
+            Classes="compact"
+            Content="Open SCL"
+            Click="OpenFileClick" />
+          <Button
+            Classes="compact"
+            Content="Save"
+            Click="SaveClick"
+            IsEnabled="{Binding CanSave}" />
+        </StackPanel>
+
+        <Border
           Grid.Column="1"
-          Content="Save"
-          Click="SaveClick"
-          IsEnabled="{Binding CanSave}"
-          Margin="6,0,0,0" />
-        <Button
-          Classes="compact"
-          Grid.Column="2"
-          Content="Merge SCL..."
-          IsEnabled="False"
-          Margin="14,0,0,0" />
-        <Button
-          Classes="compact"
-          Grid.Column="3"
-          Content="Add IED..."
-          IsEnabled="False"
-          Margin="6,0,0,0" />
-        <Button
-          Classes="compact"
-          Grid.Column="4"
-          Content="Extract IED..."
-          IsEnabled="False"
-          Margin="6,0,0,0" />
+          BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+          BorderThickness="1,0,0,0"
+          Margin="8,0,0,0"
+          Padding="8,0,0,0">
+          <StackPanel
+            Orientation="Horizontal"
+            Spacing="4">
+            <Button
+              Classes="compact"
+              Content="Merge"
+              IsEnabled="False" />
+            <Button
+              Classes="compact"
+              Content="Add IED"
+              IsEnabled="False" />
+            <Button
+              Classes="compact"
+              Content="Extract IED"
+              IsEnabled="False" />
+          </StackPanel>
+        </Border>
 
         <StackPanel
-          Grid.Column="6"
+          Grid.Column="3"
           Orientation="Horizontal"
           VerticalAlignment="Center"
-          Spacing="8">
+          Spacing="6"
+          Margin="8,0">
           <TextBlock Text="Validation" FontWeight="SemiBold" />
           <TextBlock Text="{Binding ProblemSummary}" Opacity="0.72" />
         </StackPanel>
 
         <ComboBox
-          Grid.Column="7"
-          Margin="12,0"
+          Grid.Column="4"
+          MinWidth="155"
+          MinHeight="27"
+          Margin="4,0,8,0"
           ItemsSource="{Binding TargetProfiles}"
           SelectedItem="{Binding TargetProfile}" />
 
         <Button
+          Grid.Column="5"
           Classes="compact"
-          Grid.Column="8"
-          Content="Export..."
+          Content="Export"
           IsEnabled="False" />
       </Grid>
     </Border>
