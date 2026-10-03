@@ -1045,8 +1045,9 @@
                     <ListBox.ItemTemplate>
                       <DataTemplate x:DataType="nav:SclDataModelRowProjection">
                         <Grid ColumnDefinitions="180,44,46,38,92,150,*" Height="24">
-                          <TextBlock Text="{Binding DisplayName}"
-                                     Margin="6,4"
+                          <TextBlock
+                                     Text="{Binding Name}"
+                                     Margin="{Binding Depth, Converter={StaticResource DepthToIndent}}"
                                      TextTrimming="CharacterEllipsis" />
                           <TextBlock Grid.Column="1"
                                      Text="{Binding Kind}"
