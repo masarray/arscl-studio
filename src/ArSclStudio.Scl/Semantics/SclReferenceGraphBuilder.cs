@@ -13,12 +13,12 @@ internal static class SclReferenceGraphBuilder
         ArgumentNullException.ThrowIfNull(index);
 
         var edges = new List<SclReferenceEdge>();
-        var typeDefinitions = new Dictionary<TypeKey, SclNodeHandle>();
-        var ieds = new Dictionary<string, SclNodeHandle>(StringComparer.Ordinal);
-        var accessPoints = new Dictionary<AccessPointKey, SclNodeHandle>();
-        var logicalDevices = new Dictionary<LogicalDeviceKey, SclNodeHandle>();
-        var logicalNodes = new Dictionary<LogicalNodeKey, SclNodeHandle>();
-        var dataSets = new Dictionary<DataSetKey, SclNodeHandle>();
+        var typeDefinitions = new UniqueHandleIndex<TypeKey>();
+        var ieds = new UniqueHandleIndex<string>(StringComparer.Ordinal);
+        var accessPoints = new UniqueHandleIndex<AccessPointKey>();
+        var logicalDevices = new UniqueHandleIndex<LogicalDeviceKey>();
+        var logicalNodes = new UniqueHandleIndex<LogicalNodeKey>();
+        var dataSets = new UniqueHandleIndex<DataSetKey>();
 
         foreach (var node in index.Nodes)
         {
@@ -132,7 +132,7 @@ internal static class SclReferenceGraphBuilder
     private static void AddTypeDefinition(
         SclSyntaxDocument syntax,
         SclSemanticNode node,
-        Dictionary<TypeKey, SclNodeHandle> destination)
+        UniqueHandleIndex<TypeKey> destination)
     {
         if (syntax.TryGetAttributeValue(node.Handle, "id", out var id) &&
             !string.IsNullOrWhiteSpace(id))
@@ -144,7 +144,7 @@ internal static class SclReferenceGraphBuilder
     private static void AddIed(
         SclSyntaxDocument syntax,
         SclSemanticNode node,
-        Dictionary<string, SclNodeHandle> destination)
+        UniqueHandleIndex<string> destination)
     {
         if (syntax.TryGetAttributeValue(node.Handle, "name", out var name) &&
             !string.IsNullOrWhiteSpace(name))
@@ -157,7 +157,7 @@ internal static class SclReferenceGraphBuilder
         SclSyntaxDocument syntax,
         SclSemanticIndex index,
         SclSemanticNode node,
-        Dictionary<AccessPointKey, SclNodeHandle> destination)
+        UniqueHandleIndex<AccessPointKey> destination)
     {
         if (!TryGetAncestorAttribute(
                 syntax,
@@ -181,7 +181,7 @@ internal static class SclReferenceGraphBuilder
         SclSyntaxDocument syntax,
         SclSemanticIndex index,
         SclSemanticNode node,
-        Dictionary<LogicalDeviceKey, SclNodeHandle> destination)
+        UniqueHandleIndex<LogicalDeviceKey> destination)
     {
         if (!TryGetAncestorAttribute(
                 syntax,
@@ -205,7 +205,7 @@ internal static class SclReferenceGraphBuilder
         SclSyntaxDocument syntax,
         SclSemanticIndex index,
         SclSemanticNode node,
-        Dictionary<LogicalNodeKey, SclNodeHandle> destination)
+        UniqueHandleIndex<LogicalNodeKey> destination)
     {
         if (!TryGetAncestorAttribute(
                 syntax,
@@ -243,7 +243,7 @@ internal static class SclReferenceGraphBuilder
     private static void AddDataSet(
         SclSyntaxDocument syntax,
         SclSemanticNode node,
-        Dictionary<DataSetKey, SclNodeHandle> destination)
+        UniqueHandleIndex<DataSetKey> destination)
     {
         if (!node.Parent.IsNone &&
             syntax.TryGetAttributeValue(node.Handle, "name", out var name) &&
@@ -258,7 +258,7 @@ internal static class SclReferenceGraphBuilder
     private static void AddLogicalNodeTypeReference(
         SclSyntaxDocument syntax,
         SclSemanticNode node,
-        Dictionary<TypeKey, SclNodeHandle> typeDefinitions,
+        UniqueHandleIndex<TypeKey> typeDefinitions,
         List<SclReferenceEdge> edges)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "lnType", out var typeId) ||
@@ -279,7 +279,7 @@ internal static class SclReferenceGraphBuilder
         SclSyntaxDocument syntax,
         SclSemanticNode node,
         SclSemanticKind targetKind,
-        Dictionary<TypeKey, SclNodeHandle> typeDefinitions,
+        UniqueHandleIndex<TypeKey> typeDefinitions,
         List<SclReferenceEdge> edges)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "type", out var typeId) ||
@@ -299,7 +299,7 @@ internal static class SclReferenceGraphBuilder
     private static void AddDataAttributeTypeReference(
         SclSyntaxDocument syntax,
         SclSemanticNode node,
-        Dictionary<TypeKey, SclNodeHandle> typeDefinitions,
+        UniqueHandleIndex<TypeKey> typeDefinitions,
         List<SclReferenceEdge> edges)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "type", out var typeId) ||
@@ -332,7 +332,7 @@ internal static class SclReferenceGraphBuilder
         SclNodeHandle source,
         SclSemanticKind targetKind,
         string typeId,
-        Dictionary<TypeKey, SclNodeHandle> typeDefinitions,
+        UniqueHandleIndex<TypeKey> typeDefinitions,
         List<SclReferenceEdge> edges)
     {
         if (typeDefinitions.TryGetValue(
@@ -351,7 +351,7 @@ internal static class SclReferenceGraphBuilder
         SclSyntaxDocument syntax,
         SclSemanticIndex index,
         SclSemanticNode node,
-        Dictionary<DataSetKey, SclNodeHandle> dataSets,
+        UniqueHandleIndex<DataSetKey> dataSets,
         List<SclReferenceEdge> edges)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "datSet", out var dataSetName) ||
@@ -376,8 +376,8 @@ internal static class SclReferenceGraphBuilder
     private static void AddCommunicationBindings(
         SclSyntaxDocument syntax,
         SclSemanticNode node,
-        Dictionary<string, SclNodeHandle> ieds,
-        Dictionary<AccessPointKey, SclNodeHandle> accessPoints,
+        UniqueHandleIndex<string> ieds,
+        UniqueHandleIndex<AccessPointKey> accessPoints,
         List<SclReferenceEdge> edges)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "iedName", out var iedName) ||
@@ -413,7 +413,7 @@ internal static class SclReferenceGraphBuilder
         SclSyntaxDocument syntax,
         SclSemanticIndex index,
         SclSemanticNode node,
-        Dictionary<LogicalNodeKey, SclNodeHandle> logicalNodes,
+        UniqueHandleIndex<LogicalNodeKey> logicalNodes,
         List<SclReferenceEdge> edges)
     {
         if (!TryGetAncestorAttribute(
@@ -447,7 +447,7 @@ internal static class SclReferenceGraphBuilder
     private static void AddExtRefBinding(
         SclSyntaxDocument syntax,
         SclSemanticNode node,
-        Dictionary<LogicalNodeKey, SclNodeHandle> logicalNodes,
+        UniqueHandleIndex<LogicalNodeKey> logicalNodes,
         List<SclReferenceEdge> edges)
     {
         if (!syntax.TryGetAttributeValue(node.Handle, "iedName", out var iedName) ||
@@ -575,6 +575,42 @@ internal static class SclReferenceGraphBuilder
         return string.IsNullOrWhiteSpace(daName)
             ? doName
             : string.Concat(doName, ".", daName);
+    }
+
+
+    private sealed class UniqueHandleIndex<TKey>
+        where TKey : notnull
+    {
+        private readonly Dictionary<TKey, SclNodeHandle> _unique;
+        private readonly HashSet<TKey> _ambiguous;
+
+        public UniqueHandleIndex(IEqualityComparer<TKey>? comparer = null)
+        {
+            _unique = new Dictionary<TKey, SclNodeHandle>(comparer);
+            _ambiguous = new HashSet<TKey>(comparer);
+        }
+
+        public bool TryAdd(TKey key, SclNodeHandle handle)
+        {
+            if (_ambiguous.Contains(key))
+            {
+                return false;
+            }
+
+            if (_unique.TryAdd(key, handle))
+            {
+                return true;
+            }
+
+            _unique.Remove(key);
+            _ambiguous.Add(key);
+            return false;
+        }
+
+        public bool TryGetValue(
+            TKey key,
+            out SclNodeHandle handle) =>
+            _unique.TryGetValue(key, out handle);
     }
 
     private readonly record struct TypeKey(
