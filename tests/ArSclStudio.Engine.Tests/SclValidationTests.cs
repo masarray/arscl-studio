@@ -466,6 +466,109 @@ public sealed class SclValidationTests
         }
     }
 
+    [TestMethod]
+    public async Task SampledValueDiagnosticsSeparateEndpointIdentityAndDataSetFindings()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <Communication>
+                <SubNetwork name="ProcessBus">
+                  <ConnectedAP iedName="MU_A" apName="P1">
+                    <SMV ldInst="LD0" cbName="SMV_PARTIAL">
+                      <Address>
+                        <P type="MAC-Address">01-0C-CD-04-00-01</P>
+                      </Address>
+                    </SMV>
+                    <SMV ldInst="LD0" cbName="SMV_NO_DATASET">
+                      <Address>
+                        <P type="MAC-Address">01-0C-CD-04-00-02</P>
+                        <P type="APPID">4002</P>
+                      </Address>
+                    </SMV>
+                  </ConnectedAP>
+                </SubNetwork>
+              </Communication>
+
+              <IED name="MU_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="">
+                        <DataSet name="ProcessData" />
+                        <SampledValueControl
+                          name="SMV_PARTIAL"
+                          datSet="ProcessData"
+                          smvID="MU_A/LD0/LLN0/SMV_PARTIAL" />
+                        <SampledValueControl
+                          name="SMV_NO_ENDPOINT"
+                          datSet="ProcessData"
+                          smvID="MU_A/LD0/LLN0/SMV_NO_ENDPOINT" />
+                        <SampledValueControl
+                          name="SMV_NO_DATASET"
+                          smvID="MU_A/LD0/LLN0/SMV_NO_DATASET" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var engineering = result.Value.Diagnostics
+                .Where(diagnostic =>
+                    diagnostic.Domain ==
+                        DiagnosticDomain.Engineering)
+                .ToArray();
+
+            var noEndpoint = engineering.Single(diagnostic =>
+                diagnostic.Code == "SCL-ENG-SMV-0001");
+
+            StringAssert.Contains(
+                noEndpoint.Message,
+                "SMV_NO_ENDPOINT");
+
+            var partial = engineering.Single(diagnostic =>
+                diagnostic.Code == "SCL-ENG-SMV-0002");
+
+            StringAssert.Contains(
+                partial.Message,
+                "SMV_PARTIAL");
+            StringAssert.Contains(
+                partial.Message,
+                "APPID");
+
+            var noDataSet = engineering.Single(diagnostic =>
+                diagnostic.Code == "SCL-ENG-SMV-0003");
+
+            StringAssert.Contains(
+                noDataSet.Message,
+                "SMV_NO_DATASET");
+
+            Assert.IsTrue(new[]
+            {
+                noEndpoint,
+                partial,
+                noDataSet
+            }.All(diagnostic =>
+                diagnostic.SourceSpan.IsKnown &&
+                diagnostic.Revision == open.State.Revision));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
