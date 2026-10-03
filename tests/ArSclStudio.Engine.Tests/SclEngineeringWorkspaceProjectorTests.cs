@@ -454,6 +454,143 @@ public sealed class SclEngineeringWorkspaceProjectorTests
         }
     }
 
+    [TestMethod]
+    public async Task SettingGroupsWorkspaceProjectsOnlySgValuesWithUnitsAndBounds()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="PROT">
+                      <LN0 lnClass="LLN0" inst="" lnType="LT_LLN0">
+                        <SettingControl numOfSGs="2" actSG="1" />
+                      </LN0>
+
+                      <LN lnClass="LTIM" inst="0" lnType="LT_LTIM" desc="Time management">
+                        <DOI name="TmOfsTmm" desc="Time offset">
+                          <DAI name="setVal"><Val>420</Val></DAI>
+                          <DAI name="minVal"><Val>-720</Val></DAI>
+                          <DAI name="maxVal"><Val>840</Val></DAI>
+                          <DAI name="stepSize"><Val>15</Val></DAI>
+                        </DOI>
+                      </LN>
+
+                      <LN prefix="U01A" lnClass="TVTR" inst="1" lnType="LT_TVTR" desc="VT 1">
+                        <DOI name="VRtg" desc="Rated voltage">
+                          <SDI name="setMag">
+                            <DAI name="f"><Val>86.60254</Val></DAI>
+                          </SDI>
+                          <SDI name="units">
+                            <DAI name="SIUnit"><Val>V</Val></DAI>
+                            <DAI name="multiplier"><Val>k</Val></DAI>
+                          </SDI>
+                          <SDI name="minVal">
+                            <DAI name="f"><Val>0.1</Val></DAI>
+                          </SDI>
+                          <SDI name="maxVal">
+                            <DAI name="f"><Val>1200</Val></DAI>
+                          </SDI>
+                          <SDI name="stepSize">
+                            <DAI name="f"><Val>0.01</Val></DAI>
+                          </SDI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_LLN0" lnClass="LLN0" />
+
+                <LNodeType id="LT_LTIM" lnClass="LTIM">
+                  <DO name="TmOfsTmm" type="DOT_ING" />
+                </LNodeType>
+                <DOType id="DOT_ING" cdc="ING">
+                  <DA name="setVal" fc="SG" bType="INT32" />
+                  <DA name="minVal" fc="CF" bType="INT32" />
+                  <DA name="maxVal" fc="CF" bType="INT32" />
+                  <DA name="stepSize" fc="CF" bType="INT32U" />
+                </DOType>
+
+                <LNodeType id="LT_TVTR" lnClass="TVTR">
+                  <DO name="VRtg" type="DOT_ASG" />
+                </LNodeType>
+                <DOType id="DOT_ASG" cdc="ASG">
+                  <DA name="setMag" fc="SG" bType="Struct" type="DAT_AV" />
+                  <DA name="units" fc="CF" bType="Struct" type="DAT_UNITS" />
+                  <DA name="minVal" fc="CF" bType="Struct" type="DAT_AV" />
+                  <DA name="maxVal" fc="CF" bType="Struct" type="DAT_AV" />
+                  <DA name="stepSize" fc="CF" bType="Struct" type="DAT_AV" />
+                </DOType>
+                <DAType id="DAT_AV">
+                  <BDA name="f" bType="FLOAT32" />
+                </DAType>
+                <DAType id="DAT_UNITS">
+                  <BDA name="SIUnit" bType="VisString255" />
+                  <BDA name="multiplier" bType="VisString64" />
+                </DAType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var ied = SclIedWorkspaceProjector.Build(open.State).Single();
+            var controls = SclSettingGroupWorkspaceProjector.BuildControls(
+                open.State,
+                ied.Handle);
+
+            Assert.AreEqual(1, controls.Length);
+            Assert.AreEqual("PROT", controls[0].LogicalDevice);
+            Assert.AreEqual("LLN0", controls[0].LogicalNode);
+            Assert.AreEqual("2", controls[0].NumberOfGroups);
+            Assert.AreEqual("1", controls[0].ActiveGroup);
+
+            var settings = SclSettingGroupWorkspaceProjector.BuildSettings(
+                open.State,
+                controls[0].Handle);
+
+            Assert.AreEqual(2, settings.Length);
+
+            var offset = settings.Single(row =>
+                row.LogicalNode == "LTIM0");
+
+            Assert.AreEqual("TmOfsTmm", offset.DataObject);
+            Assert.AreEqual("setVal", offset.Setting);
+            Assert.AreEqual("420", offset.Value);
+            Assert.AreEqual(string.Empty, offset.Unit);
+            Assert.AreEqual("-720", offset.Minimum);
+            Assert.AreEqual("840", offset.Maximum);
+            Assert.AreEqual("15", offset.Step);
+            Assert.AreEqual("INT32", offset.BasicType);
+            Assert.AreEqual("Time offset", offset.Description);
+
+            var voltage = settings.Single(row =>
+                row.LogicalNode == "U01ATVTR1");
+
+            Assert.AreEqual("VRtg", voltage.DataObject);
+            Assert.AreEqual("setMag.f", voltage.Setting);
+            Assert.AreEqual("86.60254", voltage.Value);
+            Assert.AreEqual("kV", voltage.Unit);
+            Assert.AreEqual("0.1", voltage.Minimum);
+            Assert.AreEqual("1200", voltage.Maximum);
+            Assert.AreEqual("0.01", voltage.Step);
+            Assert.AreEqual("FLOAT32", voltage.BasicType);
+            Assert.AreEqual("Rated voltage", voltage.Description);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
