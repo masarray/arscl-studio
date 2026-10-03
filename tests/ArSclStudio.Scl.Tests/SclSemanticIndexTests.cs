@@ -218,6 +218,51 @@ public sealed class SclSemanticIndexTests
             index.References.IssueCount);
     }
 
+    [TestMethod]
+    public async Task ServicesDirectChildrenBecomeGenericSourceLinkedCapabilities()
+    {
+        var document = await LoadAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="Relay_A">
+                <Services>
+                  <GetDirectory />
+                  <ConfReportControl max="4">
+                    <Private type="vendor-detail" />
+                  </ConfReportControl>
+                </Services>
+                <AccessPoint name="P1" />
+              </IED>
+            </SCL>
+            """);
+
+        var index = SclSemanticIndexBuilder.Build(document);
+
+        var services = FindSingle(
+            index,
+            SclSemanticKind.Services);
+
+        var capabilities = index.GetChildren(
+                services.Handle)
+            .Where(node =>
+                node.Kind ==
+                    SclSemanticKind.ServiceCapability)
+            .ToArray();
+
+        Assert.AreEqual(2, capabilities.Length);
+        Assert.IsTrue(capabilities.Any(node =>
+            node.DisplayName == "GetDirectory"));
+        Assert.IsTrue(capabilities.Any(node =>
+            node.DisplayName == "ConfReportControl"));
+
+        var reportCapability = capabilities.Single(node =>
+            node.DisplayName == "ConfReportControl");
+
+        Assert.IsTrue(index.GetChildren(
+                reportCapability.Handle)
+            .Any(node =>
+                node.Kind == SclSemanticKind.Private));
+    }
+
     private static int Count(
         SclSemanticIndex index,
         SclSemanticKind kind)
