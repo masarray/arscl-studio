@@ -17,10 +17,10 @@ public sealed class DepthToIndentConverter : IValueConverter
             : 0;
 
         return new Thickness(
-            depth * 12,
-            0,
-            0,
-            0);
+            5 + (depth * 12),
+            3,
+            5,
+            3);
     }
 
     public object ConvertBack(
