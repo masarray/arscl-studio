@@ -4,112 +4,150 @@ Last updated: 2026-10-03
 
 ## Current phase
 
-**M2A — Transaction Kernel & Safe Property Editing: COMPLETE (automated acceptance).**
+**M2B — Validation & Reference Diagnostics: COMPLETE (automated code acceptance).**
 
 - Repository: `masarray/arscl-studio`
-- Branch: `feature/m2a-transaction-kernel`
-- PR: [#3](https://github.com/masarray/arscl-studio/pull/3)
-- Base: M1B main `dbfd84461aacfb81eb3cd502c176aee91ba54bc3`
-- Verified code commit: `2f425acabada770dc89a5370314a0b8c54f32dc3`.
-- Verified full CI: [37116099309](https://github.com/masarray/arscl-studio/actions/runs/37116099309).
-- Windows / Ubuntu / macOS: build + **50 tests per OS passed** (10 SCL + 40 Engine/Desktop integration).
-- Windows self-contained desktop artifact: [ARSCL-Studio-win-x64](https://github.com/masarray/arscl-studio/actions/runs/37116099309/artifacts/11270579455).
-- Subsequent documentation-only commits do not change the verified executable code. PR #3 checks and main Actions retain the final merge validation.
-- Real desktop native-dialog/DPI/vendor-import acceptance remains manual, as documented below.
+- Branch: `feature/m2b-validation-reference-diagnostics`
+- PR: #4
+- Base: M2A main `8c143b7bf4c9b044429c4da57c0ccf00371f9489`
+- Verified executable-code head: `22bec93f3c564d2e98c17ace2cf0b71046b85f45`
+- Verified code CI: run `37117698045`
+- Windows / Ubuntu / macOS: build + **55 tests per OS passed** (10 SCL + 45 Engine/Desktop)
+- Windows self-contained desktop artifact from the verified code run: `11271414372`
+- Documentation-only commits after the verified code head do not change executable behavior; final PR/main CI must still remain green.
 
 ## Read first
 
-1. `AGENTS.md` — mandatory reliability, ownership and architectural contract.
-2. `docs/adr/0007-isolated-property-transactions.md` — M2A invariants, costs and limits.
-3. `docs/testing/M2A_ACCEPTANCE.md` — automated gates and real desktop smoke procedure.
-4. Existing architecture/IEC strategy and ADRs 0001–0006.
+1. `AGENTS.md` — mandatory reliability, ownership and no-naive-coding contract.
+2. `docs/adr/0007-isolated-property-transactions.md` — M2A transaction/save invariants.
+3. `docs/adr/0008-validation-reference-diagnostics.md` — M2B validation/reference invariants.
+4. `docs/testing/M2B_ACCEPTANCE.md` — exact automated evidence and limits.
+5. Existing architecture/IEC strategy and ADRs 0001–0006.
 
-The product remains a cross-platform Avalonia/.NET 10 IEC 61850 engineering workbench. Desktop never mutates XML. There is one authoritative preservation-oriented syntax document; semantic/reference indexes are projections. Unknown XML is preserved even when its semantics are not understood.
+ARSCL remains a cross-platform Avalonia/.NET 10 IEC 61850 engineering workbench. Desktop never mutates SCL XML. The preservation-oriented syntax document is authoritative; semantic/reference/validation objects are projections over stable source handles.
 
-## Existing M1B baseline retained
+## Stable baseline retained
 
-- Secure SCL loader, stable node handles and loaded-source spans.
-- Lazy flattened Engineering/XML trees and virtualized lists.
-- IED/AP/Server/LD/LN, DataSet/FCDA, report/log/GOOSE/SV controls, inputs/ExtRef, DOI/SDI/DAI and type templates.
-- Typed resolved reference graph, ambiguity-sensitive lookup, Where Used and semantic search.
-- Search debounce/coalescing, revision guards, bounded background workers and lifecycle tests.
+From M1B/M2A:
+- secure SCL loader and vendor/private XML preservation;
+- stable `SclNodeHandle` and source spans;
+- lazy flattened Engineering/XML trees and virtualized lists;
+- IED/AP/Server/LD/LN, DataSet/FCDA, report/log/GOOSE/SV controls, Inputs/ExtRef, DOI/SDI/DAI and type templates;
+- typed resolved reference graph, Where Used and semantic search;
+- compound transaction staging, rollback, bounded patch history, undo/redo;
+- only direct standard-namespace `IED.desc` is editable;
+- verified atomic Save/Save As with external-modification protection;
+- cancellation, bounded workers, latest-wins work, stale revision rejection and lifecycle tests.
 
-## M2A implemented scope
+## M2B implemented scope
 
-### Engine
+### Reference evidence
 
-- `ISclEditCommand`, `SetIedDescriptionCommand`, `CompoundEditCommand`.
-- Only direct standard-namespace `IED.desc` is editable; identities/references/vendor properties are not exposed for mutation.
-- Explicit expected revision and expected old value; absent and empty are distinct.
-- Bounded exclusive operation queue shared by edit/save/open publication.
-- One cancellable staging syntax copy per compound transaction; published readers stay immutable.
-- Fast policy/postcondition validation, optional validator veto, discard-on-failure rollback.
-- Stable surviving node handles and reuse of unaffected semantic/reference indexes for description-only edits.
-- Undo/redo and redo invalidation; no-op does not advance revision or clear redo.
-- Patch-only bounded history/journal, independent saved-content identity and dirty state.
-- Open request/revision checks repeated at the commit boundary; stale search result checks at Engine and UI publication.
-- Document close cancels/drains work and releases owned state.
+The reference graph now retains both:
+- resolved typed edges;
+- `SclReferenceIssue` records for unresolved or ambiguous targets.
 
-### Save
+The resolver distinguishes Missing / Unique / Ambiguous. Duplicate identities are never resolved by first/random match.
 
-- Same-directory unique temporary file, cancellable streaming serialization and file flush.
-- Production-parser reopen and complete XML content comparison, including vendor data.
-- Rebind original handles to verified output with refreshed source locations.
-- Atomic replace for an existing file; atomic non-overwriting move for a new file.
-- SHA-256 checks reject observed external modifications.
-- Save As preserves the SCL file role/extension and requires explicit overwrite for an existing different path.
-- UTF-8 output; UTF-16/BOM input and declaration-free input covered by tests.
-- Failed/cancelled save preserves destination, dirty state and history.
+Current diagnostics cover the reference kinds already supported by the M1B graph, including:
+- LN/type-template references;
+- DO/DA type references;
+- DataSet control bindings;
+- ConnectedAP → IED/AP;
+- FCDA → logical node;
+- ExtRef → source logical node.
 
-### Desktop and CLI
+Do not assume this is every possible IEC 61850 reference yet.
 
-- IED description editor with Apply, Cancel and explicit removal.
-- Draft retains its original IED/revision even when selection changes.
-- Read-only description field, dirty indicator, Undo/Redo and virtualized recent Changes.
-- Save/Save As and unsaved-change Open/Close prompts.
-- Async close/disposal avoids the former UI-thread blocking wait.
-- CLI: `arscl set-description input.scd Relay_A "Feeder A" output.scd` uses the same Engine.
-- CI provides a self-contained Windows desktop artifact and per-OS TRX test evidence.
+### Validation
+
+- `SclValidationSnapshot` is stamped with its source `DocumentRevision`.
+- reference diagnostics contain source handle, path/span and revision;
+- `SCL-REF-0001`: unresolved;
+- `SCL-REF-0002`: ambiguous/no-guess;
+- Reference, Schema, Semantic, Engineering and Compatibility remain distinct domains;
+- `ValidateFastAsync` and `ValidateFullAsync` use the existing latest-work coordinator;
+- same-kind newer validation supersedes/cancels older work;
+- stale revision output is rejected before publication.
+
+### Schema provider
+
+`ISclSchemaProvider` is the pluggable boundary for legally sourced schema assets.
+
+The default provider is intentionally unavailable and reports that state explicitly. ARSCL does not embed normative IEC schema text whose redistribution rights have not been verified.
+
+A configured provider reports:
+- provider ID;
+- Available / Unavailable / UnsupportedRevision;
+- message;
+- provenance.
+
+Fast validation can report that a provider is available while deferring heavy XSD work. Full validation invokes the provider when Available.
+
+### Desktop
+
+Problems is now a real source-navigation surface:
+- rows retain the diagnostic `SclNodeHandle`;
+- semantic object names are projected when known;
+- selecting a problem navigates through the shared selection service;
+- required Engineering/XML ancestors are expanded lazily;
+- stale validation snapshots are not published.
+
+A well-formed SCL with reference errors still opens for recovery/inspection. M2B never silently repairs it.
 
 ## Tests and evidence
 
-See `docs/testing/M2A_ACCEPTANCE.md`. Existing M1B gates remain in CI.
+Verified code run `37117698045` is green on Windows, Ubuntu and macOS.
 
-The full test run includes transactions, compound rollback, revision races, cancellation/disposal, bounded history/registry, snapshot collectability, preservation/encoding, failed save paths and Desktop ViewModel integration. A 100k-DAI fixture measures staging time/allocation and asserts index reuse and collapsed-tree laziness. Measurements are printed in CI/TRX; do not extrapolate them to all vendor SCDs or all machines.
+Per OS:
+- SCL: 10/10;
+- Engine/Desktop: 45/45;
+- total: **55/55**.
 
-### Measured 100k-DAI evidence
+New tests prove:
+- unresolved reference diagnostics;
+- ambiguous no-guess diagnostics;
+- revision/source linking;
+- explicit schema-unavailable status;
+- configured schema-provider findings;
+- fast-validation latest-wins cancellation;
+- Problems source navigation.
 
-CI run `37116099309`, Release build, one edit over **205,010 indexed syntax nodes**:
+All M2A gates remained green: transactions, rollback, undo/redo, save verification, preservation, race handling, lifetime/collectability and 100k-DAI regression.
 
-| Runner | Staging/edit elapsed | Allocated bytes |
-| --- | ---: | ---: |
-| Ubuntu | 219.8 ms | 36,312,872 |
-| Windows | 204.7 ms | 36,304,544 |
-| macOS | 189.6 ms | 36,304,712 |
-
-These are single-run synthetic regression observations, not end-user latency guarantees. Preallocating the staging registries reduced measured allocation from roughly 70 MB in run `37115550010` to 36.3 MB. No performance assertion relies on that earlier failing run; the final run passed all gates, including old-snapshot collectability with live undo history.
+See `docs/testing/M2B_ACCEPTANCE.md` for exact evidence.
 
 ## Important limits
 
-- M2A fast validation is not complete IEC/XSD/NSD validation or target compatibility certification.
-- Staging remains O(N) XML/registry copy time and temporary memory. History does not retain whole documents. Do not claim incremental DOM storage.
-- Existing source spans describe loaded input until successful save; new attributes have unknown spans until save.
-- Fidelity is structural/semantic/vendor content, not byte-for-byte source identity.
-- Recent history is bounded, not a permanent audit log.
-- Real native-dialog, DPI/layout and vendor-tool import testing remains a manual acceptance step.
-- No reference deletion/rename, DataSet surgery, RCB editing, merge, schema packs, SICAM rules or live MMS work is included.
-- File fingerprint checks cannot completely eliminate a race with a non-cooperating external writer between check and filesystem rename. See ADR-0007.
+- M2B is **not** complete IEC 61850 XSD/NSD/semantic validation.
+- No normative IEC XSD/NSD assets are bundled.
+- Fast validation currently emphasizes reference integrity and schema-provider state; semantic/engineering rule coverage expands in M3.
+- Existing reference diagnostics cover modeled M1B reference kinds, not every reference form in every edition.
+- Target compatibility remains a separate future profile layer.
+- Identity rename/delete, DataSet surgery, RCB editing/removal, merge and broad XML editing remain locked.
+- Desktop still has no generic XML mutation path.
+- Existing source spans describe the current loaded/verified syntax state.
+- Real vendor-tool import, native dialog and DPI/layout acceptance remains manual.
 
-## Next milestone: M2B — Validation & Reference Diagnostics
+## Next milestone: M3A — Semantic Completeness & Engineering Diagnostics
+
+Do **not** rebuild the browser/reference/search foundations. Extend them systematically.
 
 Acceptance target:
 
-1. Add revision-stamped, source-linked unresolved/ambiguous reference diagnostics (M1B currently stores resolved graph edges only).
-2. Introduce legally sourced schema-provider plumbing and make skipped/unavailable validation explicit.
-3. Separate XML, schema, model/reference, engineering and target-compatibility findings.
-4. Add cancellable/coalesced fast validation publication with source navigation.
-5. Preserve recovery viewing for pre-existing invalid SCL without silently repairing it.
-6. Prove reference/validation gates before broadening the edit policy or beginning identity/delete operations.
-7. Keep no-edit/edited preservation, compound rollback, memory/lifetime and cross-platform CI green.
+1. Deepen Substation semantics:
+   - Substation → VoltageLevel → Bay;
+   - ConductingEquipment;
+   - Terminal/connectivity context;
+   - LNode placement/binding.
+2. Deepen Communication semantics:
+   - Address/P interpretation such as IP, subnet, gateway, MAC, APPID and VLAN where represented by SCL;
+   - GSE/SMV communication endpoint linkage.
+3. Interpret supported Services without inventing unsupported capability.
+4. Complete more DOI/SDI/DAI ↔ DataTypeTemplates chains and surface unresolved/ambiguous model findings.
+5. Add typed Semantic/Engineering diagnostics with source navigation and revision-safe publication.
+6. Keep schema-provider assets legally sourced and edition-aware; do not hard-code copied normative text.
+7. Preserve lazy/virtualized UI, bounded allocation, cancellation/coalescing, round-trip fidelity and all M1B/M2A/M2B gates.
+8. Do not broaden destructive edit policy until semantic/reference impact coverage for that operation is explicitly proven.
 
-Do not add generic XML mutation to Desktop or treat absent graph edges as proof that an object is safe to delete. New editable fields require a typed command, impact classification, affected-index plan, reversible patch and tests.
+M4 remains the first broad SCL Surgery phase after these semantic gates are mature.
