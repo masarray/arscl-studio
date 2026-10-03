@@ -28,6 +28,19 @@ Acceptance:
 - background indexing
 - responsive large synthetic fixture
 
+## M1B — Accelerated semantic-browser foundation
+
+Completed before M2 to make future editing/reference-impact work deterministic:
+- deep lazy Engineering/XML projections
+- IED/LDevice/LN/DataSet/control-block semantic hierarchy
+- DataType template reference chains
+- typed resolved reference graph
+- Where Used
+- semantic search
+- ambiguity-safe identity resolution
+
+The later M3 phase therefore focuses on semantic **completeness, diagnostics, and explanations**, not rebuilding these foundations.
+
 ## M2 — Editing kernel
 
 Acceptance:

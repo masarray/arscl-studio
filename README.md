@@ -11,22 +11,25 @@ The product direction combines:
 
 ## Status
 
-**M1A Real Document Workspace — complete**
+**M1B Deep IEC Semantic Browser & Lazy Tree — complete**
 
-The application can now open real SCL files through a secure, cancellable document session and project the same authoritative SCL source into synchronized Engineering and XML views.
+Current viewer capabilities include:
+- secure real SCL loading
+- deep lazy Engineering and XML navigation
+- IED / AccessPoint / Server / LDevice / LN0 / LN
+- DataSet / FCDA
+- Report / Log / GOOSE / Sampled Value control blocks
+- Inputs / ExtRef / setting-group control
+- DOI / SDI / DAI
+- DataTypeTemplates and typed type-reference chains
+- Communication / ConnectedAP semantic relationships
+- typed forward/reverse reference graph
+- functional Where Used
+- debounced/coalesced semantic search
+- semantic source paths and source line/column
+- large-model lazy projection regression gates
 
-Current implemented viewer coverage:
-- Header
-- Substation
-- Communication
-- IED identities
-- DataTypeTemplates
-- Private/vendor extensions
-- XML root/first-level syntax
-- source line/column
-- structured open/parse diagnostics
-
-The next milestone is **M1B — Deep IEC Semantic Browser & Lazy Tree**.
+The next milestone is **M2 — Editing Kernel**.
 
 ## Architecture
 
@@ -42,6 +45,8 @@ ArSclStudio.Cli      -> ArSclStudio.Engine + ArSclStudio.Profiles
 Key rules:
 - the desktop never mutates SCL XML directly
 - syntax is authoritative; semantic models are projections/indexes
+- semantic references resolve through typed graph edges
+- ambiguous identity is never resolved by choosing an arbitrary first match
 - all future edits go through commands/transactions
 - large models use lazy/virtualized projections
 - background work is cancellable, bounded, coalesced, and revision-aware
@@ -86,6 +91,6 @@ dotnet run --project src/ArSclStudio.Cli -- probe path/to/station.scd
 
 ## Engineering quality
 
-The repository treats cancellation, worker coalescing, memory ownership, secure XML handling, round-trip fidelity, source traceability, large-model virtualization, and deterministic IEC semantics as implementation requirements rather than late-stage cleanup.
+The repository treats secure XML handling, canonical identity, reference ambiguity, cancellation, worker coalescing, memory ownership, source traceability, lazy virtualization, round-trip fidelity, and deterministic IEC semantics as implementation requirements rather than late-stage cleanup.
 
 See `AGENTS.md` for the full engineering contract.
