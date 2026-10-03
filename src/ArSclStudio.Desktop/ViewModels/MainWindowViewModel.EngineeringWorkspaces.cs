@@ -21,6 +21,27 @@ public sealed partial class MainWindowViewModel
     private SclNetworkWorkspaceProjection? _selectedNetworkWorkspaceRow;
 
     [ObservableProperty]
+    private IReadOnlyList<SclGooseWorkspaceProjection> _gooseWorkspaceRows =
+        Array.Empty<SclGooseWorkspaceProjection>();
+
+    [ObservableProperty]
+    private SclGooseWorkspaceProjection? _selectedGooseWorkspace;
+
+    [ObservableProperty]
+    private IReadOnlyList<SclGooseSignalProjection> _gooseSignalRows =
+        Array.Empty<SclGooseSignalProjection>();
+
+    [ObservableProperty]
+    private SclGooseSignalProjection? _selectedGooseSignal;
+
+    [ObservableProperty]
+    private IReadOnlyList<SclGooseSubscriberProjection> _gooseSubscriberRows =
+        Array.Empty<SclGooseSubscriberProjection>();
+
+    [ObservableProperty]
+    private SclGooseSubscriberProjection? _selectedGooseSubscriber;
+
+    [ObservableProperty]
     private IReadOnlyList<SclDataSetWorkspaceProjection> _dataSetWorkspaceRows =
         Array.Empty<SclDataSetWorkspaceProjection>();
 
@@ -40,6 +61,11 @@ public sealed partial class MainWindowViewModel
 
     [ObservableProperty]
     private SclReportWorkspaceProjection? _selectedReportWorkspace;
+
+    public string GooseWorkspaceHeader =>
+        GooseWorkspaceRows.Count == 0
+            ? "GOOSE"
+            : $"GOOSE ({GooseWorkspaceRows.Count})";
 
     public string DataSetWorkspaceHeader =>
         DataSetWorkspaceRows.Count == 0
@@ -108,13 +134,20 @@ public sealed partial class MainWindowViewModel
                 break;
 
             case 2:
+                if (SelectedGooseWorkspace is { } goose)
+                {
+                    _selectionService.Select(goose.Handle);
+                }
+                break;
+
+            case 3:
                 if (SelectedDataSetWorkspace is { } dataSet)
                 {
                     _selectionService.Select(dataSet.Handle);
                 }
                 break;
 
-            case 3:
+            case 4:
                 if (SelectedReportWorkspace is { } report)
                 {
                     _selectionService.Select(report.Handle);
@@ -125,6 +158,54 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedNetworkWorkspaceRowChanged(
         SclNetworkWorkspaceProjection? value)
+    {
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            _selectionService.Select(value.Handle);
+        }
+    }
+
+    partial void OnSelectedGooseWorkspaceChanged(
+        SclGooseWorkspaceProjection? value)
+    {
+        if (_session.CurrentState is { } state)
+        {
+            GooseSignalRows = value is null
+                ? Array.Empty<SclGooseSignalProjection>()
+                : SclGooseWorkspaceProjector.BuildSignals(
+                    state,
+                    value.Handle);
+
+            GooseSubscriberRows = value is null
+                ? Array.Empty<SclGooseSubscriberProjection>()
+                : SclGooseWorkspaceProjector.BuildSubscribers(
+                    state,
+                    value.Handle);
+        }
+
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            _selectionService.Select(value.Handle);
+        }
+    }
+
+    partial void OnSelectedGooseSignalChanged(
+        SclGooseSignalProjection? value)
+    {
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            _selectionService.Select(value.Handle);
+        }
+    }
+
+    partial void OnSelectedGooseSubscriberChanged(
+        SclGooseSubscriberProjection? value)
     {
         if (!_synchronizingSelection &&
             value is not null &&
@@ -145,7 +226,8 @@ public sealed partial class MainWindowViewModel
                     state,
                     value.Handle);
 
-            OnPropertyChanged(nameof(DataSetWorkspaceHeader));
+            OnPropertyChanged(nameof(GooseWorkspaceHeader));
+        OnPropertyChanged(nameof(DataSetWorkspaceHeader));
         }
 
         if (!_synchronizingSelection &&
@@ -209,8 +291,13 @@ public sealed partial class MainWindowViewModel
 
         _workspaceIedHandle = iedHandle;
 
+        var selectedGooseHandle = SelectedGooseWorkspace?.Handle;
         var selectedDataSetHandle = SelectedDataSetWorkspace?.Handle;
         var selectedReportHandle = SelectedReportWorkspace?.Handle;
+
+        var gooseControls = SclGooseWorkspaceProjector.BuildCatalog(
+            state,
+            iedHandle);
 
         var dataSets = SclDataSetWorkspaceProjector.BuildCatalog(
             state,
@@ -225,11 +312,20 @@ public sealed partial class MainWindowViewModel
 
         try
         {
+            GooseWorkspaceRows = gooseControls;
             DataSetWorkspaceRows = dataSets;
             ReportWorkspaceRows = reports;
 
+            OnPropertyChanged(nameof(GooseWorkspaceHeader));
             OnPropertyChanged(nameof(DataSetWorkspaceHeader));
             OnPropertyChanged(nameof(ReportWorkspaceHeader));
+
+            var nextGoose = selectedGooseHandle is { } gooseHandle
+                ? gooseControls.FirstOrDefault(row => row.Handle == gooseHandle)
+                : null;
+
+            SelectedGooseWorkspace =
+                nextGoose ?? gooseControls.FirstOrDefault();
 
             var nextDataSet = selectedDataSetHandle is { } dataSetHandle
                 ? dataSets.FirstOrDefault(row => row.Handle == dataSetHandle)
@@ -254,6 +350,12 @@ public sealed partial class MainWindowViewModel
     private void ClearIedScopedWorkspaces()
     {
         _workspaceIedHandle = SclNodeHandle.None;
+        GooseWorkspaceRows = Array.Empty<SclGooseWorkspaceProjection>();
+        SelectedGooseWorkspace = null;
+        GooseSignalRows = Array.Empty<SclGooseSignalProjection>();
+        SelectedGooseSignal = null;
+        GooseSubscriberRows = Array.Empty<SclGooseSubscriberProjection>();
+        SelectedGooseSubscriber = null;
         DataSetWorkspaceRows = Array.Empty<SclDataSetWorkspaceProjection>();
         SelectedDataSetWorkspace = null;
         DataSetMemberRows = Array.Empty<SclDataSetMemberProjection>();
@@ -284,6 +386,13 @@ public sealed partial class MainWindowViewModel
                     row => row.Handle == selected);
                 break;
 
+            case SclSemanticKind.GseControl:
+                SelectedGooseWorkspace = GooseWorkspaceRows.FirstOrDefault(
+                    row => row.Handle == selected);
+                SelectedGooseSignal = null;
+                SelectedGooseSubscriber = null;
+                break;
+
             case SclSemanticKind.DataSet:
                 SelectedDataSetWorkspace = DataSetWorkspaceRows.FirstOrDefault(
                     row => row.Handle == selected);
@@ -302,7 +411,15 @@ public sealed partial class MainWindowViewModel
 
                     SelectedDataSetMember = DataSetMemberRows.FirstOrDefault(
                         row => row.Handle == selected);
+
+                    SelectedGooseSignal = GooseSignalRows.FirstOrDefault(
+                        row => row.Handle == selected);
                 }
+                break;
+
+            case SclSemanticKind.ExternalReference:
+                SelectedGooseSubscriber = GooseSubscriberRows.FirstOrDefault(
+                    row => row.Handle == selected);
                 break;
 
             case SclSemanticKind.ReportControl:
