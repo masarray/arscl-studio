@@ -46,7 +46,7 @@ internal static class SclWorkspaceSyntaxReader
         return false;
     }
 
-    public static IReadOnlyDictionary<string, string> ReadPValues(
+    public static Dictionary<string, string> ReadPValues(
         SclSyntaxDocument syntax,
         SclNodeHandle address)
     {
