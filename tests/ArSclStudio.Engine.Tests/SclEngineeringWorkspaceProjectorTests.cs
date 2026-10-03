@@ -344,6 +344,116 @@ public sealed class SclEngineeringWorkspaceProjectorTests
         }
     }
 
+    [TestMethod]
+    public async Task DataModelWorkspaceExpandsTypeTemplatesAndOverlaysInstanceValues()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="CTRL">
+                      <LN0 lnClass="LLN0" inst="" lnType="LT_LLN0" />
+                      <LN lnClass="CSWI" inst="1" lnType="LT_CSWI" desc="Control">
+                        <DOI name="Pos" desc="Cmd. with feedback">
+                          <DAI name="ctlModel">
+                            <Val>sbo-with-enhanced-security</Val>
+                          </DAI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_LLN0" lnClass="LLN0" />
+                <LNodeType id="LT_CSWI" lnClass="CSWI">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="stVal" fc="ST" bType="Dbpos" />
+                  <DA name="ctlModel" fc="CF" bType="Enum" type="ENUM_CTL" />
+                  <DA name="origin" fc="ST" bType="Struct" type="DAT_ORIGIN" />
+                </DOType>
+
+                <DAType id="DAT_ORIGIN">
+                  <BDA name="orCat" bType="Enum" type="ENUM_ORCAT" />
+                  <BDA name="orIdent" bType="Octet64" />
+                </DAType>
+
+                <EnumType id="ENUM_CTL">
+                  <EnumVal ord="0">status-only</EnumVal>
+                  <EnumVal ord="4">sbo-with-enhanced-security</EnumVal>
+                </EnumType>
+
+                <EnumType id="ENUM_ORCAT">
+                  <EnumVal ord="0">not-supported</EnumVal>
+                </EnumType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var ied = SclIedWorkspaceProjector.Build(open.State).Single();
+            var logicalNodes = SclDataModelWorkspaceProjector.BuildLogicalNodes(
+                open.State,
+                ied.Handle);
+
+            Assert.AreEqual(2, logicalNodes.Length);
+
+            var cswi = logicalNodes.Single(row => row.LogicalNode == "CSWI1");
+            Assert.AreEqual("CTRL", cswi.LogicalDevice);
+            Assert.AreEqual("CSWI", cswi.LnClass);
+            Assert.AreEqual("Control", cswi.Description);
+            Assert.AreEqual("LT_CSWI", cswi.LnType);
+            Assert.AreEqual(1, cswi.DataObjectCount);
+
+            var rows = SclDataModelWorkspaceProjector.BuildRows(
+                open.State,
+                cswi.Handle);
+
+            var pos = rows.Single(row =>
+                row.Kind == "DO" &&
+                row.Path == "Pos");
+
+            Assert.AreEqual("DPC", pos.Cdc);
+            Assert.AreEqual("Cmd. with feedback", pos.Description);
+
+            var stVal = rows.Single(row => row.Path == "Pos/stVal");
+            Assert.AreEqual("DA", stVal.Kind);
+            Assert.AreEqual("ST", stVal.FunctionalConstraint);
+            Assert.AreEqual("Dbpos", stVal.BasicType);
+
+            var ctlModel = rows.Single(row => row.Path == "Pos/ctlModel");
+            Assert.AreEqual("CF", ctlModel.FunctionalConstraint);
+            Assert.AreEqual("Enum", ctlModel.BasicType);
+            Assert.AreEqual(
+                "sbo-with-enhanced-security",
+                ctlModel.Value);
+
+            var origin = rows.Single(row => row.Path == "Pos/origin");
+            Assert.AreEqual("Struct", origin.BasicType);
+
+            var orCat = rows.Single(row => row.Path == "Pos/origin/orCat");
+            Assert.AreEqual("BDA", orCat.Kind);
+            Assert.AreEqual("ST", orCat.FunctionalConstraint);
+            Assert.AreEqual("Enum", orCat.BasicType);
+            Assert.AreEqual(2, orCat.Depth);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
