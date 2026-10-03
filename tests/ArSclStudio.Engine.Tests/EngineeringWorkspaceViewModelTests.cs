@@ -137,10 +137,17 @@ public sealed class EngineeringWorkspaceViewModelTests
                                     datSet="Events"
                                     appID="IED_A/LD0/LLN0/GOOSE_CB"
                                     confRev="1" />
+                        <SettingControl numOfSGs="2" actSG="1" />
                       </LN0>
                       <LN lnClass="XCBR" inst="1" lnType="LT_XCBR">
                         <DOI name="Pos" desc="Breaker position">
                           <DAI name="stVal"><Val>on</Val></DAI>
+                        </DOI>
+                        <DOI name="Cfg" desc="Breaker setting">
+                          <DAI name="setVal"><Val>5</Val></DAI>
+                          <DAI name="minVal"><Val>1</Val></DAI>
+                          <DAI name="maxVal"><Val>10</Val></DAI>
+                          <DAI name="stepSize"><Val>1</Val></DAI>
                         </DOI>
                       </LN>
                     </LDevice>
@@ -151,9 +158,16 @@ public sealed class EngineeringWorkspaceViewModelTests
                 <LNodeType id="LT_LLN0" lnClass="LLN0" />
                 <LNodeType id="LT_XCBR" lnClass="XCBR">
                   <DO name="Pos" type="DOT_POS" />
+                  <DO name="Cfg" type="DOT_CFG" />
                 </LNodeType>
                 <DOType id="DOT_POS" cdc="DPC">
                   <DA name="stVal" fc="ST" bType="Dbpos" />
+                </DOType>
+                <DOType id="DOT_CFG" cdc="ING">
+                  <DA name="setVal" fc="SG" bType="INT32" />
+                  <DA name="minVal" fc="CF" bType="INT32" />
+                  <DA name="maxVal" fc="CF" bType="INT32" />
+                  <DA name="stepSize" fc="CF" bType="INT32U" />
                 </DOType>
               </DataTypeTemplates>
             </SCL>
@@ -194,6 +208,22 @@ public sealed class EngineeringWorkspaceViewModelTests
                 row => row.Path == "Pos/stVal" &&
                        row.Value == "on" &&
                        row.FunctionalConstraint == "ST"));
+
+            vm.SelectedEngineeringWorkspaceIndex = 6;
+
+            Assert.AreEqual("SettingControl", vm.DetailTitle);
+            Assert.AreEqual(1, vm.SettingGroupControls.Count);
+            Assert.AreEqual(1, vm.SettingGroupSettings.Count);
+
+            var setting = vm.SettingGroupSettings.Single();
+            Assert.AreEqual("Cfg", setting.DataObject);
+            Assert.AreEqual("setVal", setting.Setting);
+            Assert.AreEqual("5", setting.Value);
+            Assert.AreEqual("1", setting.Minimum);
+            Assert.AreEqual("10", setting.Maximum);
+
+            vm.SelectedSettingGroupSetting = setting;
+            Assert.AreEqual("setVal", vm.DetailTitle);
         }
         finally
         {
