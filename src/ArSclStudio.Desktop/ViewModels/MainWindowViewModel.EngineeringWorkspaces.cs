@@ -76,6 +76,20 @@ public sealed partial class MainWindowViewModel
     [ObservableProperty]
     private SclDataModelRowProjection? _selectedDataModelRow;
 
+    [ObservableProperty]
+    private IReadOnlyList<SclSettingGroupControlProjection> _settingGroupControls =
+        Array.Empty<SclSettingGroupControlProjection>();
+
+    [ObservableProperty]
+    private SclSettingGroupControlProjection? _selectedSettingGroupControl;
+
+    [ObservableProperty]
+    private IReadOnlyList<SclSettingGroupSettingProjection> _settingGroupSettings =
+        Array.Empty<SclSettingGroupSettingProjection>();
+
+    [ObservableProperty]
+    private SclSettingGroupSettingProjection? _selectedSettingGroupSetting;
+
     public string GooseWorkspaceHeader =>
         GooseWorkspaceRows.Count == 0
             ? "GOOSE"
@@ -95,6 +109,11 @@ public sealed partial class MainWindowViewModel
         DataModelLogicalNodes.Count == 0
             ? "Data Model"
             : $"Data Model ({DataModelLogicalNodes.Count} LN)";
+
+    public string SettingGroupsWorkspaceHeader =>
+        SettingGroupControls.Count == 0
+            ? "Setting Groups"
+            : $"Setting Groups ({SettingGroupControls.Count})";
 
     partial void OnSelectedIedWorkspaceChanged(SclIedWorkspaceProjection? value)
     {
@@ -177,6 +196,13 @@ public sealed partial class MainWindowViewModel
                 if (SelectedDataModelLogicalNode is { } logicalNode)
                 {
                     _selectionService.Select(logicalNode.Handle);
+                }
+                break;
+
+            case 6:
+                if (SelectedSettingGroupControl is { } settingControl)
+                {
+                    _selectionService.Select(settingControl.Handle);
                 }
                 break;
         }
@@ -318,6 +344,39 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    partial void OnSelectedSettingGroupControlChanged(
+        SclSettingGroupControlProjection? value)
+    {
+        if (_session.CurrentState is { } state)
+        {
+            SettingGroupSettings = value is null
+                ? Array.Empty<SclSettingGroupSettingProjection>()
+                : SclSettingGroupWorkspaceProjector.BuildSettings(
+                    state,
+                    value.Handle);
+
+            SelectedSettingGroupSetting = null;
+        }
+
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            _selectionService.Select(value.Handle);
+        }
+    }
+
+    partial void OnSelectedSettingGroupSettingChanged(
+        SclSettingGroupSettingProjection? value)
+    {
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            _selectionService.Select(value.Handle);
+        }
+    }
+
     private void RefreshEngineeringWorkspaces(
         SclDocumentState state,
         bool forceIedRefresh = false)
@@ -354,6 +413,8 @@ public sealed partial class MainWindowViewModel
         var selectedReportHandle = SelectedReportWorkspace?.Handle;
         var selectedDataModelNodeHandle =
             SelectedDataModelLogicalNode?.Handle;
+        var selectedSettingControlHandle =
+            SelectedSettingGroupControl?.Handle;
 
         var gooseControls = SclGooseWorkspaceProjector.BuildCatalog(
             state,
@@ -372,6 +433,11 @@ public sealed partial class MainWindowViewModel
                 state,
                 iedHandle);
 
+        var settingControls =
+            SclSettingGroupWorkspaceProjector.BuildControls(
+                state,
+                iedHandle);
+
         var wasSynchronizing = _synchronizingSelection;
         _synchronizingSelection = true;
 
@@ -381,11 +447,13 @@ public sealed partial class MainWindowViewModel
             DataSetWorkspaceRows = dataSets;
             ReportWorkspaceRows = reports;
             DataModelLogicalNodes = dataModelLogicalNodes;
+            SettingGroupControls = settingControls;
 
             OnPropertyChanged(nameof(GooseWorkspaceHeader));
             OnPropertyChanged(nameof(DataSetWorkspaceHeader));
             OnPropertyChanged(nameof(ReportWorkspaceHeader));
             OnPropertyChanged(nameof(DataModelWorkspaceHeader));
+            OnPropertyChanged(nameof(SettingGroupsWorkspaceHeader));
 
             var nextGoose = selectedGooseHandle is { } gooseHandle
                 ? gooseControls.FirstOrDefault(row => row.Handle == gooseHandle)
@@ -417,6 +485,16 @@ public sealed partial class MainWindowViewModel
             SelectedDataModelLogicalNode =
                 nextDataModelNode ??
                 dataModelLogicalNodes.FirstOrDefault();
+
+            var nextSettingControl =
+                selectedSettingControlHandle is { } settingControlHandle
+                    ? settingControls.FirstOrDefault(
+                        row => row.Handle == settingControlHandle)
+                    : null;
+
+            SelectedSettingGroupControl =
+                nextSettingControl ??
+                settingControls.FirstOrDefault();
         }
         finally
         {
@@ -443,11 +521,16 @@ public sealed partial class MainWindowViewModel
         SelectedDataModelLogicalNode = null;
         DataModelRows = Array.Empty<SclDataModelRowProjection>();
         SelectedDataModelRow = null;
+        SettingGroupControls = Array.Empty<SclSettingGroupControlProjection>();
+        SelectedSettingGroupControl = null;
+        SettingGroupSettings = Array.Empty<SclSettingGroupSettingProjection>();
+        SelectedSettingGroupSetting = null;
 
         OnPropertyChanged(nameof(GooseWorkspaceHeader));
         OnPropertyChanged(nameof(DataSetWorkspaceHeader));
         OnPropertyChanged(nameof(ReportWorkspaceHeader));
         OnPropertyChanged(nameof(DataModelWorkspaceHeader));
+        OnPropertyChanged(nameof(SettingGroupsWorkspaceHeader));
     }
 
     private void SynchronizeEngineeringWorkspaceSelection(
@@ -475,6 +558,13 @@ public sealed partial class MainWindowViewModel
                     DataModelLogicalNodes.FirstOrDefault(
                         row => row.Handle == selected);
                 SelectedDataModelRow = null;
+                break;
+
+            case SclSemanticKind.SettingGroupControl:
+                SelectedSettingGroupControl =
+                    SettingGroupControls.FirstOrDefault(
+                        row => row.Handle == selected);
+                SelectedSettingGroupSetting = null;
                 break;
 
             case SclSemanticKind.GseControl:
@@ -528,6 +618,9 @@ public sealed partial class MainWindowViewModel
             case SclSemanticKind.BasicDataAttributeDefinition:
                 SelectedDataModelRow = DataModelRows.FirstOrDefault(
                     row => row.Handle == selected);
+                SelectedSettingGroupSetting =
+                    SettingGroupSettings.FirstOrDefault(
+                        row => row.Handle == selected);
                 break;
         }
     }
