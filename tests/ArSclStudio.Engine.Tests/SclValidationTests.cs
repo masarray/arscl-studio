@@ -318,6 +318,55 @@ public sealed class SclValidationTests
         }
     }
 
+    [TestMethod]
+    public async Task FastValidationReportsMissingSmvEndpointWithoutConfusingSmvIdWithNetworkAppId()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="MU_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="MU">
+                      <LN0 lnClass="LLN0" inst="">
+                        <DataSet name="Samples" />
+                        <SampledValueControl name="MSVCB01"
+                                             datSet="Samples"
+                                             smvID="MU_A/MU/LLN0/MSVCB01"
+                                             smpRate="80"
+                                             nofASDU="2" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var smv = result.Value.Diagnostics.Single(
+                diagnostic => diagnostic.Code == "SCL-ENG-SMV-0001");
+
+            Assert.AreEqual(DiagnosticDomain.Engineering, smv.Domain);
+            Assert.AreEqual(DiagnosticSeverity.Warning, smv.Severity);
+            Assert.IsTrue(smv.SourceSpan.IsKnown);
+            StringAssert.Contains(smv.Message, "MSVCB01");
+            StringAssert.Contains(smv.Message, "no Communication/SMV endpoint");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(
