@@ -480,8 +480,7 @@ public sealed partial class MainWindowViewModel
             SettingGroupControls = settingControls;
 
             OnPropertyChanged(nameof(ServicesWorkspaceHeader));
-            OnPropertyChanged(nameof(ServicesWorkspaceHeader));
-        OnPropertyChanged(nameof(GooseWorkspaceHeader));
+            OnPropertyChanged(nameof(GooseWorkspaceHeader));
             OnPropertyChanged(nameof(DataSetWorkspaceHeader));
             OnPropertyChanged(nameof(ReportWorkspaceHeader));
             OnPropertyChanged(nameof(DataModelWorkspaceHeader));
@@ -566,6 +565,7 @@ public sealed partial class MainWindowViewModel
         SettingGroupSettings = Array.Empty<SclSettingGroupSettingProjection>();
         SelectedSettingGroupSetting = null;
 
+        OnPropertyChanged(nameof(ServicesWorkspaceHeader));
         OnPropertyChanged(nameof(GooseWorkspaceHeader));
         OnPropertyChanged(nameof(DataSetWorkspaceHeader));
         OnPropertyChanged(nameof(ReportWorkspaceHeader));
