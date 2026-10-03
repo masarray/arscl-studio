@@ -47,16 +47,14 @@ public sealed class LatestWorkCoordinator : IAsyncDisposable
             cancellationToken);
 
         var slot = _slots.GetOrAdd(kind, static _ => new Slot());
-        CancellationTokenSource? previous;
 
         lock (slot.Gate)
         {
-            previous = slot.Cancellation;
+            slot.Cancellation?.Cancel();
             slot.Cancellation = linked;
             slot.RequestId = requestId;
         }
 
-        previous?.Cancel();
 
         try
         {
@@ -172,3 +170,4 @@ public sealed class LatestWorkCoordinator : IAsyncDisposable
         }
     }
 }
+

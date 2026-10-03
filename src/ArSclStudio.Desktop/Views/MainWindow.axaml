@@ -15,11 +15,16 @@
   <Grid RowDefinitions="Auto,Auto,Auto,*,210,Auto">
     <Menu Grid.Row="0">
       <MenuItem Header="_File">
-        <MenuItem Header="_Open SCL..." Click="OpenFileClick" />
+        <MenuItem Header="_Open SCL..." Click="OpenFileClick" IsEnabled="{Binding CanOpen}" />
+        <MenuItem Header="_Save" Click="SaveClick" IsEnabled="{Binding CanSave}" />
+        <MenuItem Header="Save _As..." Click="SaveAsClick" IsEnabled="{Binding CanSave}" />
         <Separator />
         <MenuItem Header="E_xit" Click="ExitClick" />
       </MenuItem>
-      <MenuItem Header="_Edit" />
+      <MenuItem Header="_Edit">
+        <MenuItem Header="_Undo" Click="UndoClick" IsEnabled="{Binding CanUndo}" />
+        <MenuItem Header="_Redo" Click="RedoClick" IsEnabled="{Binding CanRedo}" />
+      </MenuItem>
       <MenuItem Header="_View" />
       <MenuItem Header="_SCL" />
       <MenuItem Header="_Tools" />
@@ -42,7 +47,8 @@
           Classes="compact"
           Grid.Column="1"
           Content="Save"
-          IsEnabled="False"
+          Click="SaveClick"
+          IsEnabled="{Binding CanSave}"
           Margin="6,0,0,0" />
         <Button
           Classes="compact"
@@ -244,8 +250,9 @@
 
               <Button
                 Grid.Column="1"
-                Content="Edit"
-                IsEnabled="False"
+                Content="Edit description"
+                Click="EditDescriptionClick"
+                IsEnabled="{Binding CanEdit}"
                 VerticalAlignment="Top" />
             </Grid>
           </Border>
@@ -259,7 +266,7 @@
           <Grid
             Grid.Row="2"
             ColumnDefinitions="150,*"
-            RowDefinitions="Auto,Auto,Auto,Auto"
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
             Margin="16">
             <TextBlock Text="Source" FontWeight="SemiBold" />
             <TextBlock
@@ -303,6 +310,21 @@
               <TextBlock Text="{Binding DocumentDisplayName}" />
               <TextBlock Text="{Binding DocumentNamespace}" Opacity="0.65" />
             </StackPanel>
+            <TextBlock Grid.Row="4" Text="Description" Margin="0,12,0,0" />
+            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding AttributeDescription}"
+                       Margin="0,12,0,0" TextWrapping="Wrap" />
+            <StackPanel Grid.Row="5" Grid.ColumnSpan="2" Margin="0,16,0,0"
+                        Spacing="6" IsVisible="{Binding IsEditing}">
+              <TextBlock Text="IED description" />
+              <TextBlock Text="{Binding EditingTargetName}" Opacity="0.7" />
+              <TextBox Text="{Binding DescriptionDraft, Mode=TwoWay}" MaxLength="4096"
+                       AcceptsReturn="True" MinHeight="60" MaxHeight="120" TextWrapping="Wrap" />
+              <CheckBox Content="Remove description attribute" IsChecked="{Binding RemoveDescription, Mode=TwoWay}" />
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Button Content="Apply" Click="ApplyDescriptionClick" IsEnabled="{Binding CanApply}" />
+                <Button Content="Cancel" Click="CancelDescriptionClick" IsEnabled="{Binding CanApply}" />
+              </StackPanel>
+            </StackPanel>
           </Grid>
 
           <Border
@@ -311,7 +333,8 @@
             BorderThickness="0,1,0,0"
             Padding="10,6">
             <TextBlock
-              Text="Read-only semantic browser — editing remains locked until the transaction kernel is implemented."
+              Text="Safe editing: IED descriptions • Undo / redo • Verified save. IEC schema validation is not yet available."
+              TextWrapping="Wrap"
               Opacity="0.62" />
           </Border>
         </Grid>
@@ -497,7 +520,29 @@
           </Grid>
         </TabItem>
 
-        <TabItem Header="Changes" IsEnabled="False" />
+        <TabItem Header="Changes">
+          <Grid RowDefinitions="Auto,*">
+            <StackPanel Orientation="Horizontal" Spacing="6" Margin="8,4">
+              <Button Content="Undo" Click="UndoClick" IsEnabled="{Binding CanUndo}" />
+              <Button Content="Redo" Click="RedoClick" IsEnabled="{Binding CanRedo}" />
+              <TextBlock Text="Recent property changes (bounded history)" VerticalAlignment="Center" Opacity="0.65" />
+            </StackPanel>
+            <ListBox Grid.Row="1" ItemsSource="{Binding ChangeRows}">
+              <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ChangeRow">
+                  <Grid ColumnDefinitions="65,65,90,*,*" Height="28">
+                    <TextBlock Text="{Binding Revision}" Margin="8,4" />
+                    <TextBlock Grid.Column="1" Text="{Binding Action}" Margin="8,4" />
+                    <TextBlock Grid.Column="2" Text="{Binding Target}" Margin="8,4" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="3" Text="{Binding Before}" Margin="8,4" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="4" Text="{Binding After}" Margin="8,4" TextTrimming="CharacterEllipsis" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </TabItem>
         <TabItem Header="Signal Basket" IsEnabled="False" />
         <TabItem Header="Diff" IsEnabled="False" />
         <TabItem Header="Output" IsEnabled="False" />
@@ -517,9 +562,11 @@
           Spacing="14">
           <TextBlock Text="{Binding DocumentDisplayName}" />
           <TextBlock Text="{Binding DocumentKind}" />
+          <TextBlock Text="{Binding SaveStateText}" />
           <TextBlock Text="Offline" />
         </StackPanel>
       </Grid>
     </Border>
   </Grid>
 </Window>
+

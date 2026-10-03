@@ -2,5 +2,9 @@
   <PropertyGroup>
     <AssemblyName>ArSclStudio.Scl</AssemblyName>
     <RootNamespace>ArSclStudio.Scl</RootNamespace>
-  </PropertyGroup>
+</PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ArSclStudio.Engine" />
+    <InternalsVisibleTo Include="ArSclStudio.Engine.Tests" />
+  </ItemGroup>
 </Project>

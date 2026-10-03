@@ -1,5 +1,6 @@
 using ArSclStudio.Engine.Diagnostics;
 using ArSclStudio.Engine.Documents;
+using ArSclStudio.Engine.Editing;
 using ArSclStudio.Engine.Navigation;
 using ArSclStudio.Engine.Search;
 using ArSclStudio.Engine.Workers;
@@ -20,6 +21,152 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private CancellationTokenSource? _searchDebounce;
     private bool _synchronizingSelection;
     private int _disposeStarted;
+    private SclNodeHandle _editTarget;
+    private DocumentRevision _editRevision;
+    private string? _editOriginal;
+
+    [ObservableProperty]
+    private bool _isDirty;
+
+    [ObservableProperty]
+    private bool _isEditing;
+
+    [ObservableProperty]
+    private string _descriptionDraft = string.Empty;
+
+    [ObservableProperty]
+    private bool _removeDescription;
+
+    [ObservableProperty]
+    private string _editingTargetName = string.Empty;
+
+    [ObservableProperty]
+    private IReadOnlyList<ChangeRow> _changeRows = Array.Empty<ChangeRow>();
+
+    public bool HasUnsavedChanges => IsDirty || (IsEditing &&
+        (RemoveDescription ? null : DescriptionDraft) != _editOriginal);
+    public bool CanOpen => !IsBusy;
+    public bool CanSave => !IsBusy && !IsEditing && _session.CurrentState is not null;
+    public bool CanUndo => !IsBusy && !IsEditing && _session.CanUndo;
+    public bool CanRedo => !IsBusy && !IsEditing && _session.CanRedo;
+    public bool CanEdit => !IsBusy && !IsEditing && _session.CurrentState is { } state &&
+        SclEditPolicy.CanEditDescription(state, _selectionService.SelectedNode);
+    public bool CanApply => !IsBusy && IsEditing;
+    public string SaveStateText => IsDirty ? "Unsaved changes" : "Saved";
+    public string CurrentFileName => _session.CurrentState?.DisplayName ?? "Station.scd";
+
+    partial void OnDescriptionDraftChanged(string value)
+    {
+        if (IsEditing) { RemoveDescription = false; }
+    }
+
+    partial void OnIsBusyChanged(bool value) => RefreshEditCommands();
+    partial void OnIsEditingChanged(bool value) => RefreshEditCommands();
+    partial void OnIsDirtyChanged(bool value) => OnPropertyChanged(nameof(SaveStateText));
+
+    private void RefreshEditCommands()
+    {
+        OnPropertyChanged(nameof(CanOpen));
+        OnPropertyChanged(nameof(CanSave));
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+        OnPropertyChanged(nameof(CanEdit));
+        OnPropertyChanged(nameof(CanApply));
+    }
+
+    public void BeginDescriptionEdit()
+    {
+        if (!CanEdit || _session.CurrentState is not { } state) { return; }
+        _editTarget = _selectionService.SelectedNode;
+        _editRevision = state.Revision;
+        state.Syntax.TryGetAttributeValue(_editTarget, "desc", out _editOriginal);
+        DescriptionDraft = _editOriginal ?? string.Empty;
+        RemoveDescription = _editOriginal is null;
+        EditingTargetName = DetailTitle;
+        IsEditing = true;
+    }
+
+    public void CancelDescriptionEdit() => IsEditing = false;
+
+    public async Task ApplyDescriptionAsync()
+    {
+        if (!CanApply) { return; }
+        IsBusy = true;
+        try
+        {
+            var result = await _session.ExecuteAsync(new SetIedDescriptionCommand(_editTarget,
+                _editOriginal, RemoveDescription ? null : DescriptionDraft), _editRevision);
+            StatusText = result.Message;
+            if (result.Succeeded)
+            {
+                IsEditing = false;
+                RefreshAfterOperation();
+            }
+        }
+        finally { IsBusy = false; }
+    }
+
+    public async Task UndoAsync()
+    {
+        if (!CanUndo) { return; }
+        IsBusy = true;
+        try
+        {
+            var result = await _session.UndoAsync(_session.CurrentRevision);
+            StatusText = result.Message;
+            if (result.Succeeded) { RefreshAfterOperation(); }
+        }
+        finally { IsBusy = false; }
+    }
+
+    public async Task RedoAsync()
+    {
+        if (!CanRedo) { return; }
+        IsBusy = true;
+        try
+        {
+            var result = await _session.RedoAsync(_session.CurrentRevision);
+            StatusText = result.Message;
+            if (result.Succeeded) { RefreshAfterOperation(); }
+        }
+        finally { IsBusy = false; }
+    }
+
+    public async Task<bool> SaveAsync(string? path = null, bool overwrite = false)
+    {
+        if (!CanSave) { return false; }
+        IsBusy = true;
+        StatusText = "Writing temporary file and verifying XML...";
+        try
+        {
+            var result = await _session.SaveAsync(_session.CurrentRevision, path, overwrite);
+            StatusText = result.Message;
+            if (result.Succeeded) { RefreshAfterOperation(); }
+            return result.Succeeded;
+        }
+        finally { IsBusy = false; }
+    }
+
+    private void RefreshAfterOperation()
+    {
+        if (Volatile.Read(ref _disposeStarted) != 0 || _session.CurrentState is not { } state) { return; }
+        SynchronizeRows(() =>
+        {
+            RefreshEngineeringProjection(state);
+            RefreshXmlProjection(state);
+        });
+        SearchResults = Array.Empty<SclSearchResultProjection>();
+        SearchResultsHeader = "Search Results";
+        DocumentDisplayName = state.DisplayName;
+        IsDirty = _session.IsDirty;
+        ChangeRows = _session.ChangeJournal.SelectMany(entry => entry.Changes.Select(change =>
+            new ChangeRow(entry.Revision.ToString(), entry.Action,
+                state.SemanticIndex.TryGetNode(change.Target, out var node) && node is not null
+                    ? node.DisplayName : change.Target.ToString(),
+                change.Before ?? "(absent)", change.After ?? "(absent)"))).Reverse().ToArray();
+        SelectionChanged(this, new SclSelectionChangedEventArgs(_selectionService.SelectedNode));
+        RefreshEditCommands();
+    }
 
     [ObservableProperty]
     private string _targetProfile = "SICAM SCC";
@@ -96,6 +243,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private string _detailNamespace = string.Empty;
 
     [ObservableProperty]
+    private string _attributeDescription = string.Empty;
+
+    [ObservableProperty]
     private string _detailValue = string.Empty;
 
     [ObservableProperty]
@@ -143,6 +293,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             switch (result.Status)
             {
                 case SclOpenStatus.Opened when result.State is not null:
+                    IsEditing = false;
+                    IsDirty = false;
+                    ChangeRows = Array.Empty<ChangeRow>();
                     PublishDocument(result.State);
                     PublishDiagnostics(result.Diagnostics);
                     _selectionService.Select(result.State.Syntax.RootHandle);
@@ -254,6 +407,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 debounce.Token);
 
             if (!result.CanPublish ||
+                result.SourceRevision != _session.CurrentRevision ||
                 result.Value is null ||
                 Volatile.Read(ref _disposeStarted) != 0)
             {
@@ -310,6 +464,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         WhereUsedRows = Array.Empty<SclReferenceProjection>();
         SearchResults = Array.Empty<SclSearchResultProjection>();
 
+        ChangeRows = Array.Empty<ChangeRow>();
         await _session.DisposeAsync();
     }
 
@@ -341,6 +496,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     private void PublishDocument(SclDocumentState state)
     {
+        _selectionService.Clear();
         _engineeringExpanded.Clear();
         _xmlExpanded.Clear();
         _engineeringExpanded.Add(state.Syntax.RootHandle);
@@ -473,6 +629,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 : details.NamespaceUri;
             DetailValue = details.Value ?? string.Empty;
             DetailDescription = details.Description;
+            AttributeDescription = state.Syntax.TryGetAttributeValue(args.SelectedNode, "desc", out var description)
+                ? description ?? string.Empty : "(not set)";
 
             var whereUsed = SclReferenceProjector.BuildWhereUsed(
                 state,
@@ -489,6 +647,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
             SelectedWhereUsedRow = null;
             SelectedSearchResult = null;
+            RefreshEditCommands();
         }
         finally
         {
@@ -633,3 +792,4 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
     }
 }
+

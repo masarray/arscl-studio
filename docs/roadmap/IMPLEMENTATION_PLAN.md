@@ -52,6 +52,14 @@ Acceptance:
 - atomic save
 - exact/no-semantic-change round-trip tests
 
+### M2A — Implemented editing slice
+
+PR #3 delivers direct `IED.desc` editing, compound staging/rollback, bounded patch-only undo/redo and journal, saved-content dirty state, verified atomic Save/Save As, Desktop integration and CLI support. See ADR-0007 and the handoff for limits and exact CI evidence.
+
+### M2B — Validation & reference diagnostics
+
+Before expanding mutations, implement explicit unresolved/ambiguous-reference findings, schema-provider plumbing, validation-domain separation and revision-aware diagnostic publication. The first editable property deliberately does not affect identity or graph edges.
+
 ## M3 — Semantic browser
 
 Acceptance:
@@ -127,3 +135,4 @@ Every milestone has:
 - buildable mainline
 
 If a risky feature blocks a milestone, isolate it behind an interface/feature flag and complete the rest. Do not leave the repository unbuildable while experimenting.
+

@@ -9,10 +9,37 @@ internal sealed class SclNodeRegistry
     private readonly Dictionary<XmlNode, long> _handles =
         new(ReferenceEqualityComparer.Instance);
 
-    private readonly List<XmlNode?> _nodes = [null];
-    private readonly List<SclSourceSpan> _spans = [SclSourceSpan.Unknown];
+    private readonly Dictionary<long, XmlNode> _nodes = [];
+    private readonly Dictionary<long, SclSourceSpan> _spans = [];
+    private long _nextHandle = 1;
 
-    public int Count => _nodes.Count - 1;
+    public int Count => _nodes.Count;
+
+    internal SclNodeRegistry CreateSuccessor()
+    {
+        var successor = new SclNodeRegistry { _nextHandle = _nextHandle };
+        successor._handles.EnsureCapacity(Count + 1);
+        successor._nodes.EnsureCapacity(Count + 1);
+        successor._spans.EnsureCapacity(Count + 1);
+        return successor;
+    }
+
+    internal void RegisterAt(XmlNode node, SclNodeHandle handle, SclSourceSpan span)
+    {
+        _handles.Add(node, handle.Value);
+        _nodes.Add(handle.Value, node);
+        _spans.Add(handle.Value, span);
+        _nextHandle = Math.Max(_nextHandle, handle.Value + 1);
+    }
+
+    internal void Remove(XmlNode node)
+    {
+        if (_handles.Remove(node, out var handle))
+        {
+            _nodes.Remove(handle);
+            _spans.Remove(handle);
+        }
+    }
 
     public SclNodeHandle Register(XmlNode node, SclSourceSpan span)
     {
@@ -23,9 +50,9 @@ internal sealed class SclNodeRegistry
             return new SclNodeHandle(existing);
         }
 
-        var value = _nodes.Count;
-        _nodes.Add(node);
-        _spans.Add(span);
+        var value = _nextHandle++;
+        _nodes.Add(value, node);
+        _spans.Add(value, span);
         _handles.Add(node, value);
 
         return new SclNodeHandle(value);
@@ -45,10 +72,9 @@ internal sealed class SclNodeRegistry
 
     public bool TryGetNode(SclNodeHandle handle, out XmlNode? node)
     {
-        if (handle.Value > 0 && handle.Value < _nodes.Count)
+        if (_nodes.TryGetValue(handle.Value, out node))
         {
-            node = _nodes[(int)handle.Value];
-            return node is not null;
+            return true;
         }
 
         node = null;
@@ -57,11 +83,12 @@ internal sealed class SclNodeRegistry
 
     public SclSourceSpan GetSourceSpan(SclNodeHandle handle)
     {
-        if (handle.Value > 0 && handle.Value < _spans.Count)
+        if (_spans.TryGetValue(handle.Value, out var span))
         {
-            return _spans[(int)handle.Value];
+            return span;
         }
 
         return SclSourceSpan.Unknown;
     }
 }
+
