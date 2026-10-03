@@ -206,31 +206,48 @@ public sealed partial class MainWindowViewModel
         SclDocumentState state,
         SclNodeHandle selected)
     {
-        SelectedNetworkWorkspaceRow = NetworkWorkspaceRows.FirstOrDefault(
-            row => row.Handle == selected);
-
-        SclNodeHandle dataSetHandle = selected;
-
-        if (state.SemanticIndex.TryGetNode(selected, out var selectedNode) &&
-            selectedNode is not null &&
-            selectedNode.Kind == SclSemanticKind.Fcda &&
-            state.SemanticIndex.TryFindAncestor(
+        if (!state.SemanticIndex.TryGetNode(
                 selected,
-                SclSemanticKind.DataSet,
-                out var dataSetAncestor) &&
-            dataSetAncestor is not null)
+                out var selectedNode) ||
+            selectedNode is null)
         {
-            dataSetHandle = dataSetAncestor.Handle;
+            return;
         }
 
-        SelectedDataSetWorkspace = DataSetWorkspaceRows.FirstOrDefault(
-            row => row.Handle == dataSetHandle);
+        switch (selectedNode.Kind)
+        {
+            case SclSemanticKind.ConnectedAccessPoint:
+                SelectedNetworkWorkspaceRow = NetworkWorkspaceRows.FirstOrDefault(
+                    row => row.Handle == selected);
+                break;
 
-        SelectedDataSetMember = DataSetMemberRows.FirstOrDefault(
-            row => row.Handle == selected);
+            case SclSemanticKind.DataSet:
+                SelectedDataSetWorkspace = DataSetWorkspaceRows.FirstOrDefault(
+                    row => row.Handle == selected);
+                SelectedDataSetMember = null;
+                break;
 
-        SelectedReportWorkspace = ReportWorkspaceRows.FirstOrDefault(
-            row => row.Handle == selected);
+            case SclSemanticKind.Fcda:
+                if (state.SemanticIndex.TryFindAncestor(
+                        selected,
+                        SclSemanticKind.DataSet,
+                        out var dataSetAncestor) &&
+                    dataSetAncestor is not null)
+                {
+                    SelectedDataSetWorkspace = DataSetWorkspaceRows.FirstOrDefault(
+                        row => row.Handle == dataSetAncestor.Handle);
+
+                    SelectedDataSetMember = DataSetMemberRows.FirstOrDefault(
+                        row => row.Handle == selected);
+                }
+                break;
+
+            case SclSemanticKind.ReportControl:
+            case SclSemanticKind.LogControl:
+                SelectedReportWorkspace = ReportWorkspaceRows.FirstOrDefault(
+                    row => row.Handle == selected);
+                break;
+        }
     }
 
     private void ClearEngineeringWorkspaces()
