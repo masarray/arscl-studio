@@ -13,6 +13,10 @@ public sealed class SclIedWorkspaceProjectorTests
             <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
               <Private type="vendor-noise">must-not-be-an-ied-row</Private>
               <IED name="SIEBCU" manufacturer="SIEMENS" desc="Station controller">
+                <Services>
+                  <GetDirectory />
+                  <ConfReportControl max="6" />
+                </Services>
                 <AccessPoint name="E">
                   <Server>
                     <LDevice inst="CTRL">
@@ -22,6 +26,7 @@ public sealed class SclIedWorkspaceProjectorTests
                         <ReportControl name="Buffer" datSet="DataSet_1" buffered="true" />
                         <ReportControl name="Unbuffer" datSet="DataSet_1" buffered="false" />
                         <GSEControl name="Control_DataSet" datSet="Control_DataSet" />
+                        <SampledValueControl name="Sampled_1" datSet="Control_DataSet" />
                         <SettingControl numOfSGs="1" actSG="1" />
                       </LN0>
                       <LN lnClass="CSWI" inst="1" />
@@ -64,7 +69,9 @@ public sealed class SclIedWorkspaceProjectorTests
             Assert.AreEqual(2, siebcu.DataSetCount);
             Assert.AreEqual(2, siebcu.ReportCount);
             Assert.AreEqual(1, siebcu.GooseCount);
+            Assert.AreEqual(1, siebcu.SampledValueCount);
             Assert.AreEqual(1, siebcu.SettingGroupCount);
+            Assert.AreEqual(2, siebcu.ServiceCapabilityCount);
 
             var c264 = rows.Single(row => row.Name == "C264");
             Assert.AreEqual("ALSTOM", c264.Manufacturer);
