@@ -70,6 +70,50 @@ public sealed partial class MainWindow : Window
         await viewModel.OpenFileAsync(files[0].Path.LocalPath);
     }
 
+    private async void SearchTextChanged(
+        object? sender,
+        TextChangedEventArgs e)
+    {
+        if (sender is not TextBox textBox ||
+            DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        try
+        {
+            await viewModel.SearchAsync(textBox.Text);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Window/session is closing.
+        }
+    }
+
+    private void EngineeringToggleClick(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: ExplorerRow row } &&
+            DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.ToggleEngineering(row);
+            e.Handled = true;
+        }
+    }
+
+    private void XmlToggleClick(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: ExplorerRow row } &&
+            DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.ToggleXml(row);
+            e.Handled = true;
+        }
+    }
+
     private void ExitClick(
         object? sender,
         RoutedEventArgs e) =>
