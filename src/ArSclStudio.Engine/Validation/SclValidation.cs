@@ -215,6 +215,13 @@ internal static class SclValidationEngine
                         diagnostics);
                     break;
 
+                case SclSemanticKind.SampledValueControl:
+                    AppendSmvDiagnostics(
+                        state,
+                        node,
+                        diagnostics);
+                    break;
+
                 case SclSemanticKind.Doi:
                     AppendDataModelInstanceDiagnostics(
                         state,
@@ -245,7 +252,8 @@ internal static class SclValidationEngine
 
         var endpoint = FindIncomingCommunicationEndpoint(
             state,
-            control.Handle);
+            control.Handle,
+            SclSemanticKind.GseCommunication);
 
         if (endpoint.IsNone)
         {
@@ -309,6 +317,81 @@ internal static class SclValidationEngine
                 endpoint,
                 $"GOOSE endpoint for '{control.DisplayName}' has no network APPID.",
                 "The GSEControl appID and the Communication/GSE network APPID are different SCL properties; ARSCL does not substitute one for the other."));
+        }
+    }
+
+    private static void AppendSmvDiagnostics(
+        SclDocumentState state,
+        SclSemanticNode control,
+        List<Diagnostic> diagnostics)
+    {
+        var endpoint = FindIncomingCommunicationEndpoint(
+            state,
+            control.Handle,
+            SclSemanticKind.SmvCommunication);
+
+        if (endpoint.IsNone)
+        {
+            diagnostics.Add(CreateDiagnostic(
+                state,
+                "SCL-ENG-SMV-0001",
+                DiagnosticSeverity.Warning,
+                DiagnosticDomain.Engineering,
+                control.Handle,
+                $"SampledValueControl '{control.DisplayName}' has no Communication/SMV endpoint.",
+                "The sampled-value control exists in the IED model but has no resolved process-bus Ethernet endpoint. Check ConnectedAP/SMV ldInst and cbName."));
+            return;
+        }
+
+        if (!SclWorkspaceSyntaxReader.TryFindDirectElement(
+                state.Syntax,
+                endpoint,
+                "Address",
+                out var address))
+        {
+            diagnostics.Add(CreateDiagnostic(
+                state,
+                "SCL-ENG-SMV-0002",
+                DiagnosticSeverity.Warning,
+                DiagnosticDomain.Engineering,
+                endpoint,
+                $"SMV endpoint for '{control.DisplayName}' has no Address element.",
+                "Destination MAC and network APPID cannot be established from this endpoint."));
+            return;
+        }
+
+        var parameters = SclWorkspaceSyntaxReader.ReadPValues(
+            state.Syntax,
+            address);
+
+        if (!parameters.TryGetValue(
+                "MAC-Address",
+                out var macAddress) ||
+            string.IsNullOrWhiteSpace(macAddress))
+        {
+            diagnostics.Add(CreateDiagnostic(
+                state,
+                "SCL-ENG-SMV-0003",
+                DiagnosticSeverity.Warning,
+                DiagnosticDomain.Engineering,
+                endpoint,
+                $"SMV endpoint for '{control.DisplayName}' has no destination MAC address.",
+                "A deployable sampled-value Ethernet endpoint normally requires a destination multicast MAC address."));
+        }
+
+        if (!parameters.TryGetValue(
+                "APPID",
+                out var networkAppId) ||
+            string.IsNullOrWhiteSpace(networkAppId))
+        {
+            diagnostics.Add(CreateDiagnostic(
+                state,
+                "SCL-ENG-SMV-0004",
+                DiagnosticSeverity.Warning,
+                DiagnosticDomain.Engineering,
+                endpoint,
+                $"SMV endpoint for '{control.DisplayName}' has no network APPID.",
+                "The SampledValueControl smvID and the Communication/SMV network APPID are different SCL properties; ARSCL does not substitute one for the other."));
         }
     }
 
@@ -389,7 +472,8 @@ internal static class SclValidationEngine
 
     private static SclNodeHandle FindIncomingCommunicationEndpoint(
         SclDocumentState state,
-        SclNodeHandle control)
+        SclNodeHandle control,
+        SclSemanticKind endpointKind)
     {
         var incoming = state.SemanticIndex.References.GetIncoming(
             control);
@@ -408,7 +492,7 @@ internal static class SclValidationEngine
                     edge.Source,
                     out var source) &&
                 source is not null &&
-                source.Kind == SclSemanticKind.GseCommunication)
+                source.Kind == endpointKind)
             {
                 return edge.Source;
             }
