@@ -123,6 +123,42 @@ public sealed class SclTypeReferenceTests
                 edge.ReferenceText == "Pos.stVal"));
     }
 
+    [TestMethod]
+    public async Task DuplicateTypeIdentityIsNotResolvedByGuessing()
+    {
+        const string xml = """
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="Relay_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN lnClass="XCBR" inst="1" lnType="DUPLICATE_TYPE" />
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+              <DataTypeTemplates>
+                <LNodeType id="DUPLICATE_TYPE" lnClass="XCBR" />
+                <LNodeType id="DUPLICATE_TYPE" lnClass="CSWI" />
+              </DataTypeTemplates>
+            </SCL>
+            """;
+
+        await using var stream = new MemoryStream(
+            Encoding.UTF8.GetBytes(xml));
+
+        var document = await new SclDocumentLoader()
+            .LoadAsync(stream, "ambiguous.scd");
+
+        var index = SclSemanticIndexBuilder.Build(document);
+        var ln = Find(index, SclSemanticKind.LogicalNode);
+
+        Assert.IsFalse(
+            index.References.GetOutgoing(ln.Handle)
+                .Any(edge =>
+                    edge.Kind == SclReferenceKind.TypeDefinition));
+    }
+
     private static void AssertEdge(
         SclSemanticIndex index,
         SclSemanticNode source,
