@@ -839,6 +839,172 @@
                 </Border>
               </Grid>
             </TabItem>
+            <TabItem Header="{Binding DataModelWorkspaceHeader}">
+              <Grid ColumnDefinitions="265,5,*">
+                <Grid Grid.Column="0" RowDefinitions="29,*">
+                  <Grid
+                    Background="{DynamicResource ThemeControlLowBrush}"
+                    ColumnDefinitions="70,80,55,45,*">
+                    <TextBlock Text="LD" Margin="6,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="LN" Margin="6,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="2" Text="Class" Margin="6,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="3" Text="DO" Margin="6,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="4" Text="Description" Margin="6,5" FontWeight="SemiBold" />
+                  </Grid>
+
+                  <ListBox
+                    Grid.Row="1"
+                    ItemsSource="{Binding DataModelLogicalNodes}"
+                    SelectedItem="{Binding SelectedDataModelLogicalNode, Mode=TwoWay}"
+                    BorderThickness="0">
+                    <ListBox.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <VirtualizingStackPanel />
+                      </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="nav:SclDataModelLogicalNodeProjection">
+                        <Grid ColumnDefinitions="70,80,55,45,*" Height="28">
+                          <TextBlock Text="{Binding LogicalDevice}"
+                                     Margin="6,4"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="1"
+                                     Text="{Binding LogicalNode}"
+                                     Margin="6,4"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="2"
+                                     Text="{Binding LnClass}"
+                                     Margin="6,4" />
+                          <TextBlock Grid.Column="3"
+                                     Text="{Binding DataObjectCount}"
+                                     Margin="6,4"
+                                     HorizontalAlignment="Right" />
+                          <TextBlock Grid.Column="4"
+                                     Text="{Binding Description}"
+                                     Margin="6,4"
+                                     TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Grid>
+
+                <GridSplitter
+                  Grid.Column="1"
+                  Width="5"
+                  ResizeDirection="Columns" />
+
+                <Grid Grid.Column="2" RowDefinitions="29,*,90">
+                  <Grid
+                    Background="{DynamicResource ThemeControlLowBrush}"
+                    ColumnDefinitions="*,52,55,48,90,145,*">
+                    <TextBlock Text="Name" Margin="6,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="Kind" Margin="6,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="2" Text="CDC" Margin="6,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="3" Text="FC" Margin="6,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="4" Text="bType" Margin="6,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="5" Text="Value" Margin="6,5" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="6" Text="Description" Margin="6,5" FontWeight="SemiBold" />
+                  </Grid>
+
+                  <ListBox
+                    Grid.Row="1"
+                    ItemsSource="{Binding DataModelRows}"
+                    SelectedItem="{Binding SelectedDataModelRow, Mode=TwoWay}"
+                    BorderThickness="0">
+                    <ListBox.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <VirtualizingStackPanel />
+                      </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="nav:SclDataModelRowProjection">
+                        <Grid ColumnDefinitions="*,52,55,48,90,145,*" Height="27">
+                          <TextBlock Text="{Binding DisplayName}"
+                                     Margin="6,4"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="1"
+                                     Text="{Binding Kind}"
+                                     Margin="6,4" />
+                          <TextBlock Grid.Column="2"
+                                     Text="{Binding Cdc}"
+                                     Margin="6,4" />
+                          <TextBlock Grid.Column="3"
+                                     Text="{Binding FunctionalConstraint}"
+                                     Margin="6,4" />
+                          <TextBlock Grid.Column="4"
+                                     Text="{Binding BasicType}"
+                                     Margin="6,4"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="5"
+                                     Text="{Binding Value}"
+                                     Margin="6,4"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="6"
+                                     Text="{Binding Description}"
+                                     Margin="6,4"
+                                     TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+
+                  <Border
+                    Grid.Row="2"
+                    BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="9,7">
+                    <Grid
+                      ColumnDefinitions="100,*,75,*,90,*"
+                      RowDefinitions="Auto,Auto">
+                      <TextBlock Text="LN type" FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding SelectedDataModelLogicalNode.LnType}"
+                                 TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="2"
+                                 Text="Object path"
+                                 FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="3"
+                                 Text="{Binding SelectedDataModelRow.Path}"
+                                 TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="4"
+                                 Text="Type ID"
+                                 FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="5"
+                                 Text="{Binding SelectedDataModelRow.TypeId}"
+                                 TextTrimming="CharacterEllipsis" />
+
+                      <TextBlock Grid.Row="1"
+                                 Text="Selected LN"
+                                 Margin="0,7,0,0" />
+                      <TextBlock Grid.Row="1"
+                                 Grid.Column="1"
+                                 Text="{Binding SelectedDataModelLogicalNode.LogicalNode}"
+                                 Margin="0,7,0,0" />
+                      <TextBlock Grid.Row="1"
+                                 Grid.Column="2"
+                                 Text="Value"
+                                 Margin="0,7,0,0" />
+                      <TextBlock Grid.Row="1"
+                                 Grid.Column="3"
+                                 Text="{Binding SelectedDataModelRow.Value}"
+                                 Margin="0,7,0,0"
+                                 TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Row="1"
+                                 Grid.Column="4"
+                                 Text="Description"
+                                 Margin="0,7,0,0" />
+                      <TextBlock Grid.Row="1"
+                                 Grid.Column="5"
+                                 Text="{Binding SelectedDataModelRow.Description}"
+                                 Margin="0,7,0,0"
+                                 TextTrimming="CharacterEllipsis" />
+                    </Grid>
+                  </Border>
+                </Grid>
+              </Grid>
+            </TabItem>
+
           </TabControl>
 
           <Border
