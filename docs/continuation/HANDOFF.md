@@ -4,20 +4,20 @@ Last updated: 2026-10-03
 
 ## Current phase
 
-**M3A0 workstation baseline + M3A1/M3A2 semantic slices: complete. M3UX1 engineering-desktop density/inspection redesign: implemented; manual Windows visual acceptance remains pending.**
+**M3A0 workstation baseline + M3A1/M3A2 semantic slices: complete. M3UX1 + screenshot-driven M3UX2 workstation refinement: implemented; manual Windows visual acceptance remains pending.**
 
 - Repository: `masarray/arscl-studio`
 - Branch: `feature/m3a0-iec-workstation-ia`
 - PR: #5 (draft; keep unmerged until visual audit is accepted)
 - Base main: `6bb9eab76814280e5f27557d638612ab88039eb0` (M2B)
-- Verified executable head: `8259b15765c46e8f20f59b15b7025a1c1e6a92ea`
-- Verified executable CI: `37139948935`
+- Verified executable head: `b035cec83bf81c723a5f82ec9bf38460883a993f`
+- Verified executable CI: `37141798157`
 - Windows / Ubuntu / macOS build + tests: green
 - SCL tests: 11/11 per OS
-- Engine/Desktop tests: 65/65 per OS
-- Total: **76/76 tests per OS**
-- Verified Windows self-contained artifact: `11279419971` (`ARSCL-Studio-win-x64`)
-- Verified build digest: `sha256:e1569501819ca2b859e57b1acde86e1c61746df94c2aabc36734a4facf2adf24`
+- Engine/Desktop tests: 66/66 per OS
+- Total: **77/77 tests per OS**
+- Verified Windows self-contained artifact: `11280143971` (`ARSCL-Studio-win-x64`)
+- Verified build digest: `sha256:db1bb0c62da9a4e8e24507f040eba2809585c3d0912858f1f43ba1f9192c3da6`
 
 Documentation-only commits after the executable head do not change runtime behavior. Final PR-head CI must still remain green before merge.
 
@@ -37,6 +37,7 @@ Read:
 - `docs/testing/M3A_DIAGNOSTICS_ACCEPTANCE.md`
 - `docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md`
 - `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`
+- `docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md`
 - `docs/ux/IEC61850_WORKSTATION_INFORMATION_ARCHITECTURE.md`
 
 ## Product direction locked by M3A0
@@ -191,31 +192,30 @@ See:
 - `docs/testing/M3A_DIAGNOSTICS_ACCEPTANCE.md`;
 - `docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md`.
 
-## M3UX1 engineering-desktop redesign implemented
+## M3UX1 + M3UX2 workstation refinement implemented
 
-The visual shell no longer treats engineering information like website cards/articles:
-- compact Project Explorer with dense IED rows;
-- 260px left browser / wide center work area / 300px Inspector baseline;
-- compact workspace tabs and selected-state treatment;
-- grouped engineering command strip;
-- dense center IED context strip;
-- Data Model LN selector narrowed and object table widened;
-- DO/DA/BDA hierarchy uses actual Engine `Depth` for pixel indentation;
-- Context pane replaced by Properties/Where Used Inspector;
-- Problems/Search/Changes moved into a vertically resizable bottom dock;
-- panel corner/card styling removed in favor of docked square panes.
+M3UX1 established the compact three-pane desktop shell. M3UX2 uses real Windows screenshots to correct the remaining web/dashboard behavior:
+- engineering workspace selector is forced to one horizontal row;
+- tab names are stable and short; volatile counts no longer cause wrapping;
+- Overview is a compact IED summary plus full-height Services grid;
+- Settings has an explicit no-SettingControl state instead of a blank page;
+- Problems can be filtered by severity, domain, and text while preserving source navigation;
+- Inspector exposes Type/Value/Path/Source/Namespace as bordered property rows with wrapping/tooltips;
+- Data Model gives hierarchy/name more width without increasing total table width;
+- central engineering tables use subtle horizontal row separators.
 
-See `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`.
+See `docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md`.
 
 ## Next visual gate
 
-Before merging PR #5, run the Windows artifact on the golden SCD and provide screenshots of at least Data Model, GOOSE, Reports and Setting Groups.
+Before merging PR #5, run the M3UX2 Windows artifact on the golden SCD and provide screenshots of at least Overview, Data Model, GOOSE, Problems and Settings.
 
 Audit specifically:
-1. tab fit and DPI behavior;
-2. splitter proportions;
+1. workspace selector remains one line at normal/high DPI;
+2. Overview no longer has dashboard-like dead space;
 3. Data Model hierarchy/column clipping;
-4. Properties and Where Used readability;
-5. whether the IED browser now feels like an engineering navigator rather than cards.
+4. Properties/Where Used path readability;
+5. Problems filtering usability on the existing 13 reference errors;
+6. explicit Settings empty-state for IEDs without SettingControl.
 
 Only after that visual gate passes should work return to M3A3 edition-aware rule/schema-provider evolution. Broad SCL surgery remains locked.
