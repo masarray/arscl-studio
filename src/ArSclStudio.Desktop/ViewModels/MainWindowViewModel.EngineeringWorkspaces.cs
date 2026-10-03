@@ -127,6 +127,19 @@ public sealed partial class MainWindowViewModel
             ? "Setting Groups"
             : $"Setting Groups ({SettingGroupControls.Count})";
 
+    public bool HasSettingGroups =>
+        SettingGroupControls.Count > 0;
+
+    public bool HasNoSettingGroups =>
+        !HasSettingGroups;
+
+    partial void OnSettingGroupControlsChanged(
+        IReadOnlyList<SclSettingGroupControlProjection> value)
+    {
+        OnPropertyChanged(nameof(HasSettingGroups));
+        OnPropertyChanged(nameof(HasNoSettingGroups));
+    }
+
     partial void OnSelectedIedWorkspaceChanged(SclIedWorkspaceProjection? value)
     {
         if (value is not null &&
