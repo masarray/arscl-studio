@@ -137,6 +137,66 @@ public sealed class SclSemanticIndexTests
                 .Any(edge => edge.Source == report.Handle));
     }
 
+    [TestMethod]
+    public async Task ReferenceGraphResolvesSmvCommunicationEndpointToSampledValueControl()
+    {
+        var document = await LoadAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <Communication>
+                <SubNetwork name="ProcessBus">
+                  <ConnectedAP iedName="MU_A" apName="P1">
+                    <SMV ldInst="MU" cbName="MSVCB01">
+                      <Address>
+                        <P type="MAC-Address">01-0C-CD-04-00-01</P>
+                        <P type="APPID">4001</P>
+                      </Address>
+                    </SMV>
+                  </ConnectedAP>
+                </SubNetwork>
+              </Communication>
+
+              <IED name="MU_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="MU">
+                      <LN0 lnClass="LLN0" inst="">
+                        <DataSet name="Samples" />
+                        <SampledValueControl name="MSVCB01"
+                                             datSet="Samples"
+                                             smvID="MU_A/MU/LLN0/MSVCB01"
+                                             smpRate="80"
+                                             nofASDU="2" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+            </SCL>
+            """);
+
+        var index = SclSemanticIndexBuilder.Build(document);
+
+        var endpoint = FindSingle(index, SclSemanticKind.SmvCommunication);
+        var control = FindSingle(index, SclSemanticKind.SampledValueControl);
+
+        Assert.IsTrue(
+            index.References.GetOutgoing(endpoint.Handle)
+                .Any(edge =>
+                    edge.Kind ==
+                        SclReferenceKind.CommunicationControlBinding &&
+                    edge.Target == control.Handle));
+
+        Assert.IsTrue(
+            index.References.GetIncoming(control.Handle)
+                .Any(edge =>
+                    edge.Kind ==
+                        SclReferenceKind.CommunicationControlBinding &&
+                    edge.Source == endpoint.Handle));
+
+        Assert.IsFalse(index.References.Issues.Any(issue =>
+            issue.Source == endpoint.Handle));
+    }
+
     private static int Count(
         SclSemanticIndex index,
         SclSemanticKind kind)
