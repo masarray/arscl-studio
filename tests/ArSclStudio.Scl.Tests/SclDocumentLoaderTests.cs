@@ -31,7 +31,7 @@ public sealed class SclDocumentLoaderTests
         var document = await new SclDocumentLoader()
             .LoadAsync(stream, "station.scd");
 
-        var outerXml = document.Document.OuterXml;
+        var outerXml = document.CreateXmlSnapshot();
 
         StringAssert.Contains(outerXml, "keep this engineering note");
         StringAssert.Contains(outerXml, "vendor:Config");
@@ -63,13 +63,13 @@ public sealed class SclDocumentLoaderTests
         var index = SclTopLevelIndexer.Build(document);
 
         Assert.IsFalse(index.Header.IsNone);
-        Assert.HasCount(1, index.Substations);
-        Assert.HasCount(1, index.Communications);
-        Assert.HasCount(2, index.Ieds);
+        Assert.AreEqual(1, index.Substations.Count);
+        Assert.AreEqual(1, index.Communications.Count);
+        Assert.AreEqual(2, index.Ieds.Count);
         Assert.AreEqual("Relay_A", index.Ieds[0].Name);
         Assert.AreEqual("Example", index.Ieds[0].Manufacturer);
         Assert.IsFalse(index.DataTypeTemplates.IsNone);
-        Assert.HasCount(1, index.PrivateElements);
+        Assert.AreEqual(1, index.PrivateElements.Count);
     }
 
     [TestMethod]
@@ -85,11 +85,11 @@ public sealed class SclDocumentLoaderTests
         var document = await new SclDocumentLoader()
             .LoadAsync(stream, "station.scd");
 
-        Assert.IsTrue(
-            document.TryGetNodeInfo(
-                document.RootHandle,
-                out var rootInfo));
+        var found = document.TryGetNodeInfo(
+            document.RootHandle,
+            out var rootInfo);
 
+        Assert.IsTrue(found);
         Assert.IsNotNull(rootInfo);
         Assert.AreEqual("SCL", rootInfo.LocalName);
 

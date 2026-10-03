@@ -96,6 +96,8 @@ public sealed class SclSyntaxDocument
     public SclSourceSpan GetSourceSpan(SclNodeHandle handle) =>
         _registry.GetSourceSpan(handle);
 
+    public string CreateXmlSnapshot() => Document.OuterXml;
+
     internal bool TryGetNode(
         SclNodeHandle handle,
         out XmlNode? node) =>
