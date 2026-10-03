@@ -1,5 +1,6 @@
 using ArSclStudio.Engine.Documents;
 using ArSclStudio.Engine.Navigation;
+using ArSclStudio.Scl.Identity;
 using ArSclStudio.Scl.Semantics;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -49,7 +50,7 @@ public sealed partial class MainWindowViewModel
 
     private void SynchronizeIedWorkspaceSelection(
         SclDocumentState state,
-        Scl.Identity.SclNodeHandle selected)
+        SclNodeHandle selected)
     {
         if (IedWorkspaceRows.Count == 0)
         {
@@ -57,7 +58,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        Scl.Identity.SclNodeHandle iedHandle;
+        SclNodeHandle iedHandle;
 
         if (state.SemanticIndex.TryGetNode(selected, out var selectedNode) &&
             selectedNode is not null &&
