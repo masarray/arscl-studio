@@ -56,19 +56,24 @@ Acceptance:
 
 PR #3 delivers direct `IED.desc` editing, compound staging/rollback, bounded patch-only undo/redo and journal, saved-content dirty state, verified atomic Save/Save As, Desktop integration and CLI support. See ADR-0007 and the handoff for limits and exact CI evidence.
 
-### M2B — Validation & reference diagnostics
+### M2B — Validation & reference diagnostics — implemented
 
-Before expanding mutations, implement explicit unresolved/ambiguous-reference findings, schema-provider plumbing, validation-domain separation and revision-aware diagnostic publication. The first editable property deliberately does not affect identity or graph edges.
+PR #4 adds structured unresolved/ambiguous-reference evidence, revision/source-linked diagnostics, explicit schema-provider availability/provenance, latest-wins fast/full validation workers, and Problems source navigation. Well-formed reference-invalid SCL remains inspectable and is never silently repaired.
 
-## M3 — Semantic browser
+The default schema provider is deliberately unavailable until a legally sourced schema pack is configured; M2B therefore does **not** claim complete IEC/XSD validation. Identity/delete/DataSet/RCB mutations remain locked.
+
+## M3 — Semantic completeness & engineering diagnostics
+
+M1B already delivered the deep lazy browser, typed reference graph, Where Used and semantic search. M3 extends semantic **coverage and explanations** rather than rebuilding that foundation.
 
 Acceptance:
-- IED/Communication/DataSet/Report/Data Model/DataTypes
-- typed reference graph
-- Where Used
-- semantic search
-- descriptions/explanations
-- dangling reference diagnostics
+- complete Substation hierarchy coverage: VoltageLevel, Bay, ConductingEquipment, Terminal and LNode placement;
+- richer Communication semantics including P-address parameters and GSE/SMV endpoint linkage;
+- supported-services interpretation;
+- deeper DOI/SDI/DAI ↔ type-template resolution;
+- model/reference/engineering diagnostics for newly covered semantics;
+- edition-aware rule/schema provider evolution using legally sourced assets;
+- contextual engineering explanations without moving IEC logic into Desktop.
 
 ## M4 — SCL surgery
 
