@@ -115,6 +115,19 @@ M3A2 acceptance evidence:
 
 Broad destructive editing remains locked until the affected domain has explicit reference-impact and validation coverage.
 
+### M3UX1 — engineering desktop density & inspection workflow — implemented
+
+This visual/interaction slice corrects the remaining dashboard/web-like presentation without changing IEC semantics:
+- compact docked Project Explorer / engineering work area / Inspector;
+- dense IED rows instead of card-like entries;
+- compact workspace tabs and command strip;
+- Data Model column reallocation and true depth indentation;
+- property-grid-style Inspector and compact Where Used;
+- vertically resizable Problems/Search/Changes dock;
+- no loss of list virtualization or shared selection semantics.
+
+Manual Windows/high-DPI screenshot acceptance remains the merge gate. See `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`.
+
 ## M4 — SCL surgery
 
 Acceptance:
