@@ -1,6 +1,8 @@
 using ArSclStudio.Engine.Diagnostics;
 using ArSclStudio.Engine.Documents;
 using ArSclStudio.Engine.Navigation;
+using ArSclStudio.Engine.Search;
+using ArSclStudio.Engine.Workers;
 using ArSclStudio.Scl.Identity;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -12,7 +14,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private readonly SclSelectionService _selectionService;
     private readonly Dictionary<SclNodeHandle, ExplorerRow> _engineeringIndex = [];
     private readonly Dictionary<SclNodeHandle, ExplorerRow> _xmlIndex = [];
+    private readonly HashSet<SclNodeHandle> _engineeringExpanded = [];
+    private readonly HashSet<SclNodeHandle> _xmlExpanded = [];
 
+    private CancellationTokenSource? _searchDebounce;
     private bool _synchronizingSelection;
     private int _disposeStarted;
 
@@ -29,10 +34,24 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private IReadOnlyList<ProblemRow> _problems = Array.Empty<ProblemRow>();
 
     [ObservableProperty]
+    private IReadOnlyList<SclReferenceProjection> _whereUsedRows =
+        Array.Empty<SclReferenceProjection>();
+
+    [ObservableProperty]
+    private IReadOnlyList<SclSearchResultProjection> _searchResults =
+        Array.Empty<SclSearchResultProjection>();
+
+    [ObservableProperty]
     private ExplorerRow? _selectedEngineeringRow;
 
     [ObservableProperty]
     private ExplorerRow? _selectedXmlRow;
+
+    [ObservableProperty]
+    private SclReferenceProjection? _selectedWhereUsedRow;
+
+    [ObservableProperty]
+    private SclSearchResultProjection? _selectedSearchResult;
 
     [ObservableProperty]
     private string _documentDisplayName = "No document open";
@@ -51,6 +70,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     [ObservableProperty]
     private string _problemSummary = "No diagnostics";
+
+    [ObservableProperty]
+    private string _whereUsedHeader = "Where Used (0)";
+
+    [ObservableProperty]
+    private string _searchResultsHeader = "Search Results";
 
     [ObservableProperty]
     private bool _isBusy;
@@ -122,7 +147,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                     PublishDiagnostics(result.Diagnostics);
                     _selectionService.Select(result.State.Syntax.RootHandle);
                     StatusText =
-                        $"Loaded {result.State.Syntax.IndexedNodeCount:N0} indexed XML nodes";
+                        $"Loaded {result.State.Syntax.IndexedNodeCount:N0} XML nodes • " +
+                        $"{result.State.SemanticIndex.NodeCount:N0} IEC objects • " +
+                        $"{result.State.SemanticIndex.References.EdgeCount:N0} references";
                     break;
 
                 case SclOpenStatus.Failed:
@@ -145,6 +172,117 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         }
     }
 
+    public void ToggleEngineering(ExplorerRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        if (!row.HasChildren || row.Handle.IsNone)
+        {
+            return;
+        }
+
+        ToggleExpanded(_engineeringExpanded, row.Handle);
+
+        var state = _session.CurrentState;
+
+        if (state is null)
+        {
+            return;
+        }
+
+        SynchronizeRows(
+            () => RefreshEngineeringProjection(state));
+    }
+
+    public void ToggleXml(ExplorerRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        if (!row.HasChildren || row.Handle.IsNone)
+        {
+            return;
+        }
+
+        ToggleExpanded(_xmlExpanded, row.Handle);
+
+        var state = _session.CurrentState;
+
+        if (state is null)
+        {
+            return;
+        }
+
+        SynchronizeRows(
+            () => RefreshXmlProjection(state));
+    }
+
+    public async Task SearchAsync(
+        string? query,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(
+            Volatile.Read(ref _disposeStarted) != 0,
+            this);
+
+        var debounce = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken);
+
+        var previous = Interlocked.Exchange(
+            ref _searchDebounce,
+            debounce);
+
+        previous?.Cancel();
+
+        try
+        {
+            var trimmed = query?.Trim() ?? string.Empty;
+
+            if (trimmed.Length == 0)
+            {
+                SearchResults = Array.Empty<SclSearchResultProjection>();
+                SearchResultsHeader = "Search Results";
+                return;
+            }
+
+            await Task.Delay(
+                TimeSpan.FromMilliseconds(180),
+                debounce.Token);
+
+            var result = await _session.SearchAsync(
+                trimmed,
+                maximumResults: 250,
+                debounce.Token);
+
+            if (!result.CanPublish ||
+                result.Value is null ||
+                Volatile.Read(ref _disposeStarted) != 0)
+            {
+                return;
+            }
+
+            SearchResults = result.Value;
+            SearchResultsHeader =
+                $"Search Results ({result.Value.Length})";
+
+            StatusText = result.Value.Length == 250
+                ? "Search capped at 250 results — refine the query"
+                : $"Search found {result.Value.Length:N0} IEC objects";
+        }
+        catch (OperationCanceledException)
+        {
+            // Debounce/newer search or window lifetime cancellation.
+        }
+        finally
+        {
+            Interlocked.CompareExchange(
+                ref _searchDebounce,
+                null,
+                debounce);
+
+            debounce.Dispose();
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposeStarted, 1) != 0)
@@ -152,15 +290,25 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
+        var search = Interlocked.Exchange(
+            ref _searchDebounce,
+            null);
+
+        search?.Cancel();
+
         _selectionService.SelectionChanged -= SelectionChanged;
         _selectionService.Clear();
 
         _engineeringIndex.Clear();
         _xmlIndex.Clear();
+        _engineeringExpanded.Clear();
+        _xmlExpanded.Clear();
 
         EngineeringRows = Array.Empty<ExplorerRow>();
         XmlRows = Array.Empty<ExplorerRow>();
         Problems = Array.Empty<ProblemRow>();
+        WhereUsedRows = Array.Empty<SclReferenceProjection>();
+        SearchResults = Array.Empty<SclSearchResultProjection>();
 
         await _session.DisposeAsync();
     }
@@ -171,22 +319,40 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     partial void OnSelectedXmlRowChanged(ExplorerRow? value) =>
         SelectFromRow(value);
 
+    partial void OnSelectedWhereUsedRowChanged(SclReferenceProjection? value)
+    {
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Source.IsNone)
+        {
+            _selectionService.Select(value.Source);
+        }
+    }
+
+    partial void OnSelectedSearchResultChanged(SclSearchResultProjection? value)
+    {
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            _selectionService.Select(value.Handle);
+        }
+    }
+
     private void PublishDocument(SclDocumentState state)
     {
-        var engineering = MapRows(
-            SclExplorerProjector.BuildEngineering(state));
+        _engineeringExpanded.Clear();
+        _xmlExpanded.Clear();
+        _engineeringExpanded.Add(state.Syntax.RootHandle);
+        _xmlExpanded.Add(state.Syntax.RootHandle);
 
-        var xml = MapRows(
-            SclExplorerProjector.BuildXmlRoot(state));
+        RefreshEngineeringProjection(state);
+        RefreshXmlProjection(state);
 
-        _engineeringIndex.Clear();
-        _xmlIndex.Clear();
-
-        IndexRows(engineering, _engineeringIndex);
-        IndexRows(xml, _xmlIndex);
-
-        EngineeringRows = engineering;
-        XmlRows = xml;
+        SearchResults = Array.Empty<SclSearchResultProjection>();
+        SearchResultsHeader = "Search Results";
+        WhereUsedRows = Array.Empty<SclReferenceProjection>();
+        WhereUsedHeader = "Where Used (0)";
 
         DocumentDisplayName = state.DisplayName;
         DocumentKind = state.Syntax.Metadata.FileKindHint.ToString().ToUpperInvariant();
@@ -194,6 +360,30 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             ? "(no namespace)"
             : state.Syntax.Metadata.RootNamespace;
         DocumentRevision = state.Syntax.Metadata.SchemaRevision.ToString();
+    }
+
+    private void RefreshEngineeringProjection(SclDocumentState state)
+    {
+        var rows = MapRows(
+            SclExplorerProjector.BuildEngineering(
+                state,
+                _engineeringExpanded));
+
+        _engineeringIndex.Clear();
+        IndexRows(rows, _engineeringIndex);
+        EngineeringRows = rows;
+    }
+
+    private void RefreshXmlProjection(SclDocumentState state)
+    {
+        var rows = MapRows(
+            SclExplorerProjector.BuildXmlVisible(
+                state,
+                _xmlExpanded));
+
+        _xmlIndex.Clear();
+        IndexRows(rows, _xmlIndex);
+        XmlRows = rows;
     }
 
     private void PublishDiagnostics(IReadOnlyList<Diagnostic> diagnostics)
@@ -252,33 +442,156 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             return;
         }
 
-        var details = SclNodeDetailsProjector.Create(
-            state,
-            args.SelectedNode);
-
-        DetailTitle = details.Title;
-        DetailKind = details.Kind;
-        DetailPath = details.Path;
-        DetailSource = details.SourceLocation;
-        DetailNamespace = string.IsNullOrWhiteSpace(details.NamespaceUri)
-            ? "(no namespace)"
-            : details.NamespaceUri;
-        DetailValue = details.Value ?? string.Empty;
-        DetailDescription = details.Description;
-
         _synchronizingSelection = true;
 
         try
         {
+            if (ExpandSemanticAncestors(
+                    state,
+                    args.SelectedNode))
+            {
+                RefreshEngineeringProjection(state);
+            }
+
+            if (ExpandXmlAncestors(
+                    state,
+                    args.SelectedNode))
+            {
+                RefreshXmlProjection(state);
+            }
+
+            var details = SclNodeDetailsProjector.Create(
+                state,
+                args.SelectedNode);
+
+            DetailTitle = details.Title;
+            DetailKind = details.Kind;
+            DetailPath = details.Path;
+            DetailSource = details.SourceLocation;
+            DetailNamespace = string.IsNullOrWhiteSpace(details.NamespaceUri)
+                ? "(no namespace)"
+                : details.NamespaceUri;
+            DetailValue = details.Value ?? string.Empty;
+            DetailDescription = details.Description;
+
+            var whereUsed = SclReferenceProjector.BuildWhereUsed(
+                state,
+                args.SelectedNode);
+
+            WhereUsedRows = whereUsed;
+            WhereUsedHeader = $"Where Used ({whereUsed.Length})";
+
             SelectedEngineeringRow =
                 _engineeringIndex.GetValueOrDefault(args.SelectedNode);
 
             SelectedXmlRow =
                 _xmlIndex.GetValueOrDefault(args.SelectedNode);
+
+            SelectedWhereUsedRow = null;
+            SelectedSearchResult = null;
         }
         finally
         {
             _synchronizingSelection = false;
+        }
+    }
+
+    private bool ExpandSemanticAncestors(
+        SclDocumentState state,
+        SclNodeHandle selected)
+    {
+        if (!state.SemanticIndex.TryGetNode(
+                selected,
+                out var node) ||
+            node is null)
+        {
+            return false;
+        }
+
+        var changed = false;
+        var parent = node.Parent;
+
+        for (var depth = 0; depth < 256 && !parent.IsNone; depth++)
+        {
+            changed |= _engineeringExpanded.Add(parent);
+
+            if (!state.SemanticIndex.TryGetNode(
+                    parent,
+                    out var parentNode) ||
+                parentNode is null)
+            {
+                break;
+            }
+
+            parent = parentNode.Parent;
+        }
+
+        return changed;
+    }
+
+    private bool ExpandXmlAncestors(
+        SclDocumentState state,
+        SclNodeHandle selected)
+    {
+        if (!state.Syntax.TryGetNodeInfo(
+                selected,
+                out var node) ||
+            node is null)
+        {
+            return false;
+        }
+
+        var changed = false;
+        var parent = node.Parent;
+
+        for (var depth = 0; depth < 256 && !parent.IsNone; depth++)
+        {
+            changed |= _xmlExpanded.Add(parent);
+
+            if (!state.Syntax.TryGetNodeInfo(
+                    parent,
+                    out var parentNode) ||
+                parentNode is null)
+            {
+                break;
+            }
+
+            parent = parentNode.Parent;
+        }
+
+        return changed;
+    }
+
+    private void SynchronizeRows(Action refresh)
+    {
+        ArgumentNullException.ThrowIfNull(refresh);
+
+        var selected = _selectionService.SelectedNode;
+        _synchronizingSelection = true;
+
+        try
+        {
+            refresh();
+
+            SelectedEngineeringRow =
+                _engineeringIndex.GetValueOrDefault(selected);
+
+            SelectedXmlRow =
+                _xmlIndex.GetValueOrDefault(selected);
+        }
+        finally
+        {
+            _synchronizingSelection = false;
+        }
+    }
+
+    private static void ToggleExpanded(
+        HashSet<SclNodeHandle> expanded,
+        SclNodeHandle handle)
+    {
+        if (!expanded.Remove(handle))
+        {
+            expanded.Add(handle);
         }
     }
 
