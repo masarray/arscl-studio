@@ -207,6 +207,11 @@ internal static class SclValidationEngine
             diagnostics,
             cancellationToken);
 
+        SclServicesConsistencyValidator.AppendDiagnostics(
+            state,
+            diagnostics,
+            cancellationToken);
+
         foreach (var node in state.SemanticIndex.Nodes)
         {
             cancellationToken.ThrowIfCancellationRequested();
