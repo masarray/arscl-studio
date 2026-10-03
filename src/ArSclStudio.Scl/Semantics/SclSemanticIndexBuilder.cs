@@ -106,6 +106,7 @@ public static class SclSemanticIndexBuilder
             "Communication" => SclSemanticKind.Communication,
             "SubNetwork" => SclSemanticKind.SubNetwork,
             "ConnectedAP" => SclSemanticKind.ConnectedAccessPoint,
+            "GSE" => SclSemanticKind.GseCommunication,
             "Address" => SclSemanticKind.Address,
             "IED" => SclSemanticKind.Ied,
             "Services" => SclSemanticKind.Services,
@@ -146,6 +147,7 @@ public static class SclSemanticIndexBuilder
             "Communication" or
             "SubNetwork" or
             "ConnectedAP" or
+            "GSE" or
             "Address" or
             "IED" or
             "Services" or
@@ -191,6 +193,8 @@ public static class SclSemanticIndexBuilder
             SclSemanticKind.Fcda => CreateFcdaName(element),
             SclSemanticKind.ConnectedAccessPoint =>
                 CreateConnectedAccessPointName(element),
+            SclSemanticKind.GseCommunication =>
+                CreateGseCommunicationName(element),
             SclSemanticKind.ExternalReference => CreateExtRefName(element),
             _ => FirstNonEmpty(
                 element.GetAttribute("name"),
@@ -254,6 +258,21 @@ public static class SclSemanticIndexBuilder
         return string.IsNullOrWhiteSpace(fc)
             ? reference
             : string.Concat(reference, " [", fc, "]");
+    }
+
+    private static string CreateGseCommunicationName(XmlElement element)
+    {
+        var ldInst = element.GetAttribute("ldInst");
+        var cbName = element.GetAttribute("cbName");
+
+        if (string.IsNullOrWhiteSpace(ldInst))
+        {
+            return NonEmpty(cbName, "GSE");
+        }
+
+        return string.IsNullOrWhiteSpace(cbName)
+            ? ldInst
+            : string.Concat(ldInst, " / ", cbName);
     }
 
     private static string CreateConnectedAccessPointName(XmlElement element)
