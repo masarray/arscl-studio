@@ -170,6 +170,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         });
         SearchResults = Array.Empty<SclSearchResultProjection>();
         SearchResultsHeader = "Search Results";
+        RefreshIedWorkspace(state);
         DocumentDisplayName = state.DisplayName;
         IsDirty = _session.IsDirty;
         ChangeRows = _session.ChangeJournal.SelectMany(entry => entry.Changes.Select(change =>
@@ -503,6 +504,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         EngineeringRows = Array.Empty<ExplorerRow>();
         XmlRows = Array.Empty<ExplorerRow>();
+        IedWorkspaceRows = Array.Empty<SclIedWorkspaceProjection>();
+        SelectedIedWorkspace = null;
+        OnPropertyChanged(nameof(IedWorkspaceHeader));
         Problems = Array.Empty<ProblemRow>();
         SelectedProblemRow = null;
         WhereUsedRows = Array.Empty<SclReferenceProjection>();
@@ -558,6 +562,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         RefreshEngineeringProjection(state);
         RefreshXmlProjection(state);
+        RefreshIedWorkspace(state);
 
         SearchResults = Array.Empty<SclSearchResultProjection>();
         SearchResultsHeader = "Search Results";
@@ -705,6 +710,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
             SelectedEngineeringRow =
                 _engineeringIndex.GetValueOrDefault(args.SelectedNode);
+
+            SynchronizeIedWorkspaceSelection(state, args.SelectedNode);
 
             SelectedXmlRow =
                 _xmlIndex.GetValueOrDefault(args.SelectedNode);
