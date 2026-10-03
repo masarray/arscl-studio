@@ -385,7 +385,6 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(GooseWorkspaceHeader));
             OnPropertyChanged(nameof(DataSetWorkspaceHeader));
             OnPropertyChanged(nameof(ReportWorkspaceHeader));
-        OnPropertyChanged(nameof(DataModelWorkspaceHeader));
             OnPropertyChanged(nameof(DataModelWorkspaceHeader));
 
             var nextGoose = selectedGooseHandle is { } gooseHandle
@@ -448,6 +447,7 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(GooseWorkspaceHeader));
         OnPropertyChanged(nameof(DataSetWorkspaceHeader));
         OnPropertyChanged(nameof(ReportWorkspaceHeader));
+        OnPropertyChanged(nameof(DataModelWorkspaceHeader));
     }
 
     private void SynchronizeEngineeringWorkspaceSelection(
