@@ -26,6 +26,11 @@ internal static class SclEngineeringDiagnosticAnalyzer
             diagnostics,
             cancellationToken);
 
+        AppendDataModelDiagnostics(
+            state,
+            diagnostics,
+            cancellationToken);
+
         AppendSettingGroupDiagnostics(
             state,
             diagnostics,
@@ -135,6 +140,146 @@ internal static class SclEngineeringDiagnosticAnalyzer
                     "This check only reports missing engineering identity fields required by the ARSCL GOOSE workspace. It does not substitute for edition-specific schema validation."));
             }
         }
+    }
+
+    private static void AppendDataModelDiagnostics(
+        SclDocumentState state,
+        List<Diagnostic> diagnostics,
+        CancellationToken cancellationToken)
+    {
+        foreach (var logicalNode in state.SemanticIndex.Nodes)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (logicalNode.Kind is not (
+                    SclSemanticKind.LogicalNodeZero or
+                    SclSemanticKind.LogicalNode) ||
+                !HasResolvedLogicalNodeType(
+                    state,
+                    logicalNode.Handle))
+            {
+                continue;
+            }
+
+            var rows = SclDataModelWorkspaceProjector.BuildRows(
+                state,
+                logicalNode.Handle);
+
+            var resolvedInstanceHandles =
+                new HashSet<SclNodeHandle>();
+
+            for (var i = 0; i < rows.Length; i++)
+            {
+                resolvedInstanceHandles.Add(rows[i].Handle);
+            }
+
+            var children = state.SemanticIndex.GetChildren(
+                logicalNode.Handle);
+
+            for (var i = 0; i < children.Count; i++)
+            {
+                if (children[i].Kind != SclSemanticKind.Doi)
+                {
+                    continue;
+                }
+
+                AppendUnmatchedInstanceBranch(
+                    state,
+                    logicalNode,
+                    children[i],
+                    parentPath: string.Empty,
+                    resolvedInstanceHandles,
+                    diagnostics,
+                    cancellationToken);
+            }
+        }
+    }
+
+    private static void AppendUnmatchedInstanceBranch(
+        SclDocumentState state,
+        SclSemanticNode logicalNode,
+        SclSemanticNode instance,
+        string parentPath,
+        HashSet<SclNodeHandle> resolvedInstanceHandles,
+        List<Diagnostic> diagnostics,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var name = SclWorkspaceSyntaxReader.Attribute(
+            state.Syntax,
+            instance.Handle,
+            "name");
+
+        var path = string.IsNullOrWhiteSpace(parentPath)
+            ? name
+            : string.Concat(
+                parentPath,
+                "/",
+                name);
+
+        if (!resolvedInstanceHandles.Contains(instance.Handle))
+        {
+            diagnostics.Add(CreateDiagnostic(
+                state,
+                "SCL-ENG-MODEL-0001",
+                DiagnosticSeverity.Warning,
+                instance.Handle,
+                $"Instance path '{path}' under logical node '{logicalNode.DisplayName}' does not match the resolved DataTypeTemplates model.",
+                "ARSCL did not attach this DOI/SDI/DAI branch to a different template by guess. Verify the instance names and the resolved LN/DO/DA type chain. Descendants of this unmatched branch are suppressed to avoid cascading findings."));
+            return;
+        }
+
+        var children = state.SemanticIndex.GetChildren(
+            instance.Handle);
+
+        for (var i = 0; i < children.Count; i++)
+        {
+            if (children[i].Kind is not (
+                    SclSemanticKind.Sdi or
+                    SclSemanticKind.Dai))
+            {
+                continue;
+            }
+
+            AppendUnmatchedInstanceBranch(
+                state,
+                logicalNode,
+                children[i],
+                path,
+                resolvedInstanceHandles,
+                diagnostics,
+                cancellationToken);
+        }
+    }
+
+    private static bool HasResolvedLogicalNodeType(
+        SclDocumentState state,
+        SclNodeHandle logicalNode)
+    {
+        var outgoing = state.SemanticIndex.References.GetOutgoing(
+            logicalNode);
+
+        for (var i = 0; i < outgoing.Count; i++)
+        {
+            var edge = outgoing[i];
+
+            if (edge.Kind != SclReferenceKind.TypeDefinition)
+            {
+                continue;
+            }
+
+            if (state.SemanticIndex.TryGetNode(
+                    edge.Target,
+                    out var target) &&
+                target is not null &&
+                target.Kind == SclSemanticKind.LogicalNodeType)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void AppendSettingGroupDiagnostics(
