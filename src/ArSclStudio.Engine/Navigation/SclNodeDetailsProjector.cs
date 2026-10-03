@@ -28,7 +28,7 @@ public static class SclNodeDetailsProjector
 
         var title = GetPrimaryName(state.Syntax, info);
         var kind = GetKindName(info);
-        var path = BuildPath(state.Syntax, info);
+        var path = BuildPath(state, info);
         var sourceLocation = info.SourceSpan.IsKnown
             ? $"{state.DisplayName}:{info.SourceSpan}"
             : state.DisplayName;
@@ -87,7 +87,7 @@ public static class SclNodeDetailsProjector
             : info.Kind.ToString();
 
     private static string BuildPath(
-        SclSyntaxDocument syntax,
+        SclDocumentState state,
         SclSyntaxNodeInfo selected)
     {
         var segments = new List<string>(12);
@@ -95,10 +95,12 @@ public static class SclNodeDetailsProjector
 
         for (var depth = 0; depth < 128; depth++)
         {
-            segments.Add(GetPathSegment(syntax, current));
+            segments.Add(GetPathSegment(state, current));
 
             if (current.Parent.IsNone ||
-                !syntax.TryGetNodeInfo(current.Parent, out var parent) ||
+                !state.Syntax.TryGetNodeInfo(
+                    current.Parent,
+                    out var parent) ||
                 parent is null)
             {
                 break;
@@ -112,9 +114,10 @@ public static class SclNodeDetailsProjector
     }
 
     private static string GetPathSegment(
-        SclSyntaxDocument syntax,
+        SclDocumentState state,
         SclSyntaxNodeInfo info)
     {
+        var syntax = state.Syntax;
         if (info.Kind == SclSyntaxNodeKind.Attribute)
         {
             return $"@{info.LocalName}";
@@ -123,6 +126,19 @@ public static class SclNodeDetailsProjector
         if (info.Kind != SclSyntaxNodeKind.Element)
         {
             return info.Kind.ToString();
+        }
+
+        if (state.SemanticIndex.TryGetNode(
+                info.Handle,
+                out var semanticNode) &&
+            semanticNode is not null &&
+            !string.IsNullOrWhiteSpace(semanticNode.DisplayName) &&
+            !string.Equals(
+                semanticNode.DisplayName,
+                info.LocalName,
+                StringComparison.Ordinal))
+        {
+            return $"{info.LocalName}[{semanticNode.DisplayName}]";
         }
 
         if (syntax.TryGetAttributeValue(info.Handle, "name", out var name) &&
