@@ -424,7 +424,12 @@ public sealed class SclValidationTests
             Assert.IsTrue(open.Succeeded);
             Assert.IsNotNull(open.State);
 
-            var result = await session.ValidateFastAsync();
+            var fast = await session.ValidateFastAsync();
+            Assert.IsNotNull(fast.Value);
+            Assert.IsFalse(fast.Value.Diagnostics.Any(diagnostic =>
+                diagnostic.Code == "SCL-ENG-MODEL-0001"));
+
+            var result = await session.ValidateFullAsync();
             Assert.IsNotNull(result.Value);
 
             var findings = result.Value.Diagnostics
