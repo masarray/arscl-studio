@@ -426,6 +426,246 @@
               </Grid>
             </TabItem>
 
+            <TabItem Header="{Binding GooseWorkspaceHeader}">
+              <Grid RowDefinitions="29,*,5,185,105">
+                <Grid
+                  Background="{DynamicResource ThemeControlLowBrush}"
+                  ColumnDefinitions="62,115,70,115,145,70,70,*">
+                  <TextBlock Text="Type" Margin="6,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="1" Text="Control" Margin="6,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="2" Text="LD" Margin="6,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="3" Text="DataSet" Margin="6,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="4" Text="Destination MAC" Margin="6,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="5" Text="APPID" Margin="6,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="6" Text="VLAN" Margin="6,5" FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="7" Text="Subscribers" Margin="6,5" FontWeight="SemiBold" />
+                </Grid>
+
+                <ListBox
+                  Grid.Row="1"
+                  ItemsSource="{Binding GooseWorkspaceRows}"
+                  SelectedItem="{Binding SelectedGooseWorkspace, Mode=TwoWay}"
+                  BorderThickness="0">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <VirtualizingStackPanel />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="nav:SclGooseWorkspaceProjection">
+                      <Grid ColumnDefinitions="62,115,70,115,145,70,70,*" Height="28">
+                        <TextBlock Text="{Binding ServiceType}" Margin="6,4" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Name}"
+                                   Margin="6,4"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding LogicalDevice}"
+                                   Margin="6,4"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="3"
+                                   Text="{Binding DataSet}"
+                                   Margin="6,4"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="4"
+                                   Text="{Binding MacAddress}"
+                                   Margin="6,4"
+                                   TextTrimming="CharacterEllipsis" />
+                        <TextBlock Grid.Column="5"
+                                   Text="{Binding NetworkAppId}"
+                                   Margin="6,4" />
+                        <TextBlock Grid.Column="6"
+                                   Text="{Binding VlanId}"
+                                   Margin="6,4" />
+                        <TextBlock Grid.Column="7"
+                                   Text="{Binding SubscriberIedCount}"
+                                   Margin="6,4"
+                                   HorizontalAlignment="Right" />
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+
+                <GridSplitter
+                  Grid.Row="2"
+                  Height="5"
+                  ResizeDirection="Rows" />
+
+                <Grid Grid.Row="3" ColumnDefinitions="*,5,*">
+                  <Grid Grid.Column="0" RowDefinitions="29,*">
+                    <Grid
+                      Background="{DynamicResource ThemeControlLowBrush}"
+                      ColumnDefinitions="*,52,64">
+                      <TextBlock Text="Published signal" Margin="6,5" FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="1" Text="FC" Margin="6,5" FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="2" Text="Subs" Margin="6,5" FontWeight="SemiBold" />
+                    </Grid>
+
+                    <ListBox
+                      Grid.Row="1"
+                      ItemsSource="{Binding GooseSignalRows}"
+                      SelectedItem="{Binding SelectedGooseSignal, Mode=TwoWay}"
+                      BorderThickness="0">
+                      <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <VirtualizingStackPanel />
+                        </ItemsPanelTemplate>
+                      </ListBox.ItemsPanel>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="nav:SclGooseSignalProjection">
+                          <Grid ColumnDefinitions="*,52,64" Height="27">
+                            <TextBlock Text="{Binding Reference}"
+                                       Margin="6,4"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding FunctionalConstraint}"
+                                       Margin="6,4" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding SubscriberCount}"
+                                       Margin="6,4"
+                                       HorizontalAlignment="Right" />
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Grid>
+
+                  <GridSplitter
+                    Grid.Column="1"
+                    Width="5"
+                    ResizeDirection="Columns" />
+
+                  <Grid Grid.Column="2" RowDefinitions="29,*">
+                    <Grid
+                      Background="{DynamicResource ThemeControlLowBrush}"
+                      ColumnDefinitions="85,70,85,120,*">
+                      <TextBlock Text="Subscriber" Margin="6,5" FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="1" Text="LD" Margin="6,5" FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="2" Text="LN" Margin="6,5" FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="3" Text="Internal address" Margin="6,5" FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="4" Text="Source" Margin="6,5" FontWeight="SemiBold" />
+                    </Grid>
+
+                    <ListBox
+                      Grid.Row="1"
+                      ItemsSource="{Binding GooseSubscriberRows}"
+                      SelectedItem="{Binding SelectedGooseSubscriber, Mode=TwoWay}"
+                      BorderThickness="0">
+                      <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <VirtualizingStackPanel />
+                        </ItemsPanelTemplate>
+                      </ListBox.ItemsPanel>
+                      <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="nav:SclGooseSubscriberProjection">
+                          <Grid ColumnDefinitions="85,70,85,120,*" Height="27">
+                            <TextBlock Text="{Binding SubscriberIed}"
+                                       Margin="6,4"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding SubscriberLogicalDevice}"
+                                       Margin="6,4"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding SubscriberLogicalNode}"
+                                       Margin="6,4"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="3"
+                                       Text="{Binding InternalAddress}"
+                                       Margin="6,4"
+                                       TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="4"
+                                       Text="{Binding SourceReference}"
+                                       Margin="6,4"
+                                       TextTrimming="CharacterEllipsis" />
+                          </Grid>
+                        </DataTemplate>
+                      </ListBox.ItemTemplate>
+                    </ListBox>
+                  </Grid>
+                </Grid>
+
+                <Border
+                  Grid.Row="4"
+                  BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                  BorderThickness="0,1,0,0"
+                  Padding="9,7">
+                  <Grid
+                    ColumnDefinitions="100,*,85,*,75,*,75,*"
+                    RowDefinitions="Auto,Auto,Auto">
+                    <TextBlock Text="Control appID" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding SelectedGooseWorkspace.ControlAppId}"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="2" Text="ConfRev" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="3"
+                               Text="{Binding SelectedGooseWorkspace.ConfigurationRevision}" />
+                    <TextBlock Grid.Column="4" Text="AP" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="5"
+                               Text="{Binding SelectedGooseWorkspace.AccessPoint}" />
+                    <TextBlock Grid.Column="6" Text="Endpoint" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="7"
+                               Text="{Binding SelectedGooseWorkspace.EndpointStatus}" />
+
+                    <TextBlock Grid.Row="1" Text="MAC" Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="1" Grid.Column="1"
+                               Text="{Binding SelectedGooseWorkspace.MacAddress}"
+                               Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="1" Grid.Column="2"
+                               Text="APPID" Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="1" Grid.Column="3"
+                               Text="{Binding SelectedGooseWorkspace.NetworkAppId}"
+                               Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="1" Grid.Column="4"
+                               Text="VLAN" Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="1" Grid.Column="5"
+                               Text="{Binding SelectedGooseWorkspace.VlanId}"
+                               Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="1" Grid.Column="6"
+                               Text="Priority" Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="1" Grid.Column="7"
+                               Text="{Binding SelectedGooseWorkspace.VlanPriority}"
+                               Margin="0,7,0,0" />
+
+                    <TextBlock Grid.Row="2" Text="Min / Max time" Margin="0,7,0,0" />
+                    <StackPanel Grid.Row="2"
+                                Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                Margin="0,7,0,0">
+                      <TextBlock Text="{Binding SelectedGooseWorkspace.MinTime}" />
+                      <TextBlock Text="/" Opacity="0.55" />
+                      <TextBlock Text="{Binding SelectedGooseWorkspace.MaxTime}" />
+                    </StackPanel>
+                    <TextBlock Grid.Row="2"
+                               Grid.Column="2"
+                               Text="Members"
+                               Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="2"
+                               Grid.Column="3"
+                               Text="{Binding SelectedGooseWorkspace.MemberCount}"
+                               Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="2"
+                               Grid.Column="4"
+                               Text="ExtRefs"
+                               Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="2"
+                               Grid.Column="5"
+                               Text="{Binding SelectedGooseWorkspace.SubscriberCount}"
+                               Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="2"
+                               Grid.Column="6"
+                               Text="IEDs"
+                               Margin="0,7,0,0" />
+                    <TextBlock Grid.Row="2"
+                               Grid.Column="7"
+                               Text="{Binding SelectedGooseWorkspace.SubscriberIedCount}"
+                               Margin="0,7,0,0" />
+                  </Grid>
+                </Border>
+              </Grid>
+            </TabItem>
+
             <TabItem Header="{Binding DataSetWorkspaceHeader}">
               <Grid ColumnDefinitions="310,5,*">
                 <Grid Grid.Column="0" RowDefinitions="29,*">
