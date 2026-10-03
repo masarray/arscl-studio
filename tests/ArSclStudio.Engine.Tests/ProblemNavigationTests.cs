@@ -145,6 +145,11 @@ public sealed class ProblemNavigationTests
             await using var vm = new MainWindowViewModel();
             await vm.OpenFileAsync(path);
 
+            Assert.IsFalse(vm.Problems.Any(row =>
+                row.Code == "SCL-ENG-MODEL-0001"));
+
+            await vm.ValidateFullAsync();
+
             var problem = vm.Problems.Single(row =>
                 row.Code == "SCL-ENG-MODEL-0001");
 
