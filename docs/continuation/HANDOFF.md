@@ -4,20 +4,20 @@ Last updated: 2026-10-03
 
 ## Current phase
 
-**M3A0 workstation baseline: complete. M3A Semantic & Engineering Diagnostics: slice 1 complete; manual visual acceptance for the workstation remains pending.**
+**M3A0 workstation baseline: complete. M3A1 diagnostics and M3A2 deep model consistency + Services interpretation: complete; manual visual acceptance for the workstation remains pending.**
 
 - Repository: `masarray/arscl-studio`
 - Branch: `feature/m3a0-iec-workstation-ia`
 - PR: #5 (draft; keep unmerged until visual audit is accepted)
 - Base main: `6bb9eab76814280e5f27557d638612ab88039eb0` (M2B)
-- Verified executable head: `b9d32c4180b9458753fc144ac49bb3df92fcb846`
-- Verified executable CI: `37136912729`
+- Verified executable head: `e6390cd59ac395947eec94c3a86bcd5c90ef46b7`
+- Verified executable CI: `37138858197`
 - Windows / Ubuntu / macOS build + tests: green
 - SCL tests: 11/11 per OS
-- Engine/Desktop tests: 57/57 per OS
-- Total: **68/68 tests per OS**
-- Verified Windows self-contained artifact: `11278714393` (`ARSCL-Studio-win-x64`)
-- Verified build digest: `sha256:511ed6dfb85f131b438424d9198d5eeead35e27c0e5fc1978f8d79f78cbab8d5`
+- Engine/Desktop tests: 65/65 per OS
+- Total: **76/76 tests per OS**
+- Verified Windows self-contained artifact: `11280036122` (`ARSCL-Studio-win-x64`)
+- Verified build digest: `sha256:8b64c16801f39e7a4da6b1a5e372590b825b934809a16177909f9ca6a6f3a826`
 
 Documentation-only commits after the executable head do not change runtime behavior. Final PR-head CI must still remain green before merge.
 
@@ -34,6 +34,8 @@ The fixture itself is not committed.
 Read:
 - `docs/testing/REAL_SCD_ENGINEERING_WORKSPACE_ACCEPTANCE.md`
 - `docs/testing/M3A0_ACCEPTANCE.md`
+- `docs/testing/M3A_DIAGNOSTICS_ACCEPTANCE.md`
+- `docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md`
 - `docs/ux/IEC61850_WORKSTATION_INFORMATION_ARCHITECTURE.md`
 
 ## Product direction locked by M3A0
@@ -54,6 +56,10 @@ Desktop must never walk XML to invent IEC meaning. Every enabled workspace must 
 - default landing context is an IED, not the SCL root;
 - manufacturer/description;
 - AP / LD / LN / DataSet / Report / GOOSE / Setting Group counts;
+- dense per-IED Declared Services table;
+- raw Services parameters plus conservative interpretation of limits, booleans and Fix/Conf/Dyn modes;
+- unknown/future Services entries remain visible as uninterpreted declarations;
+- Services rows navigate to authoritative source nodes;
 - vendor Private XML stays preserved but out of the primary engineering navigation.
 
 ### Network
@@ -96,7 +102,10 @@ Desktop must never walk XML to invent IEC meaning. Every enabled workspace must 
 - LN → LNodeType → DO → DOType → DA/SDO → DAType/BDA resolution;
 - DOI/SDI/DAI instance overlay;
 - CDC / FC / bType / configured value / type ID / description;
-- row source points at the instance when present, otherwise at the type definition.
+- row source points at the instance when present, otherwise at the type definition;
+- bounded instance/template consistency validation for DOI/SDI/DAI;
+- duplicate template-member ambiguity is never guessed;
+- cached type contexts preserve fast-validation performance on large repeated models.
 
 ### Setting Groups
 - SettingControl metadata;
@@ -138,34 +147,56 @@ Do not add a fake/empty Substation workspace just to complete a tab list.
 - Setting Group units are only shown when represented/resolvable.
 - GOOSE subscriber projection matches source signal identity; deeper service-type diagnostics belong to M3A.
 - SMV communication endpoint engineering workspace is not yet implemented.
-- supported Services interpretation is not yet complete.
 - Substation primary-system semantics are deferred until a real fixture exists.
 - schema provider remains explicit/legal-source dependent.
 - visual quality still requires manual Windows/high-DPI acceptance on the golden SCD.
 
-## M3A diagnostics slice 1 implemented
+## M3A1 + M3A2 implemented
 
-New Problems/validation coverage:
+### Diagnostics slice 1
+
+Problems/validation coverage:
 - `SCL-ENG-GOOSE-0001..0004`: missing GOOSE endpoint/address/MAC/network APPID;
-- `SCL-SEM-MODEL-0001`: DOI instance absent from resolved LNodeType;
-- `SCL-ENG-SMV-0001..0004`: missing SMV endpoint/address/MAC/network APPID.
+- `SCL-ENG-SMV-0001..0004`: missing SMV endpoint/address/MAC/network APPID;
+- typed `Communication/SMV → SampledValueControl` reference binding.
 
-`Communication/SMV` is now a typed semantic object and resolves to `SampledValueControl` through the reference graph using IED + LD + control name.
+### Deep Data Model consistency
 
-Noise control:
-- GSSE is not treated as missing Ethernet GOOSE;
-- unresolved lnType remains a reference diagnostic instead of receiving duplicate semantic noise;
-- control-level `appID`/`smvID` is never substituted for Communication-layer network APPID.
+- `SCL-SEM-MODEL-0001`: DOI absent from resolved LNodeType;
+- `SCL-SEM-MODEL-0002`: SDI absent from resolved type context;
+- `SCL-SEM-MODEL-0003`: DAI absent from resolved type context;
+- `SCL-SEM-MODEL-0004`: duplicate template member ambiguity, no guessing;
+- `SCL-SEM-MODEL-0005`: SDI targets non-Struct leaf;
+- `SCL-SEM-MODEL-0006`: DAI targets structured SDO/DA/BDA;
+- unresolved type edges remain `SCL-REF-*` root causes rather than producing duplicate downstream noise;
+- 10,000-LN shared-type fast-validation performance guard is green.
 
-See `docs/testing/M3A_DIAGNOSTICS_ACCEPTANCE.md`.
+### Declared Services interpretation
+
+- actual per-IED `<Services>` children are projected; no hard-coded checklist;
+- categories and raw declarations are shown in IED Overview;
+- `Fix / Conf / Dyn` are rendered as Fixed / Configurable / Dynamic;
+- `max`, `maxAttributes`, `modify`, `fixPrefix`, `fixLnInst` remain literal declared properties;
+- unknown/future/vendor service elements stay visible and source-linked;
+- UI explicitly distinguishes SCL declaration from runtime verification.
+
+Services consistency diagnostics:
+- `SCL-ENG-SERVICE-0001`: explicit GOOSE count exceeds declared GOOSE max;
+- `SCL-ENG-SERVICE-0002`: explicit GSSE count exceeds declared GSSE max;
+- `SCL-ENG-SERVICE-0003`: SampledValueControl count exceeds declared SMV max;
+- untyped GSEControl is not silently inferred to be GOOSE.
+
+See:
+- `docs/testing/M3A_DIAGNOSTICS_ACCEPTANCE.md`;
+- `docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md`.
 
 ## Next M3A slice
 
-Do not rebuild M3A0 workspaces. Continue semantic confidence in this order:
-1. deeper DOI/SDI/DAI ↔ template consistency without full-model materialization regressions;
-2. supported Services interpretation;
-3. contextual engineering explanations for new diagnostics;
-4. SMV engineering projection only when a real fixture justifies the UI;
+Do not rebuild M3A0/M3A2 workspaces. Continue with:
+1. edition-aware rule/schema-provider evolution using legally sourced assets;
+2. richer contextual engineering explanations and diagnostic grouping/filtering;
+3. additional safe cross-domain consistency checks only where semantics are proven;
+4. SMV visual engineering projection only when a real fixture justifies the UI;
 5. Substation hierarchy only after a real Substation fixture is supplied.
 
-Broad SCL surgery remains M4 and must stay locked until reference-impact and validation coverage for each destructive operation is explicit.
+Runtime/live capability verification remains a later phase. Broad SCL surgery remains M4 and must stay locked until reference-impact and validation coverage for each destructive operation is explicit.
