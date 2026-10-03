@@ -10,7 +10,7 @@ public sealed partial class MainWindowViewModel : ObservableObject
     [ObservableProperty]
     private string _selectedObject = "Digital";
 
-    public string WindowTitle => "ARSCL Studio — IEC 61850 SCL Editor & Configurator";
+    public string WindowTitle { get; } = "ARSCL Studio — IEC 61850 SCL Editor & Configurator";
 
     public IReadOnlyList<ExplorerRow> ExplorerRows { get; } =
     [
