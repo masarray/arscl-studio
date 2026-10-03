@@ -17,6 +17,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private readonly Dictionary<SclNodeHandle, ExplorerRow> _xmlIndex = [];
     private readonly HashSet<SclNodeHandle> _engineeringExpanded = [];
     private readonly HashSet<SclNodeHandle> _xmlExpanded = [];
+    private ProblemRow[] _allProblems = [];
 
     private CancellationTokenSource? _searchDebounce;
     private bool _synchronizingSelection;
@@ -223,6 +224,41 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     [ObservableProperty]
     private ProblemRow? _selectedProblemRow;
+
+    [ObservableProperty]
+    private string _problemFilterText = string.Empty;
+
+    [ObservableProperty]
+    private string _selectedProblemSeverityFilter = "All severities";
+
+    [ObservableProperty]
+    private string _selectedProblemDomainFilter = "All domains";
+
+    public IReadOnlyList<string> ProblemSeverityFilters { get; } =
+    [
+        "All severities",
+        "Blocker",
+        "Error",
+        "Warning",
+        "Info"
+    ];
+
+    public IReadOnlyList<string> ProblemDomainFilters { get; } =
+    [
+        "All domains",
+        "Reference",
+        "Semantic",
+        "Engineering",
+        "Schema",
+        "Xml",
+        "Compatibility",
+        "Runtime"
+    ];
+
+    public string ProblemsHeader =>
+        Problems.Count == _allProblems.Length
+            ? $"Problems ({Problems.Count})"
+            : $"Problems ({Problems.Count}/{_allProblems.Length})";
 
     [ObservableProperty]
     private IReadOnlyList<SclReferenceProjection> _whereUsedRows =
@@ -511,8 +547,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         SelectedIedWorkspace = null;
         OnPropertyChanged(nameof(IedWorkspaceHeader));
         ClearEngineeringWorkspaces();
+        _allProblems = [];
         Problems = Array.Empty<ProblemRow>();
         SelectedProblemRow = null;
+        OnPropertyChanged(nameof(ProblemsHeader));
         WhereUsedRows = Array.Empty<SclReferenceProjection>();
         SearchResults = Array.Empty<SclSearchResultProjection>();
 
@@ -525,6 +563,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     partial void OnSelectedXmlRowChanged(ExplorerRow? value) =>
         SelectFromRow(value);
+
+    partial void OnProblemFilterTextChanged(string value) =>
+        ApplyProblemFilters();
+
+    partial void OnSelectedProblemSeverityFilterChanged(string value) =>
+        ApplyProblemFilters();
+
+    partial void OnSelectedProblemDomainFilterChanged(string value) =>
+        ApplyProblemFilters();
 
     partial void OnSelectedProblemRowChanged(ProblemRow? value)
     {
@@ -611,10 +658,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         SclDocumentState? state = null)
     {
         SelectedProblemRow = null;
+
         if (diagnostics.Count == 0)
         {
+            _allProblems = [];
             Problems = Array.Empty<ProblemRow>();
             ProblemSummary = "No diagnostics";
+            OnPropertyChanged(nameof(ProblemsHeader));
             return;
         }
 
@@ -644,8 +694,53 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             }
         }
 
-        Problems = rows;
+        _allProblems = rows;
         ProblemSummary = $"{errors} Errors  •  {warnings} Warnings";
+        ApplyProblemFilters();
+    }
+
+    private void ApplyProblemFilters()
+    {
+        if (_allProblems.Length == 0)
+        {
+            Problems = Array.Empty<ProblemRow>();
+            SelectedProblemRow = null;
+            OnPropertyChanged(nameof(ProblemsHeader));
+            return;
+        }
+
+        var severity = SelectedProblemSeverityFilter;
+        var domain = SelectedProblemDomainFilter;
+        var query = ProblemFilterText.Trim();
+
+        var filtered = _allProblems.Where(row =>
+            (string.Equals(
+                 severity,
+                 "All severities",
+                 StringComparison.Ordinal) ||
+             string.Equals(
+                 row.Severity,
+                 severity,
+                 StringComparison.OrdinalIgnoreCase)) &&
+            (string.Equals(
+                 domain,
+                 "All domains",
+                 StringComparison.Ordinal) ||
+             string.Equals(
+                 row.Domain,
+                 domain,
+                 StringComparison.OrdinalIgnoreCase)) &&
+            (query.Length == 0 ||
+             row.Code.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             row.Domain.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             row.ObjectName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             row.Message.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             row.Source.Contains(query, StringComparison.OrdinalIgnoreCase)))
+            .ToArray();
+
+        Problems = filtered;
+        SelectedProblemRow = null;
+        OnPropertyChanged(nameof(ProblemsHeader));
     }
 
     private void SelectFromRow(ExplorerRow? row)
