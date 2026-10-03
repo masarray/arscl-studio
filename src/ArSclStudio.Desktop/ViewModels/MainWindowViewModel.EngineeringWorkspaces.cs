@@ -226,8 +226,7 @@ public sealed partial class MainWindowViewModel
                     state,
                     value.Handle);
 
-            OnPropertyChanged(nameof(GooseWorkspaceHeader));
-        OnPropertyChanged(nameof(DataSetWorkspaceHeader));
+            OnPropertyChanged(nameof(DataSetWorkspaceHeader));
         }
 
         if (!_synchronizingSelection &&
@@ -363,6 +362,7 @@ public sealed partial class MainWindowViewModel
         ReportWorkspaceRows = Array.Empty<SclReportWorkspaceProjection>();
         SelectedReportWorkspace = null;
 
+        OnPropertyChanged(nameof(GooseWorkspaceHeader));
         OnPropertyChanged(nameof(DataSetWorkspaceHeader));
         OnPropertyChanged(nameof(ReportWorkspaceHeader));
     }
