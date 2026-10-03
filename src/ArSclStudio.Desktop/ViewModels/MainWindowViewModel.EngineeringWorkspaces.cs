@@ -66,6 +66,63 @@ public sealed partial class MainWindowViewModel
         }
     }
 
+    partial void OnSelectedEngineeringWorkspaceIndexChanged(int value)
+    {
+        if (_synchronizingSelection ||
+            _session.CurrentState is null)
+        {
+            return;
+        }
+
+        switch (value)
+        {
+            case 0:
+                if (SelectedIedWorkspace is { } ied)
+                {
+                    _selectionService.Select(ied.Handle);
+                }
+                break;
+
+            case 1:
+                var network = SelectedNetworkWorkspaceRow;
+
+                if (SelectedIedWorkspace is { } selectedIed &&
+                    (network is null ||
+                     !string.Equals(
+                         network.IedName,
+                         selectedIed.Name,
+                         StringComparison.Ordinal)))
+                {
+                    network = NetworkWorkspaceRows.FirstOrDefault(row =>
+                        string.Equals(
+                            row.IedName,
+                            selectedIed.Name,
+                            StringComparison.Ordinal));
+                    SelectedNetworkWorkspaceRow = network;
+                }
+
+                if (network is not null)
+                {
+                    _selectionService.Select(network.Handle);
+                }
+                break;
+
+            case 2:
+                if (SelectedDataSetWorkspace is { } dataSet)
+                {
+                    _selectionService.Select(dataSet.Handle);
+                }
+                break;
+
+            case 3:
+                if (SelectedReportWorkspace is { } report)
+                {
+                    _selectionService.Select(report.Handle);
+                }
+                break;
+        }
+    }
+
     partial void OnSelectedNetworkWorkspaceRowChanged(
         SclNetworkWorkspaceProjection? value)
     {
@@ -174,13 +231,19 @@ public sealed partial class MainWindowViewModel
             OnPropertyChanged(nameof(DataSetWorkspaceHeader));
             OnPropertyChanged(nameof(ReportWorkspaceHeader));
 
-            SelectedDataSetWorkspace = selectedDataSetHandle is { } dataSetHandle
+            var nextDataSet = selectedDataSetHandle is { } dataSetHandle
                 ? dataSets.FirstOrDefault(row => row.Handle == dataSetHandle)
-                : dataSets.FirstOrDefault();
+                : null;
 
-            SelectedReportWorkspace = selectedReportHandle is { } reportHandle
+            SelectedDataSetWorkspace =
+                nextDataSet ?? dataSets.FirstOrDefault();
+
+            var nextReport = selectedReportHandle is { } reportHandle
                 ? reports.FirstOrDefault(row => row.Handle == reportHandle)
-                : reports.FirstOrDefault();
+                : null;
+
+            SelectedReportWorkspace =
+                nextReport ?? reports.FirstOrDefault();
         }
         finally
         {
