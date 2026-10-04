@@ -239,6 +239,19 @@ public sealed class EngineeringWorkspaceViewModelTests
                        row.Value == "on" &&
                        row.FunctionalConstraint == "ST"));
 
+            var positionDisplay = vm.DataModelDisplayRows.Single(
+                row => row.Path == "Pos");
+            Assert.IsTrue(positionDisplay.HasChildren);
+
+            vm.ToggleDataModelRow(positionDisplay);
+            Assert.IsFalse(vm.DataModelDisplayRows.Any(
+                row => row.Path == "Pos/stVal"));
+
+            vm.ToggleDataModelRow(vm.DataModelDisplayRows.Single(
+                row => row.Path == "Pos"));
+            Assert.IsTrue(vm.DataModelDisplayRows.Any(
+                row => row.Path == "Pos/stVal"));
+
             vm.SelectedEngineeringWorkspaceIndex = 6;
 
             Assert.AreEqual("SettingControl", vm.DetailTitle);

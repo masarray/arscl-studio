@@ -977,7 +977,7 @@
                     <ListBox.ItemsPanel>
                       <ItemsPanelTemplate>
                         <VirtualizingStackPanel />
-                      </ListBox.ItemsPanel>
+                      </ItemsPanelTemplate>
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                       <DataTemplate x:DataType="nav:SclDataSetMemberProjection">
@@ -1048,16 +1048,15 @@
               </Grid>
             </TabItem>
             <TabItem Header="Data Model">
-              <Grid ColumnDefinitions="210,5,*">
+              <Grid ColumnDefinitions="225,5,*">
                 <Grid Grid.Column="0" RowDefinitions="29,*">
                   <Grid
                     Background="{DynamicResource ThemeControlLowBrush}"
-                    ColumnDefinitions="58,66,48,34,*">
+                    ColumnDefinitions="70,78,45,*">
                     <TextBlock Text="LD" Margin="6,5" FontWeight="SemiBold" />
                     <TextBlock Grid.Column="1" Text="LN" Margin="6,5" FontWeight="SemiBold" />
                     <TextBlock Grid.Column="2" Text="Class" Margin="6,5" FontWeight="SemiBold" />
                     <TextBlock Grid.Column="3" Text="DO" Margin="6,5" FontWeight="SemiBold" />
-                    <TextBlock Grid.Column="4" Text="Description" Margin="6,5" FontWeight="SemiBold" />
                   </Grid>
 
                   <ListBox
@@ -1073,7 +1072,10 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                       <DataTemplate x:DataType="nav:SclDataModelLogicalNodeProjection">
-                        <Grid ColumnDefinitions="58,66,48,34,*" Height="25">
+                        <Grid
+                          ColumnDefinitions="70,78,45,*"
+                          Height="25"
+                          ToolTip.Tip="{Binding Description}">
                           <TextBlock Text="{Binding LogicalDevice}"
                                      Margin="5,3"
                                      TextTrimming="CharacterEllipsis" />
@@ -1083,15 +1085,12 @@
                                      TextTrimming="CharacterEllipsis" />
                           <TextBlock Grid.Column="2"
                                      Text="{Binding LnClass}"
-                                     Margin="6,4" />
+                                     Margin="6,4"
+                                     TextTrimming="CharacterEllipsis" />
                           <TextBlock Grid.Column="3"
                                      Text="{Binding DataObjectCount}"
                                      Margin="6,4"
                                      HorizontalAlignment="Right" />
-                          <TextBlock Grid.Column="4"
-                                     Text="{Binding Description}"
-                                     Margin="6,4"
-                                     TextTrimming="CharacterEllipsis" />
                         </Grid>
                       </DataTemplate>
                     </ListBox.ItemTemplate>
@@ -1117,10 +1116,10 @@
                   </Grid>
 
                   <ListBox
-                  Classes="engineeringGrid"
+                    Classes="engineeringGrid"
                     Grid.Row="1"
-                    ItemsSource="{Binding DataModelRows}"
-                    SelectedItem="{Binding SelectedDataModelRow, Mode=TwoWay}"
+                    ItemsSource="{Binding DataModelDisplayRows}"
+                    SelectedItem="{Binding SelectedDataModelDisplayRow, Mode=TwoWay}"
                     BorderThickness="0">
                     <ListBox.ItemsPanel>
                       <ItemsPanelTemplate>
@@ -1128,13 +1127,28 @@
                       </ItemsPanelTemplate>
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
-                      <DataTemplate x:DataType="nav:SclDataModelRowProjection">
+                      <DataTemplate x:DataType="vm:DataModelDisplayRow">
                         <Grid ColumnDefinitions="220,44,46,38,80,120,*" Height="24">
-                          <TextBlock
-                                     Text="{Binding Name}"
-                                     Margin="{Binding Depth, Converter={StaticResource DepthToIndent}}"
-                                     TextTrimming="CharacterEllipsis"
-                                     ToolTip.Tip="{Binding Path}" />
+                          <Grid
+                            ColumnDefinitions="18,*"
+                            Margin="{Binding Depth, Converter={StaticResource DepthToIndent}}">
+                            <Button
+                              Content="{Binding Glyph}"
+                              Width="18"
+                              Height="18"
+                              Padding="0"
+                              BorderThickness="0"
+                              Background="Transparent"
+                              Focusable="False"
+                              IsVisible="{Binding HasChildren}"
+                              Click="DataModelToggleClick" />
+                            <TextBlock
+                              Grid.Column="1"
+                              Text="{Binding Name}"
+                              VerticalAlignment="Center"
+                              TextTrimming="CharacterEllipsis"
+                              ToolTip.Tip="{Binding Path}" />
+                          </Grid>
                           <TextBlock Grid.Column="1"
                                      Text="{Binding Kind}"
                                      Margin="6,4" />

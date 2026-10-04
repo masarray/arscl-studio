@@ -213,6 +213,18 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void DataModelToggleClick(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: DataModelDisplayRow row } &&
+            DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.ToggleDataModelRow(row);
+            e.Handled = true;
+        }
+    }
+
     private void XmlToggleClick(
         object? sender,
         RoutedEventArgs e)

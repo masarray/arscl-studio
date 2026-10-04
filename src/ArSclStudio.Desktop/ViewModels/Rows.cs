@@ -27,6 +27,29 @@ public sealed record EngineeringWorkspaceNavigationRow(
     string Name,
     string Summary);
 
+public sealed record DataModelDisplayRow(
+    SclDataModelRowProjection Model,
+    bool HasChildren,
+    bool IsExpanded)
+{
+    public SclNodeHandle Handle => Model.Handle;
+    public int Depth => Model.Depth;
+    public string Kind => Model.Kind;
+    public string Name => Model.Name;
+    public string Path => Model.Path;
+    public string Cdc => Model.Cdc;
+    public string FunctionalConstraint => Model.FunctionalConstraint;
+    public string BasicType => Model.BasicType;
+    public string Value => Model.Value;
+    public string TypeId => Model.TypeId;
+    public string Description => Model.Description;
+
+    public string Glyph =>
+        HasChildren
+            ? IsExpanded ? "▾" : "▸"
+            : string.Empty;
+}
+
 public sealed record ProblemRow(
     SclNodeHandle Node,
     string Severity,

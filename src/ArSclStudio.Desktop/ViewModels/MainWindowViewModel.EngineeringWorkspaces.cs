@@ -9,6 +9,8 @@ namespace ArSclStudio.Desktop.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     private SclNodeHandle _workspaceIedHandle;
+    private readonly HashSet<string> _collapsedDataModelPaths =
+        new(StringComparer.Ordinal);
 
     private static readonly string[] EngineeringWorkspaceNames =
     [
@@ -104,6 +106,13 @@ public sealed partial class MainWindowViewModel
 
     [ObservableProperty]
     private SclDataModelRowProjection? _selectedDataModelRow;
+
+    [ObservableProperty]
+    private IReadOnlyList<DataModelDisplayRow> _dataModelDisplayRows =
+        Array.Empty<DataModelDisplayRow>();
+
+    [ObservableProperty]
+    private DataModelDisplayRow? _selectedDataModelDisplayRow;
 
     [ObservableProperty]
     private IReadOnlyList<SclSettingGroupControlProjection> _settingGroupControls =
@@ -407,7 +416,10 @@ public sealed partial class MainWindowViewModel
                     state,
                     value.Handle);
 
+            _collapsedDataModelPaths.Clear();
             SelectedDataModelRow = null;
+            SelectedDataModelDisplayRow = null;
+            RefreshDataModelDisplayRows();
         }
 
         if (!_synchronizingSelection &&
@@ -421,11 +433,138 @@ public sealed partial class MainWindowViewModel
     partial void OnSelectedDataModelRowChanged(
         SclDataModelRowProjection? value)
     {
+        if (value is not null)
+        {
+            EnsureDataModelRowVisible(value.Path);
+            SelectedDataModelDisplayRow =
+                DataModelDisplayRows.FirstOrDefault(
+                    row => row.Handle == value.Handle);
+        }
+        else
+        {
+            SelectedDataModelDisplayRow = null;
+        }
+
         if (!_synchronizingSelection &&
             value is not null &&
             !value.Handle.IsNone)
         {
             _selectionService.Select(value.Handle);
+        }
+    }
+
+    partial void OnSelectedDataModelDisplayRowChanged(
+        DataModelDisplayRow? value)
+    {
+        if (value is not null &&
+            (SelectedDataModelRow is null ||
+             SelectedDataModelRow.Handle != value.Handle))
+        {
+            SelectedDataModelRow = value.Model;
+        }
+    }
+
+    public void ToggleDataModelRow(DataModelDisplayRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+
+        if (!row.HasChildren)
+        {
+            return;
+        }
+
+        if (_collapsedDataModelPaths.Contains(row.Path))
+        {
+            _collapsedDataModelPaths.Remove(row.Path);
+        }
+        else
+        {
+            _collapsedDataModelPaths.Add(row.Path);
+
+            if (SelectedDataModelRow is { } selected &&
+                selected.Path.StartsWith(
+                    string.Concat(row.Path, "/"),
+                    StringComparison.Ordinal))
+            {
+                SelectedDataModelRow = row.Model;
+            }
+        }
+
+        RefreshDataModelDisplayRows();
+    }
+
+    private void EnsureDataModelRowVisible(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) ||
+            _collapsedDataModelPaths.Count == 0)
+        {
+            return;
+        }
+
+        var changed = _collapsedDataModelPaths.RemoveWhere(
+            collapsed =>
+                path.Length > collapsed.Length &&
+                path.StartsWith(collapsed, StringComparison.Ordinal) &&
+                path[collapsed.Length] == '/') > 0;
+
+        if (changed)
+        {
+            RefreshDataModelDisplayRows();
+        }
+    }
+
+    private void RefreshDataModelDisplayRows()
+    {
+        if (DataModelRows.Count == 0)
+        {
+            DataModelDisplayRows = Array.Empty<DataModelDisplayRow>();
+            SelectedDataModelDisplayRow = null;
+            return;
+        }
+
+        var visible = new List<DataModelDisplayRow>(DataModelRows.Count);
+        var hiddenBelowDepth = -1;
+
+        for (var i = 0; i < DataModelRows.Count; i++)
+        {
+            var row = DataModelRows[i];
+
+            if (hiddenBelowDepth >= 0)
+            {
+                if (row.Depth > hiddenBelowDepth)
+                {
+                    continue;
+                }
+
+                hiddenBelowDepth = -1;
+            }
+
+            var hasChildren =
+                i + 1 < DataModelRows.Count &&
+                DataModelRows[i + 1].Depth > row.Depth;
+            var isExpanded =
+                hasChildren &&
+                !_collapsedDataModelPaths.Contains(row.Path);
+
+            visible.Add(
+                new DataModelDisplayRow(
+                    row,
+                    hasChildren,
+                    isExpanded));
+
+            if (hasChildren && !isExpanded)
+            {
+                hiddenBelowDepth = row.Depth;
+            }
+        }
+
+        DataModelDisplayRows = visible;
+
+        if (SelectedDataModelRow is { } selected)
+        {
+            SelectedDataModelDisplayRow =
+                visible.FirstOrDefault(
+                    row => row.Handle == selected.Handle);
         }
     }
 
@@ -626,6 +765,9 @@ public sealed partial class MainWindowViewModel
         SelectedDataModelLogicalNode = null;
         DataModelRows = Array.Empty<SclDataModelRowProjection>();
         SelectedDataModelRow = null;
+        DataModelDisplayRows = Array.Empty<DataModelDisplayRow>();
+        SelectedDataModelDisplayRow = null;
+        _collapsedDataModelPaths.Clear();
         SettingGroupControls = Array.Empty<SclSettingGroupControlProjection>();
         SelectedSettingGroupControl = null;
         SettingGroupSettings = Array.Empty<SclSettingGroupSettingProjection>();
