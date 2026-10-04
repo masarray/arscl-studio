@@ -1,23 +1,23 @@
 # Project handoff
 
-Last updated: 2026-10-03
+Last updated: 2026-10-04
 
 ## Current phase
 
-**M3A0 workstation baseline + M3A1/M3A2 semantic slices: complete. M3UX1 + screenshot-driven M3UX2 workstation refinement: implemented; manual Windows visual acceptance remains pending.**
+**M3A0 workstation baseline + M3A1/M3A2 semantic slices: complete. M3UX1/M3UX2 + engineer mental-workspace finishing M3UX3: implemented; final Windows/high-DPI visual acceptance remains pending.**
 
 - Repository: `masarray/arscl-studio`
 - Branch: `feature/m3a0-iec-workstation-ia`
 - PR: #5 (draft; keep unmerged until visual audit is accepted)
 - Base main: `6bb9eab76814280e5f27557d638612ab88039eb0` (M2B)
-- Verified executable head: `b035cec83bf81c723a5f82ec9bf38460883a993f`
-- Verified executable CI: `37141798157`
+- Verified executable head: `531b023564336fcdfd8de26eb3a2a3fb67baddcb`
+- Verified executable CI: `37172958318`
 - Windows / Ubuntu / macOS build + tests: green
 - SCL tests: 11/11 per OS
 - Engine/Desktop tests: 66/66 per OS
 - Total: **77/77 tests per OS**
-- Verified Windows self-contained artifact: `11280143971` (`ARSCL-Studio-win-x64`)
-- Verified build digest: `sha256:db1bb0c62da9a4e8e24507f040eba2809585c3d0912858f1f43ba1f9192c3da6`
+- Verified Windows self-contained artifact: `11291892937` (`ARSCL-Studio-win-x64`)
+- Verified build digest: `sha256:cfbe90b60e318fe40fc61662c96566af0948de6ea590c2dacab0bcbe269a02a9`
 
 Documentation-only commits after the executable head do not change runtime behavior. Final PR-head CI must still remain green before merge.
 
@@ -38,6 +38,7 @@ Read:
 - `docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md`
 - `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`
 - `docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md`
+- `docs/testing/M3UX3_ENGINEER_WORKSPACE_ACCEPTANCE.md`
 - `docs/ux/IEC61850_WORKSTATION_INFORMATION_ARCHITECTURE.md`
 
 ## Product direction locked by M3A0
@@ -206,16 +207,32 @@ M3UX1 established the compact three-pane desktop shell. M3UX2 uses real Windows 
 
 See `docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md`.
 
+## M3UX3 engineer mental-workspace finishing implemented
+
+M3UX3 finishes navigation coherence without changing IEC semantics:
+- compact IED context selector + persistent engineering workspace navigator in Project Explorer;
+- persistent center breadcrumb for IED/domain/object context;
+- Problems/Search/Where Used automatically activate the relevant engineering workspace;
+- Reports directly exposes members of its deterministically resolved bound DataSet;
+- Data Model gains Desktop-only expand/collapse while preserving the authoritative Engine projection;
+- LN selector width is rebalanced for engineering identity rather than prose;
+- Network is scoped consistently to the selected IED;
+- Ctrl+F is functional;
+- roadmap-only disabled controls/tabs are hidden until implemented.
+
+See `docs/testing/M3UX3_ENGINEER_WORKSPACE_ACCEPTANCE.md`.
+
 ## Next visual gate
 
-Before merging PR #5, run the M3UX2 Windows artifact on the golden SCD and provide screenshots of at least Overview, Data Model, GOOSE, Problems and Settings.
+Before merging PR #5, run the M3UX3 Windows artifact on the golden SCD and provide screenshots of Overview, Network, GOOSE, Reports, Data Model, Settings and Problems at normal/high DPI.
 
 Audit specifically:
-1. workspace selector remains one line at normal/high DPI;
-2. Overview no longer has dashboard-like dead space;
-3. Data Model hierarchy/column clipping;
-4. Properties/Where Used path readability;
-5. Problems filtering usability on the existing 13 reference errors;
-6. explicit Settings empty-state for IEDs without SettingControl.
+1. selected IED + engineering domain remain obvious while navigating;
+2. Network changes scope when the IED context changes;
+3. Report selection exposes bound DataSet members without a manual DataSets lookup;
+4. Data Model DO/DA hierarchy is easy to scan collapsed/expanded;
+5. Problems/Search/Where Used land on the correct visible workspace;
+6. Properties/Where Used remain readable with the denser center workflow;
+7. no clipping/wrapping regression at 100%, 125% and 150% DPI.
 
 Only after that visual gate passes should work return to M3A3 edition-aware rule/schema-provider evolution. Broad SCL surgery remains locked.

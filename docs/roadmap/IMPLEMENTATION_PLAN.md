@@ -141,6 +141,22 @@ Windows screenshots of M3UX1 identified remaining web/dashboard behavior. M3UX2 
 
 Evidence: `docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md`.
 
+### M3UX3 — engineer mental-workspace finishing — implemented
+
+This finishing slice closes the remaining navigation/context gap without rebuilding the M3 shell:
+- compact selected-IED context + left engineering workspace navigator;
+- persistent IED/domain/object breadcrumb;
+- workspace-aware Problems/Search/Where Used navigation;
+- Reports bound-DataSet member inspection;
+- Desktop-only collapsible Data Model projection;
+- selected-IED Network scope;
+- functional Ctrl+F;
+- removal of roadmap-only disabled controls from the active workspace.
+
+All Engine semantic boundaries, virtualization, SclNodeHandle navigation, and mutation locks remain intact.
+
+Evidence: `docs/testing/M3UX3_ENGINEER_WORKSPACE_ACCEPTANCE.md`.
+
 ## M4 — SCL surgery
 
 Acceptance:

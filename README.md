@@ -11,7 +11,7 @@ The product direction combines:
 
 ## Status
 
-**M3A0–M3A2 IEC 61850 engineering workstation + M3UX2 desktop refinement**
+**M3A0–M3A2 IEC 61850 engineering workstation + M3UX3 desktop finishing**
 
 The current M3 branch provides Engine-backed engineering workspaces for:
 - IED Overview
@@ -39,12 +39,17 @@ Implemented engineering depth includes:
 - SettingControl / FC=SG engineering projection
 - per-IED declared Services projection and conservative consistency checks
 - compact three-pane Avalonia engineering desktop with virtualized large-model views
+- compact selected-IED + engineering-domain navigator
+- workspace-aware Problems/Search/Where Used navigation
+- Reports bound-DataSet member inspection
+- collapsible Data Model inspection
+- selected-IED Network scope
 
-The golden real-SCD engineering baseline is implemented and CI-green. PR #5 remains draft only because the final Windows/high-DPI visual acceptance gate for M3UX2 is still pending.
+The golden real-SCD engineering baseline is implemented and CI-green. PR #5 remains draft only because the final Windows/high-DPI visual acceptance gate for M3UX3 is still pending.
 
 Broad destructive SCL surgery remains intentionally locked. Identity rename/delete, DataSet surgery, RCB surgery, broad Communication editing, merge, and target-aware export continue in later milestones after explicit reference-impact and validation coverage exists.
 
-See [M3UX2 acceptance](docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md), [M3A2 acceptance](docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md), and [current handoff](docs/continuation/HANDOFF.md) for exact scope and verification evidence.
+See [M3UX3 acceptance](docs/testing/M3UX3_ENGINEER_WORKSPACE_ACCEPTANCE.md), [M3A2 acceptance](docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md), and [current handoff](docs/continuation/HANDOFF.md) for exact scope and verification evidence.
 
 ## Architecture
 
