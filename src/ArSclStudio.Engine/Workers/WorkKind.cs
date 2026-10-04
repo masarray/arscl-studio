@@ -7,6 +7,7 @@ public enum WorkKind
     ValidateFast,
     ValidateFull,
     Search,
+    EngineeringDetails,
     Compatibility,
     Diff,
     MergePreview

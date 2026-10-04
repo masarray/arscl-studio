@@ -537,6 +537,21 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         search?.Cancel();
 
+        var engineeringDetailCancellation = Interlocked.Exchange(
+            ref _engineeringDetailLoadCancellation,
+            null);
+
+        engineeringDetailCancellation?.Cancel();
+
+        try
+        {
+            await _engineeringDetailLoadTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // The owned latest-wins engineering detail task was cancelled.
+        }
+
         _selectionService.SelectionChanged -= SelectionChanged;
         _selectionService.Clear();
 

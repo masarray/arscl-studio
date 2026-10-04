@@ -90,7 +90,6 @@ public sealed class EngineeringWorkspaceViewModelTests
             Assert.AreEqual("Maximum: 2", vm.ServiceCapabilityRows[0].Interpretation);
             Assert.AreEqual(1, vm.DataSetWorkspaceRows.Count);
             Assert.AreEqual("Events_A", vm.DataSetWorkspaceRows[0].Name);
-            Assert.AreEqual(1, vm.DataSetMemberRows.Count);
             Assert.AreEqual(1, vm.ReportWorkspaceRows.Count);
             Assert.AreEqual("BRCB", vm.ReportWorkspaceRows[0].Kind);
 
@@ -106,7 +105,6 @@ public sealed class EngineeringWorkspaceViewModelTests
                 "Modification: not allowed");
             Assert.AreEqual(1, vm.DataSetWorkspaceRows.Count);
             Assert.AreEqual("Events_B", vm.DataSetWorkspaceRows[0].Name);
-            Assert.AreEqual(2, vm.DataSetMemberRows.Count);
             Assert.AreEqual(1, vm.ReportWorkspaceRows.Count);
             Assert.AreEqual("URCB", vm.ReportWorkspaceRows[0].Kind);
             Assert.AreEqual("IED_B", vm.DetailTitle);
@@ -211,6 +209,7 @@ public sealed class EngineeringWorkspaceViewModelTests
             Assert.AreEqual("IED_A / P1", vm.DetailTitle);
 
             vm.SelectedEngineeringWorkspaceIndex = 2;
+            await vm.WaitForEngineeringWorkspaceIdleAsync();
             Assert.AreEqual("GOOSE_CB", vm.DetailTitle);
             Assert.AreEqual(1, vm.GooseWorkspaceRows.Count);
             Assert.AreEqual(1, vm.GooseSignalRows.Count);
@@ -223,6 +222,7 @@ public sealed class EngineeringWorkspaceViewModelTests
                     row.Name.Contains("GOOSE_CB", StringComparison.Ordinal)));
 
             vm.SelectedEngineeringWorkspaceIndex = 3;
+            await vm.WaitForEngineeringWorkspaceIdleAsync();
             Assert.AreEqual("Events", vm.DetailTitle);
             Assert.AreEqual(1, vm.DataSetMemberRows.Count);
 
@@ -240,6 +240,7 @@ public sealed class EngineeringWorkspaceViewModelTests
             StringAssert.Contains(vm.DetailTitle, "LD0/XCBR1/Pos");
 
             vm.SelectedEngineeringWorkspaceIndex = 4;
+            await vm.WaitForEngineeringWorkspaceIdleAsync();
             Assert.AreEqual("BRCB01", vm.DetailTitle);
             Assert.AreEqual(1, vm.ReportDataSetMemberRows.Count);
             Assert.AreEqual(
@@ -249,6 +250,7 @@ public sealed class EngineeringWorkspaceViewModelTests
             vm.SelectedDataModelLogicalNode = vm.DataModelLogicalNodes.Single(
                 row => row.LogicalNode == "XCBR1");
             vm.SelectedEngineeringWorkspaceIndex = 5;
+            await vm.WaitForEngineeringWorkspaceIdleAsync();
 
             Assert.AreEqual("XCBR1", vm.DetailTitle);
             Assert.IsTrue(vm.DataModelRows.Any(
@@ -272,6 +274,7 @@ public sealed class EngineeringWorkspaceViewModelTests
                 row => row.Path == "Pos/stVal"));
 
             vm.SelectedEngineeringWorkspaceIndex = 6;
+            await vm.WaitForEngineeringWorkspaceIdleAsync();
 
             Assert.AreEqual("SettingControl", vm.DetailTitle);
             Assert.AreEqual(1, vm.SettingGroupControls.Count);

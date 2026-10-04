@@ -95,7 +95,8 @@ public static class SclSettingGroupWorkspaceProjector
 
     public static SclSettingGroupSettingProjection[] BuildSettings(
         SclDocumentState state,
-        SclNodeHandle settingControlHandle)
+        SclNodeHandle settingControlHandle,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(state);
 
@@ -119,6 +120,8 @@ public static class SclSettingGroupWorkspaceProjector
 
         for (var i = 0; i < logicalNodes.Count; i++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var logicalNode = logicalNodes[i];
 
             if (logicalNode.Kind is not (
@@ -143,11 +146,21 @@ public static class SclSettingGroupWorkspaceProjector
 
             for (var j = 0; j < modelRows.Length; j++)
             {
+                if ((j & 31) == 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+
                 byPath[modelRows[j].Path] = modelRows[j];
             }
 
             for (var j = 0; j < modelRows.Length; j++)
             {
+                if ((j & 31) == 0)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
+
                 var row = modelRows[j];
 
                 if (!string.Equals(

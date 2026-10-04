@@ -14,6 +14,9 @@ public sealed partial class MainWindowViewModel
     private readonly HashSet<string> _collapsedDataModelPaths =
         new(StringComparer.Ordinal);
     private bool _synchronizingEngineeringNavigation;
+    private CancellationTokenSource? _engineeringDetailLoadCancellation;
+    private Task _engineeringDetailLoadTask = Task.CompletedTask;
+    private long _engineeringDetailLoadSequence;
 
     private static readonly string[] EngineeringWorkspaceNames =
     [
@@ -133,6 +136,15 @@ public sealed partial class MainWindowViewModel
 
     [ObservableProperty]
     private SclSettingGroupSettingProjection? _selectedSettingGroupSetting;
+
+    [ObservableProperty]
+    private bool _isEngineeringWorkspaceBusy;
+
+    [ObservableProperty]
+    private string _engineeringWorkspaceStatus = string.Empty;
+
+    public Task WaitForEngineeringWorkspaceIdleAsync() =>
+        _engineeringDetailLoadTask;
 
     public string SelectedEngineeringWorkspaceName =>
         SelectedEngineeringWorkspaceIndex >= 0 &&
@@ -277,6 +289,8 @@ public sealed partial class MainWindowViewModel
                 }
                 break;
         }
+
+        QueueSelectedEngineeringWorkspaceDetails(value);
     }
 
     partial void OnSelectedEngineeringNavigationRowChanged(
@@ -333,19 +347,14 @@ public sealed partial class MainWindowViewModel
     partial void OnSelectedGooseWorkspaceChanged(
         SclGooseWorkspaceProjection? value)
     {
-        if (_session.CurrentState is { } state)
-        {
-            GooseSignalRows = value is null
-                ? Array.Empty<SclGooseSignalProjection>()
-                : SclGooseWorkspaceProjector.BuildSignals(
-                    state,
-                    value.Handle);
+        GooseSignalRows = Array.Empty<SclGooseSignalProjection>();
+        GooseSubscriberRows = Array.Empty<SclGooseSubscriberProjection>();
 
-            GooseSubscriberRows = value is null
-                ? Array.Empty<SclGooseSubscriberProjection>()
-                : SclGooseWorkspaceProjector.BuildSubscribers(
-                    state,
-                    value.Handle);
+        if (SelectedEngineeringWorkspaceIndex == 2 &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            QueueGooseDetails(value.Handle);
         }
 
         if (!_synchronizingSelection &&
@@ -381,15 +390,14 @@ public sealed partial class MainWindowViewModel
     partial void OnSelectedDataSetWorkspaceChanged(
         SclDataSetWorkspaceProjection? value)
     {
-        if (_session.CurrentState is { } state)
-        {
-            DataSetMemberRows = value is null
-                ? Array.Empty<SclDataSetMemberProjection>()
-                : SclDataSetWorkspaceProjector.BuildMembers(
-                    state,
-                    value.Handle);
+        DataSetMemberRows = Array.Empty<SclDataSetMemberProjection>();
+        OnPropertyChanged(nameof(DataSetWorkspaceHeader));
 
-            OnPropertyChanged(nameof(DataSetWorkspaceHeader));
+        if (SelectedEngineeringWorkspaceIndex == 3 &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            QueueDataSetDetails(value.Handle);
         }
 
         if (!_synchronizingSelection &&
@@ -414,12 +422,14 @@ public sealed partial class MainWindowViewModel
     partial void OnSelectedReportWorkspaceChanged(
         SclReportWorkspaceProjection? value)
     {
-        if (_session.CurrentState is { } state)
+        ReportDataSetMemberRows = Array.Empty<SclDataSetMemberProjection>();
+        SelectedReportDataSetMember = null;
+
+        if (SelectedEngineeringWorkspaceIndex == 4 &&
+            value is not null &&
+            !value.Handle.IsNone)
         {
-            ReportDataSetMemberRows = value is null
-                ? Array.Empty<SclDataSetMemberProjection>()
-                : BuildReportDataSetMembers(state, value.Handle);
-            SelectedReportDataSetMember = null;
+            QueueReportDetails(value.Handle);
         }
 
         if (!_synchronizingSelection &&
@@ -444,18 +454,17 @@ public sealed partial class MainWindowViewModel
     partial void OnSelectedDataModelLogicalNodeChanged(
         SclDataModelLogicalNodeProjection? value)
     {
-        if (_session.CurrentState is { } state)
-        {
-            DataModelRows = value is null
-                ? Array.Empty<SclDataModelRowProjection>()
-                : SclDataModelWorkspaceProjector.BuildRows(
-                    state,
-                    value.Handle);
+        DataModelRows = Array.Empty<SclDataModelRowProjection>();
+        DataModelDisplayRows = Array.Empty<DataModelDisplayRow>();
+        _collapsedDataModelPaths.Clear();
+        SelectedDataModelRow = null;
+        SelectedDataModelDisplayRow = null;
 
-            _collapsedDataModelPaths.Clear();
-            SelectedDataModelRow = null;
-            SelectedDataModelDisplayRow = null;
-            RefreshDataModelDisplayRows();
+        if (SelectedEngineeringWorkspaceIndex == 5 &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            QueueDataModelDetails(value.Handle);
         }
 
         if (!_synchronizingSelection &&
@@ -607,15 +616,14 @@ public sealed partial class MainWindowViewModel
     partial void OnSelectedSettingGroupControlChanged(
         SclSettingGroupControlProjection? value)
     {
-        if (_session.CurrentState is { } state)
-        {
-            SettingGroupSettings = value is null
-                ? Array.Empty<SclSettingGroupSettingProjection>()
-                : SclSettingGroupWorkspaceProjector.BuildSettings(
-                    state,
-                    value.Handle);
+        SettingGroupSettings = Array.Empty<SclSettingGroupSettingProjection>();
+        SelectedSettingGroupSetting = null;
 
-            SelectedSettingGroupSetting = null;
+        if (SelectedEngineeringWorkspaceIndex == 6 &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            QueueSettingGroupDetails(value.Handle);
         }
 
         if (!_synchronizingSelection &&
@@ -634,6 +642,200 @@ public sealed partial class MainWindowViewModel
             !value.Handle.IsNone)
         {
             _selectionService.Select(value.Handle);
+        }
+    }
+
+    private void QueueSelectedEngineeringWorkspaceDetails(int workspaceIndex)
+    {
+        switch (workspaceIndex)
+        {
+            case 2 when SelectedGooseWorkspace is { } goose:
+                QueueGooseDetails(goose.Handle);
+                break;
+
+            case 3 when SelectedDataSetWorkspace is { } dataSet:
+                QueueDataSetDetails(dataSet.Handle);
+                break;
+
+            case 4 when SelectedReportWorkspace is { } report:
+                QueueReportDetails(report.Handle);
+                break;
+
+            case 5 when SelectedDataModelLogicalNode is { } logicalNode:
+                QueueDataModelDetails(logicalNode.Handle);
+                break;
+
+            case 6 when SelectedSettingGroupControl is { } settingControl:
+                QueueSettingGroupDetails(settingControl.Handle);
+                break;
+        }
+    }
+
+    private void QueueGooseDetails(SclNodeHandle handle) =>
+        QueueEngineeringDetailLoad(
+            handle,
+            "GOOSE signals",
+            static (state, selected, _) =>
+                new GooseDetailSnapshot(
+                    SclGooseWorkspaceProjector.BuildSignals(state, selected),
+                    SclGooseWorkspaceProjector.BuildSubscribers(state, selected)),
+            snapshot =>
+            {
+                GooseSignalRows = snapshot.Signals;
+                GooseSubscriberRows = snapshot.Subscribers;
+            });
+
+    private void QueueDataSetDetails(SclNodeHandle handle) =>
+        QueueEngineeringDetailLoad(
+            handle,
+            "DataSet members",
+            static (state, selected, _) =>
+                SclDataSetWorkspaceProjector.BuildMembers(state, selected),
+            rows => DataSetMemberRows = rows);
+
+    private void QueueReportDetails(SclNodeHandle handle) =>
+        QueueEngineeringDetailLoad(
+            handle,
+            "report DataSet members",
+            static (state, selected, _) =>
+                BuildReportDataSetMembers(state, selected),
+            rows =>
+            {
+                ReportDataSetMemberRows = rows;
+                SelectedReportDataSetMember = null;
+            });
+
+    private void QueueDataModelDetails(SclNodeHandle handle) =>
+        QueueEngineeringDetailLoad(
+            handle,
+            "MMS data model",
+            static (state, selected, _) =>
+                SclDataModelWorkspaceProjector.BuildRows(state, selected),
+            rows =>
+            {
+                DataModelRows = rows;
+                _collapsedDataModelPaths.Clear();
+                SelectedDataModelRow = null;
+                SelectedDataModelDisplayRow = null;
+                RefreshDataModelDisplayRows();
+            });
+
+    private void QueueSettingGroupDetails(SclNodeHandle handle) =>
+        QueueEngineeringDetailLoad(
+            handle,
+            "setting values",
+            static (state, selected, token) =>
+                SclSettingGroupWorkspaceProjector.BuildSettings(
+                    state,
+                    selected,
+                    token),
+            rows =>
+            {
+                SettingGroupSettings = rows;
+                SelectedSettingGroupSetting = null;
+            });
+
+    private void QueueEngineeringDetailLoad<T>(
+        SclNodeHandle handle,
+        string description,
+        Func<SclDocumentState, SclNodeHandle, CancellationToken, T> build,
+        Action<T> publish)
+        where T : class
+    {
+        if (handle.IsNone ||
+            _session.CurrentState is not { } state ||
+            Volatile.Read(ref _disposeStarted) != 0)
+        {
+            return;
+        }
+
+        var cancellation = new CancellationTokenSource();
+        var previous = Interlocked.Exchange(
+            ref _engineeringDetailLoadCancellation,
+            cancellation);
+
+        previous?.Cancel();
+
+        var sequence = Interlocked.Increment(
+            ref _engineeringDetailLoadSequence);
+
+        var task = RunEngineeringDetailLoadAsync(
+            state,
+            handle,
+            description,
+            sequence,
+            cancellation,
+            build,
+            publish);
+
+        _engineeringDetailLoadTask = task;
+    }
+
+    private async Task RunEngineeringDetailLoadAsync<T>(
+        SclDocumentState state,
+        SclNodeHandle handle,
+        string description,
+        long sequence,
+        CancellationTokenSource cancellation,
+        Func<SclDocumentState, SclNodeHandle, CancellationToken, T> build,
+        Action<T> publish)
+        where T : class
+    {
+        if (sequence == Volatile.Read(ref _engineeringDetailLoadSequence))
+        {
+            IsEngineeringWorkspaceBusy = true;
+            EngineeringWorkspaceStatus = $"Loading {description}...";
+        }
+
+        try
+        {
+            var result = await _session.RunLatestAsync(
+                WorkKind.EngineeringDetails,
+                token => Task.Run(
+                    () => build(state, handle, token),
+                    token),
+                cancellation.Token);
+
+            if (!result.CanPublish ||
+                result.Value is null ||
+                result.SourceRevision != state.Revision ||
+                result.SourceRevision != _session.CurrentRevision ||
+                sequence != Volatile.Read(ref _engineeringDetailLoadSequence) ||
+                Volatile.Read(ref _disposeStarted) != 0)
+            {
+                return;
+            }
+
+            publish(result.Value);
+            EngineeringWorkspaceStatus = string.Empty;
+        }
+        catch (OperationCanceledException)
+        {
+            // Latest-wins navigation or window disposal.
+        }
+        catch (Exception exception)
+        {
+            if (sequence == Volatile.Read(ref _engineeringDetailLoadSequence))
+            {
+                EngineeringWorkspaceStatus =
+                    $"Unable to load {description}: {exception.Message}";
+                StatusText =
+                    $"Workspace detail failed safely — {exception.GetType().Name}";
+            }
+        }
+        finally
+        {
+            if (sequence == Volatile.Read(ref _engineeringDetailLoadSequence))
+            {
+                IsEngineeringWorkspaceBusy = false;
+            }
+
+            Interlocked.CompareExchange(
+                ref _engineeringDetailLoadCancellation,
+                null,
+                cancellation);
+
+            cancellation.Dispose();
         }
     }
 
@@ -1041,6 +1243,10 @@ public sealed partial class MainWindowViewModel
             _synchronizingEngineeringNavigation = false;
         }
     }
+
+    private sealed record GooseDetailSnapshot(
+        SclGooseSignalProjection[] Signals,
+        SclGooseSubscriberProjection[] Subscribers);
 
     private static SclDataSetMemberProjection[] BuildReportDataSetMembers(
         SclDocumentState state,
