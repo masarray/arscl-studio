@@ -5,6 +5,7 @@ using ArSclStudio.Engine.Navigation;
 using ArSclStudio.Engine.Search;
 using ArSclStudio.Engine.Workers;
 using ArSclStudio.Scl.Identity;
+using ArSclStudio.Scl.Semantics;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ArSclStudio.Desktop.ViewModels;
@@ -315,6 +316,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     [ObservableProperty]
     private string _detailPath = string.Empty;
+
+    [ObservableProperty]
+    private string _engineeringBreadcrumb = string.Empty;
 
     [ObservableProperty]
     private string _detailSource = string.Empty;
@@ -674,6 +678,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         var rows = new ProblemRow[diagnostics.Count];
         var errors = 0;
         var warnings = 0;
+        var info = 0;
 
         for (var i = 0; i < diagnostics.Count; i++)
         {
@@ -695,10 +700,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             {
                 warnings++;
             }
+            else
+            {
+                info++;
+            }
         }
 
         _allProblems = rows;
-        ProblemSummary = $"{errors} Errors  •  {warnings} Warnings";
+        ProblemSummary =
+            $"{errors} Errors  •  {warnings} Warnings  •  {info} Info";
         ApplyProblemFilters();
     }
 
@@ -816,6 +826,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
             SynchronizeIedWorkspaceSelection(state, args.SelectedNode);
             SynchronizeEngineeringWorkspaceSelection(state, args.SelectedNode);
+            EngineeringBreadcrumb = BuildEngineeringBreadcrumb(
+                state,
+                args.SelectedNode);
 
             SelectedXmlRow =
                 _xmlIndex.GetValueOrDefault(args.SelectedNode);
@@ -829,6 +842,90 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         {
             _synchronizingSelection = false;
         }
+    }
+
+    private string BuildEngineeringBreadcrumb(
+        SclDocumentState state,
+        SclNodeHandle selected)
+    {
+        var parts = new List<string>(5);
+
+        if (!string.IsNullOrWhiteSpace(SelectedIedWorkspace?.Name))
+        {
+            parts.Add(SelectedIedWorkspace.Name);
+        }
+
+        var logicalDevice = FindSelfOrAncestorName(
+            state,
+            selected,
+            SclSemanticKind.LogicalDevice);
+
+        if (!string.IsNullOrWhiteSpace(logicalDevice) &&
+            !parts.Contains(logicalDevice, StringComparer.Ordinal))
+        {
+            parts.Add(logicalDevice);
+        }
+
+        var logicalNode = FindSelfOrAncestorName(
+            state,
+            selected,
+            SclSemanticKind.LogicalNodeZero,
+            SclSemanticKind.LogicalNode);
+
+        if (!string.IsNullOrWhiteSpace(logicalNode) &&
+            !parts.Contains(logicalNode, StringComparer.Ordinal))
+        {
+            parts.Add(logicalNode);
+        }
+
+        var workspace = SelectedEngineeringWorkspaceName;
+
+        if (!string.IsNullOrWhiteSpace(workspace))
+        {
+            parts.Add(workspace);
+        }
+
+        if (state.SemanticIndex.TryGetNode(selected, out var node) &&
+            node is not null &&
+            node.Kind is not (
+                SclSemanticKind.Ied or
+                SclSemanticKind.LogicalDevice or
+                SclSemanticKind.LogicalNodeZero or
+                SclSemanticKind.LogicalNode) &&
+            !string.IsNullOrWhiteSpace(node.DisplayName) &&
+            !parts.Contains(node.DisplayName, StringComparer.Ordinal))
+        {
+            parts.Add(node.DisplayName);
+        }
+
+        return string.Join(" › ", parts);
+    }
+
+    private static string FindSelfOrAncestorName(
+        SclDocumentState state,
+        SclNodeHandle selected,
+        params SclSemanticKind[] kinds)
+    {
+        if (state.SemanticIndex.TryGetNode(selected, out var selectedNode) &&
+            selectedNode is not null &&
+            kinds.Contains(selectedNode.Kind))
+        {
+            return selectedNode.DisplayName;
+        }
+
+        for (var i = 0; i < kinds.Length; i++)
+        {
+            if (state.SemanticIndex.TryFindAncestor(
+                    selected,
+                    kinds[i],
+                    out var ancestor) &&
+                ancestor is not null)
+            {
+                return ancestor.DisplayName;
+            }
+        }
+
+        return string.Empty;
     }
 
     private bool ExpandSemanticAncestors(

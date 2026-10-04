@@ -25,7 +25,20 @@ public sealed record ExplorerRow(
 
 public sealed record EngineeringWorkspaceNavigationRow(
     string Name,
-    string Summary);
+    string Summary)
+{
+    public string Glyph => Name switch
+    {
+        "Overview" => "I",
+        "Network" => "N",
+        "GOOSE" => "G",
+        "DataSets" => "DS",
+        "Reports" => "R",
+        "Data Model" => "DM",
+        "Settings" => "SG",
+        _ => "•"
+    };
+}
 
 public sealed record DataModelDisplayRow(
     SclDataModelRowProjection Model,
