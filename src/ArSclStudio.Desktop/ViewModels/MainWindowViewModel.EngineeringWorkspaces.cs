@@ -1,5 +1,6 @@
 using ArSclStudio.Engine.Documents;
 using ArSclStudio.Engine.Navigation;
+using ArSclStudio.Engine.Workers;
 using ArSclStudio.Scl.Identity;
 using ArSclStudio.Scl.Semantics;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -1210,7 +1211,9 @@ public sealed partial class MainWindowViewModel
                 !row.IsWorkspace &&
                 row.Handle == targetHandle);
 
-        next ??= EngineeringWorkspaceNavigationRows.FirstOrDefault();
+        next ??= EngineeringWorkspaceNavigationRows.Count > 0
+            ? EngineeringWorkspaceNavigationRows[0]
+            : null;
 
         if (ReferenceEquals(next, SelectedEngineeringNavigationRow) ||
             next == SelectedEngineeringNavigationRow)
