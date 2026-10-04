@@ -24,20 +24,17 @@ public sealed record ExplorerRow(
 }
 
 public sealed record EngineeringWorkspaceNavigationRow(
+    int WorkspaceIndex,
     string Name,
-    string Summary)
+    string Summary,
+    string Glyph,
+    int Depth,
+    bool IsWorkspace,
+    SclNodeHandle Handle)
 {
-    public string Glyph => Name switch
-    {
-        "Overview" => "I",
-        "Network" => "N",
-        "GOOSE" => "G",
-        "DataSets" => "DS",
-        "Reports" => "R",
-        "Data Model" => "DM",
-        "Settings" => "SG",
-        _ => "•"
-    };
+    public Thickness IndentMargin => new(Depth * 14, 0, 0, 0);
+
+    public bool IsObject => !IsWorkspace;
 }
 
 public sealed record DataModelDisplayRow(

@@ -215,10 +215,26 @@ public sealed class EngineeringWorkspaceViewModelTests
             Assert.AreEqual(1, vm.GooseWorkspaceRows.Count);
             Assert.AreEqual(1, vm.GooseSignalRows.Count);
             Assert.AreEqual("01-0C-CD-01-00-01", vm.SelectedGooseWorkspace?.MacAddress);
+            Assert.IsTrue(vm.EngineeringWorkspaceNavigationRows.Any(
+                row =>
+                    row.WorkspaceIndex == 2 &&
+                    row.IsObject &&
+                    row.Handle == vm.SelectedGooseWorkspace!.Handle &&
+                    row.Name.Contains("GOOSE_CB", StringComparison.Ordinal)));
 
             vm.SelectedEngineeringWorkspaceIndex = 3;
             Assert.AreEqual("Events", vm.DetailTitle);
             Assert.AreEqual(1, vm.DataSetMemberRows.Count);
+
+            var dataSetNavigationRow =
+                vm.EngineeringWorkspaceNavigationRows.Single(
+                    row =>
+                        row.WorkspaceIndex == 3 &&
+                        row.IsObject &&
+                        row.Handle == vm.SelectedDataSetWorkspace!.Handle);
+            Assert.AreEqual(
+                dataSetNavigationRow,
+                vm.SelectedEngineeringNavigationRow);
 
             vm.SelectedDataSetMember = vm.DataSetMemberRows.Single();
             StringAssert.Contains(vm.DetailTitle, "LD0/XCBR1/Pos");

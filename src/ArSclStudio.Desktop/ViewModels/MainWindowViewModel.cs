@@ -826,6 +826,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
             SynchronizeIedWorkspaceSelection(state, args.SelectedNode);
             SynchronizeEngineeringWorkspaceSelection(state, args.SelectedNode);
+            SynchronizeEngineeringNavigationSelection(args.SelectedNode);
             EngineeringBreadcrumb = BuildEngineeringBreadcrumb(
                 state,
                 args.SelectedNode);

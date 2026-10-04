@@ -164,7 +164,7 @@
                 <ListBox
                   Grid.Row="2"
                   ItemsSource="{Binding EngineeringWorkspaceNavigationRows}"
-                  SelectedIndex="{Binding SelectedEngineeringWorkspaceIndex, Mode=TwoWay}"
+                  SelectedItem="{Binding SelectedEngineeringNavigationRow, Mode=TwoWay}"
                   BorderThickness="0">
                   <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -176,13 +176,14 @@
                       <Grid
                         ColumnDefinitions="25,*,Auto"
                         Height="30"
-                        Margin="7,0">
+                        Margin="{Binding IndentMargin}">
                         <Border
                           Width="20"
                           Height="17"
                           VerticalAlignment="Center"
                           Background="{DynamicResource AccentFillColorDefaultBrush}"
-                          CornerRadius="2">
+                          CornerRadius="2"
+                          IsVisible="{Binding IsWorkspace}">
                           <TextBlock
                             Text="{Binding Glyph}"
                             FontSize="8"
@@ -192,17 +193,31 @@
                             VerticalAlignment="Center" />
                         </Border>
                         <TextBlock
+                          Text="{Binding Glyph}"
+                          Width="22"
+                          FontSize="9"
+                          FontWeight="SemiBold"
+                          Opacity="0.62"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          IsVisible="{Binding IsObject}" />
+                        <TextBlock
                           Grid.Column="1"
                           Text="{Binding Name}"
                           VerticalAlignment="Center"
-                          FontWeight="SemiBold" />
+                          FontWeight="SemiBold"
+                          TextTrimming="CharacterEllipsis"
+                          ToolTip.Tip="{Binding Name}" />
                         <TextBlock
                           Grid.Column="2"
                           Text="{Binding Summary}"
                           VerticalAlignment="Center"
                           Opacity="0.55"
                           FontSize="10"
-                          Margin="8,0,0,0" />
+                          Margin="8,0,6,0"
+                          TextTrimming="CharacterEllipsis"
+                          MaxWidth="92"
+                          ToolTip.Tip="{Binding Summary}" />
                       </Grid>
                     </DataTemplate>
                   </ListBox.ItemTemplate>
