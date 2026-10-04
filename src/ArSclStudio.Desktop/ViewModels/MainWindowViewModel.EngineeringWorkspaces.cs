@@ -20,12 +20,12 @@ public sealed partial class MainWindowViewModel
 
     private static readonly string[] EngineeringWorkspaceNames =
     [
-        "Overview",
+        "Devices",
         "Network",
         "GOOSE",
         "DataSets",
         "Reports",
-        "Data Model",
+        "MMS Data",
         "Settings"
     ];
 
@@ -45,6 +45,10 @@ public sealed partial class MainWindowViewModel
 
     [ObservableProperty]
     private SclServiceCapabilityProjection? _selectedServiceCapability;
+
+    [ObservableProperty]
+    private IReadOnlyList<SclNetworkWorkspaceProjection> _stationNetworkWorkspaceRows =
+        Array.Empty<SclNetworkWorkspaceProjection>();
 
     [ObservableProperty]
     private IReadOnlyList<SclNetworkWorkspaceProjection> _networkWorkspaceRows =
@@ -231,22 +235,11 @@ public sealed partial class MainWindowViewModel
                 break;
 
             case 1:
-                var network = SelectedNetworkWorkspaceRow;
+                var network =
+                    SelectedNetworkWorkspaceRow ??
+                    StationNetworkWorkspaceRows.FirstOrDefault();
 
-                if (SelectedIedWorkspace is { } selectedIed &&
-                    (network is null ||
-                     !string.Equals(
-                         network.IedName,
-                         selectedIed.Name,
-                         StringComparison.Ordinal)))
-                {
-                    network = NetworkWorkspaceRows.FirstOrDefault(row =>
-                        string.Equals(
-                            row.IedName,
-                            selectedIed.Name,
-                            StringComparison.Ordinal));
-                    SelectedNetworkWorkspaceRow = network;
-                }
+                SelectedNetworkWorkspaceRow = network;
 
                 if (network is not null)
                 {
@@ -844,6 +837,7 @@ public sealed partial class MainWindowViewModel
         bool forceIedRefresh = false)
     {
         _allNetworkWorkspaceRows = SclNetworkWorkspaceProjector.Build(state);
+        StationNetworkWorkspaceRows = _allNetworkWorkspaceRows;
 
         if (SelectedIedWorkspace is { } ied)
         {
@@ -1044,138 +1038,115 @@ public sealed partial class MainWindowViewModel
 
     private void RefreshEngineeringWorkspaceNavigationRows()
     {
-        var ied = SelectedIedWorkspace;
-        var rows = new List<EngineeringWorkspaceNavigationRow>(
-            7 + Math.Max(
-                Math.Max(ReportWorkspaceRows.Count, DataModelLogicalNodes.Count),
-                Math.Max(GooseWorkspaceRows.Count, DataSetWorkspaceRows.Count)));
+        var rows = new List<EngineeringWorkspaceNavigationRow>();
 
-        AddWorkspace(
-            rows,
-            0,
-            "Overview",
-            ied is null
-                ? string.Empty
-                : $"AP {ied.AccessPointCount} · LD {ied.LogicalDeviceCount} · LN {ied.LogicalNodeCount}",
-            "I");
-
-        AddWorkspace(
-            rows,
-            1,
-            "Network",
-            $"{NetworkWorkspaceRows.Count} endpoints",
-            "N");
-
-        if (SelectedEngineeringWorkspaceIndex == 1)
+        switch (SelectedEngineeringWorkspaceIndex)
         {
-            foreach (var endpoint in NetworkWorkspaceRows)
-            {
-                rows.Add(new EngineeringWorkspaceNavigationRow(
-                    1,
-                    $"{endpoint.IedName} / {endpoint.AccessPoint}",
-                    endpoint.IpAddress,
-                    "AP",
-                    1,
-                    false,
-                    endpoint.Handle));
-            }
-        }
+            case 0:
+                AddIedNavigationRows(rows, 0);
+                break;
 
-        AddWorkspace(
-            rows,
-            2,
-            "GOOSE",
-            $"{GooseWorkspaceRows.Count} controls",
-            "G");
+            case 1:
+                rows.Capacity = StationNetworkWorkspaceRows.Count;
 
-        if (SelectedEngineeringWorkspaceIndex == 2)
-        {
-            foreach (var control in GooseWorkspaceRows)
-            {
-                rows.Add(new EngineeringWorkspaceNavigationRow(
+                foreach (var endpoint in StationNetworkWorkspaceRows)
+                {
+                    rows.Add(new EngineeringWorkspaceNavigationRow(
+                        1,
+                        $"{endpoint.IedName} / {endpoint.AccessPoint}",
+                        endpoint.IpAddress,
+                        "AP",
+                        0,
+                        false,
+                        endpoint.Handle));
+                }
+                break;
+
+            case 2:
+                AddIedNavigationRows(
+                    rows,
                     2,
-                    $"{control.LogicalDevice} / {control.Name}",
-                    string.IsNullOrWhiteSpace(control.DataSet)
-                        ? control.ServiceType
-                        : $"{control.ServiceType} · {control.DataSet}",
-                    "G",
-                    1,
-                    false,
-                    control.Handle));
-            }
-        }
+                    static (target, vm) =>
+                    {
+                        foreach (var control in vm.GooseWorkspaceRows)
+                        {
+                            target.Add(new EngineeringWorkspaceNavigationRow(
+                                2,
+                                $"{control.LogicalDevice} / {control.Name}",
+                                string.IsNullOrWhiteSpace(control.DataSet)
+                                    ? control.ServiceType
+                                    : $"{control.ServiceType} · {control.DataSet}",
+                                "G",
+                                1,
+                                false,
+                                control.Handle));
+                        }
+                    });
+                break;
 
-        AddWorkspace(
-            rows,
-            3,
-            "DataSets",
-            $"{DataSetWorkspaceRows.Count} sets",
-            "DS");
-
-        if (SelectedEngineeringWorkspaceIndex == 3)
-        {
-            foreach (var dataSet in DataSetWorkspaceRows)
-            {
-                rows.Add(new EngineeringWorkspaceNavigationRow(
+            case 3:
+                AddIedNavigationRows(
+                    rows,
                     3,
-                    $"{dataSet.LogicalDevice} / {dataSet.Name}",
-                    $"{dataSet.MemberCount} members · {dataSet.UsedByCount} used",
-                    "DS",
-                    1,
-                    false,
-                    dataSet.Handle));
-            }
-        }
+                    static (target, vm) =>
+                    {
+                        foreach (var dataSet in vm.DataSetWorkspaceRows)
+                        {
+                            target.Add(new EngineeringWorkspaceNavigationRow(
+                                3,
+                                $"{dataSet.LogicalDevice} / {dataSet.Name}",
+                                $"{dataSet.MemberCount} members · {dataSet.UsedByCount} used",
+                                "DS",
+                                1,
+                                false,
+                                dataSet.Handle));
+                        }
+                    });
+                break;
 
-        AddWorkspace(
-            rows,
-            4,
-            "Reports",
-            $"{ReportWorkspaceRows.Count} controls",
-            "R");
+            case 4:
+                AddIedNavigationRows(rows, 4);
+                break;
 
-        AddWorkspace(
-            rows,
-            5,
-            "Data Model",
-            $"{DataModelLogicalNodes.Count} LN",
-            "DM");
-
-        if (SelectedEngineeringWorkspaceIndex == 5)
-        {
-            foreach (var logicalNode in DataModelLogicalNodes)
-            {
-                rows.Add(new EngineeringWorkspaceNavigationRow(
+            case 5:
+                AddIedNavigationRows(
+                    rows,
                     5,
-                    $"{logicalNode.LogicalDevice} / {logicalNode.LogicalNode}",
-                    $"{logicalNode.LnClass} · {logicalNode.DataObjectCount} DO",
-                    "LN",
-                    1,
-                    false,
-                    logicalNode.Handle));
-            }
-        }
+                    static (target, vm) =>
+                    {
+                        foreach (var logicalNode in vm.DataModelLogicalNodes)
+                        {
+                            target.Add(new EngineeringWorkspaceNavigationRow(
+                                5,
+                                $"{logicalNode.LogicalDevice} / {logicalNode.LogicalNode}",
+                                $"{logicalNode.LnClass} · {logicalNode.DataObjectCount} DO",
+                                "LN",
+                                1,
+                                false,
+                                logicalNode.Handle));
+                        }
+                    });
+                break;
 
-        AddWorkspace(
-            rows,
-            6,
-            "Settings",
-            $"{SettingGroupControls.Count} groups",
-            "SG");
-
-        if (SelectedEngineeringWorkspaceIndex == 6)
-        {
-            foreach (var settingControl in SettingGroupControls)
-            {
-                rows.Add(new EngineeringWorkspaceNavigationRow(
+            case 6:
+                AddIedNavigationRows(
+                    rows,
                     6,
-                    $"{settingControl.LogicalDevice} / {settingControl.LogicalNode}",
-                    $"{settingControl.NumberOfGroups} groups · active {settingControl.ActiveGroup}",
-                    "SG",
-                    1,
-                    false,
-                    settingControl.Handle));
-            }
+                    static (target, vm) =>
+                    {
+                        foreach (var settingControl in vm.SettingGroupControls)
+                        {
+                            target.Add(new EngineeringWorkspaceNavigationRow(
+                                6,
+                                $"{settingControl.LogicalDevice} / {settingControl.LogicalNode}",
+                                $"{settingControl.NumberOfGroups} groups · active {settingControl.ActiveGroup}",
+                                "SG",
+                                1,
+                                false,
+                                settingControl.Handle));
+                        }
+                    });
+                break;
         }
 
         EngineeringWorkspaceNavigationRows = rows;
@@ -1183,21 +1154,31 @@ public sealed partial class MainWindowViewModel
             _selectionService.SelectedNode);
     }
 
-    private static void AddWorkspace(
+    private void AddIedNavigationRows(
         List<EngineeringWorkspaceNavigationRow> rows,
-        int index,
-        string name,
-        string summary,
-        string glyph)
+        int workspaceIndex,
+        Action<List<EngineeringWorkspaceNavigationRow>, MainWindowViewModel>? addSelectedChildren = null)
     {
-        rows.Add(new EngineeringWorkspaceNavigationRow(
-            index,
-            name,
-            summary,
-            glyph,
-            0,
-            true,
-            SclNodeHandle.None));
+        for (var i = 0; i < IedWorkspaceRows.Count; i++)
+        {
+            var ied = IedWorkspaceRows[i];
+
+            rows.Add(new EngineeringWorkspaceNavigationRow(
+                workspaceIndex,
+                ied.Name,
+                string.IsNullOrWhiteSpace(ied.Manufacturer)
+                    ? $"LD {ied.LogicalDeviceCount} · LN {ied.LogicalNodeCount}"
+                    : ied.Manufacturer,
+                "IED",
+                0,
+                false,
+                ied.Handle));
+
+            if (SelectedIedWorkspace?.Handle == ied.Handle)
+            {
+                addSelectedChildren?.Invoke(rows, this);
+            }
+        }
     }
 
     private void SynchronizeEngineeringNavigationSelection(
@@ -1207,11 +1188,19 @@ public sealed partial class MainWindowViewModel
         {
             0 => SelectedIedWorkspace?.Handle ?? selected,
             1 => SelectedNetworkWorkspaceRow?.Handle ?? selected,
-            2 => SelectedGooseWorkspace?.Handle ?? selected,
-            3 => SelectedDataSetWorkspace?.Handle ?? selected,
-            4 => SelectedReportWorkspace?.Handle ?? selected,
-            5 => SelectedDataModelLogicalNode?.Handle ?? selected,
-            6 => SelectedSettingGroupControl?.Handle ?? selected,
+            2 => SelectedGooseWorkspace?.Handle ??
+                 SelectedIedWorkspace?.Handle ??
+                 selected,
+            3 => SelectedDataSetWorkspace?.Handle ??
+                 SelectedIedWorkspace?.Handle ??
+                 selected,
+            4 => SelectedIedWorkspace?.Handle ?? selected,
+            5 => SelectedDataModelLogicalNode?.Handle ??
+                 SelectedIedWorkspace?.Handle ??
+                 selected,
+            6 => SelectedSettingGroupControl?.Handle ??
+                 SelectedIedWorkspace?.Handle ??
+                 selected,
             _ => selected
         };
 
@@ -1221,10 +1210,7 @@ public sealed partial class MainWindowViewModel
                 !row.IsWorkspace &&
                 row.Handle == targetHandle);
 
-        next ??= EngineeringWorkspaceNavigationRows.FirstOrDefault(
-            row =>
-                row.WorkspaceIndex == SelectedEngineeringWorkspaceIndex &&
-                row.IsWorkspace);
+        next ??= EngineeringWorkspaceNavigationRows.FirstOrDefault();
 
         if (ReferenceEquals(next, SelectedEngineeringNavigationRow) ||
             next == SelectedEngineeringNavigationRow)
@@ -1466,6 +1452,7 @@ public sealed partial class MainWindowViewModel
     {
         _workspaceIedHandle = SclNodeHandle.None;
         _allNetworkWorkspaceRows = Array.Empty<SclNetworkWorkspaceProjection>();
+        StationNetworkWorkspaceRows = Array.Empty<SclNetworkWorkspaceProjection>();
         SelectedEngineeringWorkspaceIndex = 0;
         NetworkWorkspaceRows = Array.Empty<SclNetworkWorkspaceProjection>();
         SelectedNetworkWorkspaceRow = null;

@@ -80,6 +80,7 @@ public sealed class EngineeringWorkspaceViewModelTests
             await vm.OpenFileAsync(path);
 
             Assert.AreEqual(2, vm.IedWorkspaceRows.Count);
+            Assert.AreEqual(2, vm.StationNetworkWorkspaceRows.Count);
             Assert.AreEqual(1, vm.NetworkWorkspaceRows.Count);
             Assert.AreEqual("IED_A", vm.NetworkWorkspaceRows.Single().IedName);
 
@@ -207,6 +208,9 @@ public sealed class EngineeringWorkspaceViewModelTests
 
             vm.SelectedEngineeringWorkspaceIndex = 1;
             Assert.AreEqual("IED_A / P1", vm.DetailTitle);
+            Assert.AreEqual(1, vm.SelectedEngineeringWorkspaceIndex);
+            Assert.IsTrue(vm.EngineeringWorkspaceNavigationRows.All(
+                row => row.WorkspaceIndex == 1 && row.IsObject));
 
             vm.SelectedEngineeringWorkspaceIndex = 2;
             await vm.WaitForEngineeringWorkspaceIdleAsync();
