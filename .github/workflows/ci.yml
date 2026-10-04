@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - foundation/**
+      - feature/**
   pull_request:
 
 permissions:
@@ -40,7 +41,6 @@ jobs:
 
       - name: Test
         run: dotnet test ArSclStudio.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx" --logger "console;verbosity=detailed"
-
 
       - name: Upload test evidence
         if: always()
