@@ -932,23 +932,6 @@ public sealed partial class MainWindowViewModel
             $"{ReportWorkspaceRows.Count} controls",
             "R");
 
-        if (SelectedEngineeringWorkspaceIndex == 4)
-        {
-            foreach (var report in ReportWorkspaceRows)
-            {
-                rows.Add(new EngineeringWorkspaceNavigationRow(
-                    4,
-                    $"{report.LogicalDevice} / {report.Name}",
-                    string.IsNullOrWhiteSpace(report.DataSet)
-                        ? report.Kind
-                        : $"{report.Kind} · {report.DataSet}",
-                    report.Kind == "Log" ? "L" : "R",
-                    1,
-                    false,
-                    report.Handle));
-            }
-        }
-
         AddWorkspace(
             rows,
             5,
