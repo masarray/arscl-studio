@@ -9,6 +9,8 @@ namespace ArSclStudio.Desktop.ViewModels;
 public sealed partial class MainWindowViewModel
 {
     private SclNodeHandle _workspaceIedHandle;
+    private IReadOnlyList<SclNetworkWorkspaceProjection> _allNetworkWorkspaceRows =
+        Array.Empty<SclNetworkWorkspaceProjection>();
     private readonly HashSet<string> _collapsedDataModelPaths =
         new(StringComparer.Ordinal);
 
@@ -605,7 +607,7 @@ public sealed partial class MainWindowViewModel
         SclDocumentState state,
         bool forceIedRefresh = false)
     {
-        NetworkWorkspaceRows = SclNetworkWorkspaceProjector.Build(state);
+        _allNetworkWorkspaceRows = SclNetworkWorkspaceProjector.Build(state);
 
         if (SelectedIedWorkspace is { } ied)
         {
@@ -632,6 +634,7 @@ public sealed partial class MainWindowViewModel
 
         _workspaceIedHandle = iedHandle;
 
+        var selectedNetworkHandle = SelectedNetworkWorkspaceRow?.Handle;
         var selectedServiceHandle = SelectedServiceCapability?.Handle;
         var selectedGooseHandle = SelectedGooseWorkspace?.Handle;
         var selectedDataSetHandle = SelectedDataSetWorkspace?.Handle;
@@ -640,6 +643,19 @@ public sealed partial class MainWindowViewModel
             SelectedDataModelLogicalNode?.Handle;
         var selectedSettingControlHandle =
             SelectedSettingGroupControl?.Handle;
+
+        var iedName = IedWorkspaceRows.FirstOrDefault(
+            row => row.Handle == iedHandle)?.Name;
+
+        var networkRows = string.IsNullOrWhiteSpace(iedName)
+            ? Array.Empty<SclNetworkWorkspaceProjection>()
+            : _allNetworkWorkspaceRows
+                .Where(row =>
+                    string.Equals(
+                        row.IedName,
+                        iedName,
+                        StringComparison.Ordinal))
+                .ToArray();
 
         var serviceCapabilities =
             SclServicesWorkspaceProjector.Build(
@@ -673,6 +689,14 @@ public sealed partial class MainWindowViewModel
 
         try
         {
+            NetworkWorkspaceRows = networkRows;
+            SelectedNetworkWorkspaceRow =
+                selectedNetworkHandle is { } networkHandle
+                    ? networkRows.FirstOrDefault(
+                        row => row.Handle == networkHandle) ??
+                      networkRows.FirstOrDefault()
+                    : networkRows.FirstOrDefault();
+
             ServiceCapabilityRows = serviceCapabilities;
             GooseWorkspaceRows = gooseControls;
             DataSetWorkspaceRows = dataSets;
@@ -785,10 +809,7 @@ public sealed partial class MainWindowViewModel
     private void RefreshEngineeringWorkspaceNavigationRows()
     {
         var ied = SelectedIedWorkspace;
-        var networkCount = ied is null
-            ? 0
-            : NetworkWorkspaceRows.Count(row =>
-                string.Equals(row.IedName, ied.Name, StringComparison.Ordinal));
+        var networkCount = NetworkWorkspaceRows.Count;
 
         EngineeringWorkspaceNavigationRows =
         [
@@ -1034,6 +1055,7 @@ public sealed partial class MainWindowViewModel
     private void ClearEngineeringWorkspaces()
     {
         _workspaceIedHandle = SclNodeHandle.None;
+        _allNetworkWorkspaceRows = Array.Empty<SclNetworkWorkspaceProjection>();
         SelectedEngineeringWorkspaceIndex = 0;
         NetworkWorkspaceRows = Array.Empty<SclNetworkWorkspaceProjection>();
         SelectedNetworkWorkspaceRow = null;
