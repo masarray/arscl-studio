@@ -4,20 +4,20 @@ Last updated: 2026-10-04
 
 ## Current phase
 
-**M3A0 workstation baseline + M3A1/M3A2 semantic slices: complete. M3UX1/M3UX2 + engineer mental-workspace finishing M3UX3: implemented; final Windows/high-DPI visual acceptance remains pending.**
+**M3A0 workstation baseline + M3A1/M3A2 semantic slices: complete. M3UX1–M3UX4 workstation/visual finishing: implemented; final Windows/high-DPI visual acceptance remains pending.**
 
 - Repository: `masarray/arscl-studio`
 - Branch: `feature/m3a0-iec-workstation-ia`
 - PR: #5 (draft; keep unmerged until visual audit is accepted)
 - Base main: `6bb9eab76814280e5f27557d638612ab88039eb0` (M2B)
-- Verified executable head: `531b023564336fcdfd8de26eb3a2a3fb67baddcb`
-- Verified executable CI: `37172958318`
+- Verified executable head: `e7499c361119d8f6c1ff6d9a1806d6d62f9413b6`
+- Verified executable CI: `37184182363`
 - Windows / Ubuntu / macOS build + tests: green
 - SCL tests: 11/11 per OS
 - Engine/Desktop tests: 66/66 per OS
 - Total: **77/77 tests per OS**
-- Verified Windows self-contained artifact: `11291892937` (`ARSCL-Studio-win-x64`)
-- Verified build digest: `sha256:cfbe90b60e318fe40fc61662c96566af0948de6ea590c2dacab0bcbe269a02a9`
+- Verified Windows self-contained artifact: `11295824860` (`ARSCL-Studio-win-x64`)
+- Verified build digest: `sha256:e8ac452dbfa37ae75344017f6aa0fcedfafbac958079dbc98a38d99e6f600832`
 
 Documentation-only commits after the executable head do not change runtime behavior. Final PR-head CI must still remain green before merge.
 
@@ -39,6 +39,7 @@ Read:
 - `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`
 - `docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md`
 - `docs/testing/M3UX3_ENGINEER_WORKSPACE_ACCEPTANCE.md`
+- `docs/testing/M3UX4_VISUAL_WORKFLOW_ACCEPTANCE.md`
 - `docs/ux/IEC61850_WORKSTATION_INFORMATION_ARCHITECTURE.md`
 
 ## Product direction locked by M3A0
@@ -222,17 +223,31 @@ M3UX3 finishes navigation coherence without changing IEC semantics:
 
 See `docs/testing/M3UX3_ENGINEER_WORKSPACE_ACCEPTANCE.md`.
 
+## M3UX4 IEDScout-style visual workflow finishing implemented
+
+Real M3UX3 Windows screenshots were used as the evidence for M3UX4:
+- Problems dock collapses by default instead of permanently consuming the viewport;
+- the left Engineer navigator is the single primary domain selector;
+- engineering breadcrumbs replace raw XML-shaped center paths;
+- Network/GOOSE/DataSets/Data Model/Settings expose active objects in the left navigator;
+- center panes for those domains are inspection-first rather than repeating their master catalog;
+- Reports intentionally keeps its long control catalog in the center;
+- Network selected-endpoint detail, compact Inspector rows, DataSet/Settings column fixes and micro-glyphs improve scan speed;
+- Error/Warning/Info counts are explicit.
+
+See `docs/testing/M3UX4_VISUAL_WORKFLOW_ACCEPTANCE.md`.
+
 ## Next visual gate
 
-Before merging PR #5, run the M3UX3 Windows artifact on the golden SCD and provide screenshots of Overview, Network, GOOSE, Reports, Data Model, Settings and Problems at normal/high DPI.
+Before merging PR #5, run the M3UX4 Windows artifact on the golden SCD and provide screenshots of Overview, Network, GOOSE, DataSets, Reports, Data Model, Settings and expanded Problems at normal/high DPI.
 
 Audit specifically:
-1. selected IED + engineering domain remain obvious while navigating;
-2. Network changes scope when the IED context changes;
-3. Report selection exposes bound DataSet members without a manual DataSets lookup;
-4. Data Model DO/DA hierarchy is easy to scan collapsed/expanded;
-5. Problems/Search/Where Used land on the correct visible workspace;
-6. Properties/Where Used remain readable with the denser center workflow;
+1. one obvious navigation source with no confusing duplicate domain bar;
+2. object selection in the left navigator feels natural for Network/GOOSE/DataSets/Data Model/Settings;
+3. Reports remains efficient for dozens of RCBs;
+4. center inspection area no longer wastes space on duplicate catalogs;
+5. Problems collapsed/expanded interaction feels natural;
+6. engineering breadcrumb remains readable while raw path stays available in Inspector;
 7. no clipping/wrapping regression at 100%, 125% and 150% DPI.
 
 Only after that visual gate passes should work return to M3A3 edition-aware rule/schema-provider evolution. Broad SCL surgery remains locked.

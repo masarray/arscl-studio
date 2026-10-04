@@ -157,6 +157,24 @@ All Engine semantic boundaries, virtualization, SclNodeHandle navigation, and mu
 
 Evidence: `docs/testing/M3UX3_ENGINEER_WORKSPACE_ACCEPTANCE.md`.
 
+### M3UX4 — IEDScout-style visual workflow finishing — implemented
+
+Real Windows screenshots drive this final M3 visual slice:
+- diagnostics dock collapsed by default;
+- single primary engineering-domain navigation surface;
+- engineering breadcrumb rather than raw XML-shaped center path;
+- object-aware left navigation for Network/GOOSE/DataSets/Data Model/Setting Groups;
+- inspection-first center panes;
+- long Reports catalog deliberately retained as a center table;
+- Network selected-endpoint details;
+- DataSet/Setting Group clipping corrections;
+- compact Inspector values with tooltips;
+- small engineering glyphs and explicit Error/Warning/Info summary.
+
+No IEC semantic logic moved into Desktop.
+
+Evidence: `docs/testing/M3UX4_VISUAL_WORKFLOW_ACCEPTANCE.md`.
+
 ## M4 — SCL surgery
 
 Acceptance:
