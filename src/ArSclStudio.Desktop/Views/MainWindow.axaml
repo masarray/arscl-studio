@@ -25,11 +25,6 @@
         <MenuItem Header="_Undo" Click="UndoClick" IsEnabled="{Binding CanUndo}" />
         <MenuItem Header="_Redo" Click="RedoClick" IsEnabled="{Binding CanRedo}" />
       </MenuItem>
-      <MenuItem Header="_View" />
-      <MenuItem Header="_SCL" />
-      <MenuItem Header="_Tools" />
-      <MenuItem Header="_Window" />
-      <MenuItem Header="_Help" />
     </Menu>
 
     <Border
@@ -37,7 +32,7 @@
       BorderBrush="{DynamicResource ThemeBorderLowBrush}"
       BorderThickness="0,0,0,1"
       Padding="7,4">
-      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto">
         <StackPanel
           Grid.Column="0"
           Orientation="Horizontal"
@@ -53,32 +48,8 @@
             IsEnabled="{Binding CanSave}" />
         </StackPanel>
 
-        <Border
-          Grid.Column="1"
-          BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-          BorderThickness="1,0,0,0"
-          Margin="8,0,0,0"
-          Padding="8,0,0,0">
-          <StackPanel
-            Orientation="Horizontal"
-            Spacing="4">
-            <Button
-              Classes="compact"
-              Content="Merge"
-              IsEnabled="False" />
-            <Button
-              Classes="compact"
-              Content="Add IED"
-              IsEnabled="False" />
-            <Button
-              Classes="compact"
-              Content="Extract IED"
-              IsEnabled="False" />
-          </StackPanel>
-        </Border>
-
         <StackPanel
-          Grid.Column="3"
+          Grid.Column="2"
           Orientation="Horizontal"
           VerticalAlignment="Center"
           Spacing="6"
@@ -88,18 +59,12 @@
         </StackPanel>
 
         <ComboBox
-          Grid.Column="4"
+          Grid.Column="3"
           MinWidth="155"
           MinHeight="27"
-          Margin="4,0,8,0"
+          Margin="4,0,0,0"
           ItemsSource="{Binding TargetProfiles}"
           SelectedItem="{Binding TargetProfile}" />
-
-        <Button
-          Grid.Column="5"
-          Classes="compact"
-          Content="Export"
-          IsEnabled="False" />
       </Grid>
     </Border>
 
@@ -140,101 +105,94 @@
           </Border>
 
           <TextBox
+            x:Name="SearchBox"
             Grid.Row="1"
             PlaceholderText="Find IEC object...  Ctrl+F"
             TextChanged="SearchTextChanged"
             Margin="6" />
 
           <TabControl Grid.Row="2">
-            <TabItem Header="{Binding IedWorkspaceHeader}">
-              <ListBox
-                ItemsSource="{Binding IedWorkspaceRows}"
-                SelectedItem="{Binding SelectedIedWorkspace, Mode=TwoWay}"
-                BorderThickness="0">
-                <ListBox.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <VirtualizingStackPanel />
-                  </ItemsPanelTemplate>
-                </ListBox.ItemsPanel>
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="nav:SclIedWorkspaceProjection">
-                    <Border
-                      BorderBrush="{DynamicResource ThemeBorderLowBrush}"
-                      BorderThickness="0,0,0,1">
+            <TabItem Header="Engineer">
+              <Grid RowDefinitions="Auto,27,*">
+                <Border
+                  BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                  BorderThickness="0,0,0,1"
+                  Padding="6,5">
+                  <Grid RowDefinitions="Auto,Auto">
+                    <TextBlock
+                      Text="IED context"
+                      FontSize="11"
+                      Opacity="0.62"
+                      Margin="1,0,0,3" />
+                    <ComboBox
+                      Grid.Row="1"
+                      MinHeight="28"
+                      ItemsSource="{Binding IedWorkspaceRows}"
+                      SelectedItem="{Binding SelectedIedWorkspace, Mode=TwoWay}">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="nav:SclIedWorkspaceProjection">
+                          <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock
+                              Text="{Binding Name}"
+                              FontWeight="SemiBold"
+                              TextTrimming="CharacterEllipsis" />
+                            <TextBlock
+                              Grid.Column="1"
+                              Text="{Binding Manufacturer}"
+                              Margin="8,0,0,0"
+                              Opacity="0.58"
+                              TextTrimming="CharacterEllipsis" />
+                          </Grid>
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                  </Grid>
+                </Border>
+
+                <Border
+                  Grid.Row="1"
+                  Background="{DynamicResource ThemeControlLowBrush}"
+                  BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                  BorderThickness="0,0,0,1"
+                  Padding="7,5">
+                  <TextBlock
+                    Text="Engineering workspaces"
+                    FontWeight="SemiBold"
+                    FontSize="11" />
+                </Border>
+
+                <ListBox
+                  Grid.Row="2"
+                  ItemsSource="{Binding EngineeringWorkspaceNavigationRows}"
+                  SelectedIndex="{Binding SelectedEngineeringWorkspaceIndex, Mode=TwoWay}"
+                  BorderThickness="0">
+                  <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <VirtualizingStackPanel />
+                    </ItemsPanelTemplate>
+                  </ListBox.ItemsPanel>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:EngineeringWorkspaceNavigationRow">
                       <Grid
-                        RowDefinitions="23,20"
-                        ColumnDefinitions="34,*,Auto"
-                        Height="44"
-                        Margin="4,0">
-                        <Border
-                          Grid.RowSpan="2"
-                          Width="24"
-                          Height="24"
-                          VerticalAlignment="Center"
-                          HorizontalAlignment="Center"
-                          Background="{DynamicResource AccentFillColorDefaultBrush}"
-                          CornerRadius="2">
-                          <TextBlock
-                            Text="IED"
-                            FontSize="8"
-                            FontWeight="Bold"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Foreground="White" />
-                        </Border>
-
+                        ColumnDefinitions="*,Auto"
+                        Height="30"
+                        Margin="7,0">
                         <TextBlock
-                          Grid.Column="1"
                           Text="{Binding Name}"
-                          FontWeight="SemiBold"
                           VerticalAlignment="Center"
-                          TextTrimming="CharacterEllipsis" />
+                          FontWeight="SemiBold" />
                         <TextBlock
-                          Grid.Column="2"
-                          Text="{Binding Manufacturer}"
-                          Opacity="0.62"
-                          Margin="8,0,5,0"
-                          VerticalAlignment="Center"
-                          TextTrimming="CharacterEllipsis" />
-
-                        <Grid
-                          Grid.Row="1"
                           Grid.Column="1"
-                          Grid.ColumnSpan="2"
-                          ColumnDefinitions="*,36,36,42,52"
-                          Margin="0,-1,4,0">
-                          <TextBlock
-                            Text="{Binding Description}"
-                            Opacity="0.62"
-                            FontSize="11"
-                            TextTrimming="CharacterEllipsis"
-                            VerticalAlignment="Center" />
-                          <TextBlock Grid.Column="1"
-                                     Text="{Binding LogicalDeviceCount, StringFormat='LD {0}'}"
-                                     Opacity="0.58"
-                                     FontSize="10"
-                                     VerticalAlignment="Center" />
-                          <TextBlock Grid.Column="2"
-                                     Text="{Binding DataSetCount, StringFormat='DS {0}'}"
-                                     Opacity="0.58"
-                                     FontSize="10"
-                                     VerticalAlignment="Center" />
-                          <TextBlock Grid.Column="3"
-                                     Text="{Binding ReportCount, StringFormat='R {0}'}"
-                                     Opacity="0.58"
-                                     FontSize="10"
-                                     VerticalAlignment="Center" />
-                          <TextBlock Grid.Column="4"
-                                     Text="{Binding GooseCount, StringFormat='GSE {0}'}"
-                                     Opacity="0.58"
-                                     FontSize="10"
-                                     VerticalAlignment="Center" />
-                        </Grid>
+                          Text="{Binding Summary}"
+                          VerticalAlignment="Center"
+                          Opacity="0.55"
+                          FontSize="10"
+                          Margin="8,0,0,0" />
                       </Grid>
-                    </Border>
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </Grid>
             </TabItem>
 
             <TabItem Header="Model Tree">
@@ -333,11 +291,13 @@
         ResizeDirection="Columns" />
 
       <Border Grid.Column="2" Classes="panel">
-        <Grid RowDefinitions="Auto,*,Auto">
+        <Grid RowDefinitions="Auto,*">
           <Border
             Grid.Row="0"
             Classes="paneHeader">
-            <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto">
+            <Grid
+              ColumnDefinitions="Auto,Auto,Auto,*,Auto"
+              RowDefinitions="Auto,Auto">
               <TextBlock
                 Text="IED"
                 Classes="propertyName"
@@ -366,6 +326,22 @@
                 Click="EditDescriptionClick"
                 IsEnabled="{Binding CanEdit}"
                 Classes="compact" />
+
+              <StackPanel
+                Grid.Row="1"
+                Grid.ColumnSpan="5"
+                Orientation="Horizontal"
+                Spacing="6"
+                Margin="0,4,0,0">
+                <TextBlock
+                  Text="{Binding SelectedEngineeringWorkspaceName}"
+                  FontWeight="SemiBold" />
+                <TextBlock Text="›" Opacity="0.45" />
+                <TextBlock
+                  Text="{Binding DetailPath}"
+                  Opacity="0.62"
+                  TextTrimming="CharacterEllipsis" />
+              </StackPanel>
             </Grid>
           </Border>
 
@@ -936,7 +912,7 @@
             </TabItem>
 
             <TabItem Header="Reports">
-              <Grid RowDefinitions="29,*,125">
+              <Grid RowDefinitions="29,*,5,150,125">
                 <Grid
                   Background="{DynamicResource ThemeControlLowBrush}"
                   ColumnDefinitions="58,125,125,70,*,*">
@@ -976,8 +952,56 @@
                   </ListBox.ItemTemplate>
                 </ListBox>
 
-                <Border
+                <GridSplitter
                   Grid.Row="2"
+                  Height="5"
+                  ResizeDirection="Rows" />
+
+                <Grid Grid.Row="3" RowDefinitions="27,*">
+                  <Grid
+                    Background="{DynamicResource ThemeControlLowBrush}"
+                    ColumnDefinitions="80,100,110,95,55,*">
+                    <TextBlock Text="LD" Margin="6,4" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="1" Text="LN" Margin="6,4" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="2" Text="Data Object" Margin="6,4" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="3" Text="Attribute" Margin="6,4" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="4" Text="FC" Margin="6,4" FontWeight="SemiBold" />
+                    <TextBlock Grid.Column="5" Text="Bound DataSet members" Margin="6,4" FontWeight="SemiBold" />
+                  </Grid>
+                  <ListBox
+                    Grid.Row="1"
+                    Classes="engineeringGrid"
+                    ItemsSource="{Binding ReportDataSetMemberRows}"
+                    SelectedItem="{Binding SelectedReportDataSetMember, Mode=TwoWay}"
+                    BorderThickness="0">
+                    <ListBox.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <VirtualizingStackPanel />
+                      </ListBox.ItemsPanel>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="nav:SclDataSetMemberProjection">
+                        <Grid ColumnDefinitions="80,100,110,95,55,*" Height="25">
+                          <TextBlock Text="{Binding LogicalDevice}" Margin="6,3"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="1" Text="{Binding LogicalNode}" Margin="6,3"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="2" Text="{Binding DataObject}" Margin="6,3"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="3" Text="{Binding DataAttribute}" Margin="6,3"
+                                     TextTrimming="CharacterEllipsis" />
+                          <TextBlock Grid.Column="4" Text="{Binding FunctionalConstraint}" Margin="6,3" />
+                          <TextBlock Grid.Column="5" Text="{Binding Reference}" Margin="6,3"
+                                     TextTrimming="CharacterEllipsis"
+                                     ToolTip.Tip="{Binding Reference}" />
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Grid>
+
+                <Border
+                  Grid.Row="4"
                   BorderBrush="{DynamicResource ThemeBorderLowBrush}"
                   BorderThickness="0,1,0,0"
                   Padding="10,7">
@@ -1408,24 +1432,6 @@
 
           </TabControl>
 
-          <Border
-            Grid.Row="2"
-            Classes="paneHeader"
-            Padding="7,3">
-            <Grid ColumnDefinitions="Auto,*,Auto">
-              <TextBlock Text="Engineering view" Opacity="0.62" />
-              <TextBlock
-                Grid.Column="1"
-                Text="{Binding DetailPath}"
-                Opacity="0.48"
-                Margin="12,0"
-                TextTrimming="CharacterEllipsis" />
-              <TextBlock
-                Grid.Column="2"
-                Text="{Binding DetailKind}"
-                Opacity="0.62" />
-            </Grid>
-          </Border>
         </Grid>
       </Border>
 
@@ -1777,9 +1783,6 @@
             </ListBox>
           </Grid>
         </TabItem>
-        <TabItem Header="Signal Basket" IsEnabled="False" />
-        <TabItem Header="Diff" IsEnabled="False" />
-        <TabItem Header="Output" IsEnabled="False" />
       </TabControl>
     </Border>
 

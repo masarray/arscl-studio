@@ -222,6 +222,10 @@ public sealed class EngineeringWorkspaceViewModelTests
 
             vm.SelectedEngineeringWorkspaceIndex = 4;
             Assert.AreEqual("BRCB01", vm.DetailTitle);
+            Assert.AreEqual(1, vm.ReportDataSetMemberRows.Count);
+            Assert.AreEqual(
+                "LD0/XCBR1/Pos",
+                vm.ReportDataSetMemberRows.Single().Reference);
 
             vm.SelectedDataModelLogicalNode = vm.DataModelLogicalNodes.Single(
                 row => row.LogicalNode == "XCBR1");

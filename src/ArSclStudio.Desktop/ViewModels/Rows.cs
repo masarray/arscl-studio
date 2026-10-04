@@ -23,6 +23,10 @@ public sealed record ExplorerRow(
             : "•";
 }
 
+public sealed record EngineeringWorkspaceNavigationRow(
+    string Name,
+    string Summary);
+
 public sealed record ProblemRow(
     SclNodeHandle Node,
     string Severity,

@@ -37,6 +37,10 @@ public sealed class ProblemNavigationTests
             Assert.IsNotNull(vm.SelectedEngineeringRow);
             Assert.AreEqual(problem.Node, vm.SelectedEngineeringRow.Handle);
             Assert.AreEqual("BRCB01", vm.SelectedEngineeringRow.Name);
+            Assert.AreEqual(
+                4,
+                vm.SelectedEngineeringWorkspaceIndex,
+                "Reference navigation should activate the Reports workspace.");
         }
         finally
         {
@@ -94,6 +98,10 @@ public sealed class ProblemNavigationTests
             vm.SelectedProblemRow = gooseProblem;
 
             Assert.AreEqual(gooseProblem.Node, vm.SelectedEngineeringRow?.Handle);
+            Assert.AreEqual(
+                2,
+                vm.SelectedEngineeringWorkspaceIndex,
+                "Problem navigation should activate the GOOSE workspace.");
 
             vm.ProblemFilterText = string.Empty;
             vm.SelectedProblemSeverityFilter = "All severities";

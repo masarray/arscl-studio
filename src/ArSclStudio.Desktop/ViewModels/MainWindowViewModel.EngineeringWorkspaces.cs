@@ -10,8 +10,23 @@ public sealed partial class MainWindowViewModel
 {
     private SclNodeHandle _workspaceIedHandle;
 
+    private static readonly string[] EngineeringWorkspaceNames =
+    [
+        "Overview",
+        "Network",
+        "GOOSE",
+        "DataSets",
+        "Reports",
+        "Data Model",
+        "Settings"
+    ];
+
     [ObservableProperty]
     private int _selectedEngineeringWorkspaceIndex;
+
+    [ObservableProperty]
+    private IReadOnlyList<EngineeringWorkspaceNavigationRow> _engineeringWorkspaceNavigationRows =
+        Array.Empty<EngineeringWorkspaceNavigationRow>();
 
     [ObservableProperty]
     private IReadOnlyList<SclServiceCapabilityProjection> _serviceCapabilityRows =
@@ -70,6 +85,13 @@ public sealed partial class MainWindowViewModel
     private SclReportWorkspaceProjection? _selectedReportWorkspace;
 
     [ObservableProperty]
+    private IReadOnlyList<SclDataSetMemberProjection> _reportDataSetMemberRows =
+        Array.Empty<SclDataSetMemberProjection>();
+
+    [ObservableProperty]
+    private SclDataSetMemberProjection? _selectedReportDataSetMember;
+
+    [ObservableProperty]
     private IReadOnlyList<SclDataModelLogicalNodeProjection> _dataModelLogicalNodes =
         Array.Empty<SclDataModelLogicalNodeProjection>();
 
@@ -96,6 +118,12 @@ public sealed partial class MainWindowViewModel
 
     [ObservableProperty]
     private SclSettingGroupSettingProjection? _selectedSettingGroupSetting;
+
+    public string SelectedEngineeringWorkspaceName =>
+        SelectedEngineeringWorkspaceIndex >= 0 &&
+        SelectedEngineeringWorkspaceIndex < EngineeringWorkspaceNames.Length
+            ? EngineeringWorkspaceNames[SelectedEngineeringWorkspaceIndex]
+            : "Overview";
 
     public string ServicesWorkspaceHeader =>
         ServiceCapabilityRows.Count == 0
@@ -157,6 +185,8 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedEngineeringWorkspaceIndexChanged(int value)
     {
+        OnPropertyChanged(nameof(SelectedEngineeringWorkspaceName));
+
         if (_synchronizingSelection ||
             _session.CurrentState is null)
         {
@@ -338,6 +368,25 @@ public sealed partial class MainWindowViewModel
 
     partial void OnSelectedReportWorkspaceChanged(
         SclReportWorkspaceProjection? value)
+    {
+        if (_session.CurrentState is { } state)
+        {
+            ReportDataSetMemberRows = value is null
+                ? Array.Empty<SclDataSetMemberProjection>()
+                : BuildReportDataSetMembers(state, value.Handle);
+            SelectedReportDataSetMember = null;
+        }
+
+        if (!_synchronizingSelection &&
+            value is not null &&
+            !value.Handle.IsNone)
+        {
+            _selectionService.Select(value.Handle);
+        }
+    }
+
+    partial void OnSelectedReportDataSetMemberChanged(
+        SclDataSetMemberProjection? value)
     {
         if (!_synchronizingSelection &&
             value is not null &&
@@ -545,6 +594,8 @@ public sealed partial class MainWindowViewModel
             SelectedSettingGroupControl =
                 nextSettingControl ??
                 settingControls.FirstOrDefault();
+
+            RefreshEngineeringWorkspaceNavigationRows();
         }
         finally
         {
@@ -569,6 +620,8 @@ public sealed partial class MainWindowViewModel
         SelectedDataSetMember = null;
         ReportWorkspaceRows = Array.Empty<SclReportWorkspaceProjection>();
         SelectedReportWorkspace = null;
+        ReportDataSetMemberRows = Array.Empty<SclDataSetMemberProjection>();
+        SelectedReportDataSetMember = null;
         DataModelLogicalNodes = Array.Empty<SclDataModelLogicalNodeProjection>();
         SelectedDataModelLogicalNode = null;
         DataModelRows = Array.Empty<SclDataModelRowProjection>();
@@ -584,6 +637,151 @@ public sealed partial class MainWindowViewModel
         OnPropertyChanged(nameof(ReportWorkspaceHeader));
         OnPropertyChanged(nameof(DataModelWorkspaceHeader));
         OnPropertyChanged(nameof(SettingGroupsWorkspaceHeader));
+        RefreshEngineeringWorkspaceNavigationRows();
+    }
+
+    private void RefreshEngineeringWorkspaceNavigationRows()
+    {
+        var ied = SelectedIedWorkspace;
+        var networkCount = ied is null
+            ? 0
+            : NetworkWorkspaceRows.Count(row =>
+                string.Equals(row.IedName, ied.Name, StringComparison.Ordinal));
+
+        EngineeringWorkspaceNavigationRows =
+        [
+            new EngineeringWorkspaceNavigationRow(
+                "Overview",
+                ied is null
+                    ? string.Empty
+                    : $"AP {ied.AccessPointCount} · LD {ied.LogicalDeviceCount} · LN {ied.LogicalNodeCount}"),
+            new EngineeringWorkspaceNavigationRow(
+                "Network",
+                $"{networkCount} endpoints"),
+            new EngineeringWorkspaceNavigationRow(
+                "GOOSE",
+                $"{GooseWorkspaceRows.Count} controls"),
+            new EngineeringWorkspaceNavigationRow(
+                "DataSets",
+                $"{DataSetWorkspaceRows.Count} sets"),
+            new EngineeringWorkspaceNavigationRow(
+                "Reports",
+                $"{ReportWorkspaceRows.Count} controls"),
+            new EngineeringWorkspaceNavigationRow(
+                "Data Model",
+                $"{DataModelLogicalNodes.Count} LN"),
+            new EngineeringWorkspaceNavigationRow(
+                "Settings",
+                $"{SettingGroupControls.Count} groups")
+        ];
+    }
+
+    private static SclDataSetMemberProjection[] BuildReportDataSetMembers(
+        SclDocumentState state,
+        SclNodeHandle reportHandle)
+    {
+        var outgoing = state.SemanticIndex.References.GetOutgoing(reportHandle);
+        SclNodeHandle dataSetHandle = SclNodeHandle.None;
+
+        for (var i = 0; i < outgoing.Count; i++)
+        {
+            if (outgoing[i].Kind != SclReferenceKind.DataSetBinding)
+            {
+                continue;
+            }
+
+            if (!dataSetHandle.IsNone)
+            {
+                return [];
+            }
+
+            dataSetHandle = outgoing[i].Target;
+        }
+
+        return dataSetHandle.IsNone
+            ? []
+            : SclDataSetWorkspaceProjector.BuildMembers(state, dataSetHandle);
+    }
+
+    private void ActivateEngineeringWorkspaceForExternalNavigation(
+        SclNodeHandle selected)
+    {
+        if (selected.IsNone ||
+            _session.CurrentState is not { } state)
+        {
+            return;
+        }
+
+        var nextIndex = ResolveEngineeringWorkspaceIndex(state, selected);
+
+        if (nextIndex < 0 ||
+            nextIndex == SelectedEngineeringWorkspaceIndex)
+        {
+            return;
+        }
+
+        var wasSynchronizing = _synchronizingSelection;
+        _synchronizingSelection = true;
+
+        try
+        {
+            SelectedEngineeringWorkspaceIndex = nextIndex;
+        }
+        finally
+        {
+            _synchronizingSelection = wasSynchronizing;
+        }
+    }
+
+    private int ResolveEngineeringWorkspaceIndex(
+        SclDocumentState state,
+        SclNodeHandle selected)
+    {
+        if (SettingGroupSettings.Any(row => row.Handle == selected))
+        {
+            return 6;
+        }
+
+        if (!state.SemanticIndex.TryGetNode(selected, out var node) ||
+            node is null)
+        {
+            return -1;
+        }
+
+        return node.Kind switch
+        {
+            SclSemanticKind.Ied or
+            SclSemanticKind.Services => 0,
+
+            SclSemanticKind.Communication or
+            SclSemanticKind.SubNetwork or
+            SclSemanticKind.ConnectedAccessPoint or
+            SclSemanticKind.GseCommunication or
+            SclSemanticKind.SmvCommunication or
+            SclSemanticKind.Address => 1,
+
+            SclSemanticKind.GseControl or
+            SclSemanticKind.ExternalReference => 2,
+
+            SclSemanticKind.DataSet or
+            SclSemanticKind.Fcda => 3,
+
+            SclSemanticKind.ReportControl or
+            SclSemanticKind.LogControl => 4,
+
+            SclSemanticKind.LogicalNodeZero or
+            SclSemanticKind.LogicalNode or
+            SclSemanticKind.Doi or
+            SclSemanticKind.Sdi or
+            SclSemanticKind.Dai or
+            SclSemanticKind.DataObjectDefinition or
+            SclSemanticKind.SubDataObjectDefinition or
+            SclSemanticKind.DataAttributeDefinition or
+            SclSemanticKind.BasicDataAttributeDefinition => 5,
+
+            SclSemanticKind.SettingGroupControl => 6,
+            _ => -1
+        };
     }
 
     private void SynchronizeEngineeringWorkspaceSelection(
@@ -654,6 +852,10 @@ public sealed partial class MainWindowViewModel
 
                     SelectedDataSetMember = DataSetMemberRows.FirstOrDefault(
                         row => row.Handle == selected);
+
+                    SelectedReportDataSetMember =
+                        ReportDataSetMemberRows.FirstOrDefault(
+                            row => row.Handle == selected);
 
                     SelectedGooseSignal = GooseSignalRows.FirstOrDefault(
                         row => row.Handle == selected);

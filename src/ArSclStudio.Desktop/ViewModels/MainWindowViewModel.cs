@@ -579,6 +579,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             value is not null &&
             !value.Node.IsNone)
         {
+            ActivateEngineeringWorkspaceForExternalNavigation(value.Node);
             _selectionService.Select(value.Node);
         }
     }
@@ -589,6 +590,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             value is not null &&
             !value.Source.IsNone)
         {
+            ActivateEngineeringWorkspaceForExternalNavigation(value.Source);
             _selectionService.Select(value.Source);
         }
     }
@@ -599,6 +601,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             value is not null &&
             !value.Handle.IsNone)
         {
+            ActivateEngineeringWorkspaceForExternalNavigation(value.Handle);
             _selectionService.Select(value.Handle);
         }
     }
