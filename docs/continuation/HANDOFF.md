@@ -1,253 +1,170 @@
 # Project handoff
 
-Last updated: 2026-10-04
+Last updated: 2026-10-06
 
-## Current phase
+## Stop point for this thread
 
-**M3A0 workstation baseline + M3A1/M3A2 semantic slices: complete. M3UX1–M3UX4 workstation/visual finishing: implemented; final Windows/high-DPI visual acceptance remains pending.**
+This thread is intentionally closed at a **frozen M3 workstation baseline + finalization program handoff**.
 
-- Repository: `masarray/arscl-studio`
-- Branch: `feature/m3a0-iec-workstation-ia`
-- PR: #5 (draft; keep unmerged until visual audit is accepted)
-- Base main: `6bb9eab76814280e5f27557d638612ab88039eb0` (M2B)
-- Verified executable head: `e7499c361119d8f6c1ff6d9a1806d6d62f9413b6`
-- Verified executable CI: `37184182363`
-- Windows / Ubuntu / macOS build + tests: green
-- SCL tests: 11/11 per OS
-- Engine/Desktop tests: 66/66 per OS
-- Total: **77/77 tests per OS**
-- Verified Windows self-contained artifact: `11295824860` (`ARSCL-Studio-win-x64`)
-- Verified build digest: `sha256:e8ac452dbfa37ae75344017f6aa0fcedfafbac958079dbc98a38d99e6f600832`
+Repository: `masarray/arscl-studio`  
+Active branch: `feature/m3a0-iec-workstation-ia`  
+PR: #5 (draft)  
+Frozen runtime head before this documentation/CI handoff: `b1a212626db78bfb90a1bccddc412024742e00f4`
 
-Documentation-only commits after the executable head do not change runtime behavior. Final PR-head CI must still remain green before merge.
+Runtime qualification evidence for that head:
+- full Windows / Ubuntu / macOS build + test: green;
+- Windows self-contained publish: green;
+- qualification run: `37201697560`;
+- PR-head CI: `37201701488` green;
+- Windows artifact: `11302379663` (`ARSCL-Studio-win-x64`);
+- artifact digest: `sha256:371ecd90d27ecb4e58df6e644672e5bd95398fa6920509ae2d30767799577e6b`.
 
-## Golden acceptance fixture
+The documentation/CI handoff commit after this runtime head does not intentionally change application runtime behavior.
 
-User-supplied real SCD:
-`IEC_station_1_20260924_C264_SCC_SELECTIVE_POLL_CSWI3.scd`
+## What PR #5 contains
 
-SHA-256:
-`45dd0b8c0a39c0aaefcda2419fc24efea49030f04f09e9fe644678b60f6cbab5`
+Implemented and regression-covered foundations:
+- secure SCL loading and preservation-oriented syntax document;
+- stable node handles/source spans;
+- semantic index + typed reference graph + ambiguity-safe resolution;
+- lazy Engineering/XML projection, shared selection, Where Used and search;
+- bounded/coalesced/revision-safe workers;
+- transaction/undo/redo/atomic save kernel;
+- source-linked diagnostics;
+- real workspaces for Devices/IED context, Network, GOOSE/GSSE, DataSets, Reports, MMS/Data Model and Setting Groups;
+- typed GSE/SMV communication binding diagnostics;
+- DOI/SDI/DAI vs template consistency validation;
+- declared Services projection and basic consistency checks;
+- M3UX1-M3UX5 dense workstation evolution.
 
-The fixture itself is not committed.
+M3UX5 specifically:
+- removes selected heavy GOOSE/DataSet/Report/Data Model/Setting detail work from the synchronous UI selection path;
+- uses latest-wins cancellation + revision/request checks for engineering details;
+- adds cancellation checkpoints to Setting projection;
+- moves the shell toward station/domain-first workflow;
+- restores station-wide Network rows;
+- removes the IED dropdown as primary workflow authority;
+- exposes compact domain tabs: Devices / Network / GOOSE / DataSets / Reports / MMS Data / Settings.
 
-Read:
-- `docs/testing/REAL_SCD_ENGINEERING_WORKSPACE_ACCEPTANCE.md`
-- `docs/testing/M3A0_ACCEPTANCE.md`
-- `docs/testing/M3A_DIAGNOSTICS_ACCEPTANCE.md`
-- `docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md`
-- `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`
-- `docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md`
-- `docs/testing/M3UX3_ENGINEER_WORKSPACE_ACCEPTANCE.md`
-- `docs/testing/M3UX4_VISUAL_WORKFLOW_ACCEPTANCE.md`
-- `docs/ux/IEC61850_WORKSTATION_INFORMATION_ARCHITECTURE.md`
+## Acceptance gate before merging PR #5
 
-## Product direction locked by M3A0
+PR #5 is now **scope-frozen**. Do not add new feature scope.
 
-ARSCL is an IEC 61850 engineering workstation, not an XML viewer with IEC labels.
+Only fix blockers found by this acceptance:
 
-Enabled engineering workspaces:
-`IED Overview | Network | GOOSE | DataSets | Reports & Logs | Data Model | Setting Groups`
+1. C264 -> Reports: rapidly select/switch RCBs; no busy freeze, crash, stale detail, or forced close.
+2. BCUGE/GE -> Settings: rapidly switch Settings -> MMS Data -> Reports -> Settings; no freeze/crash/stale publish.
+3. Network shows station-wide IED/AP/IP/subnet/gateway rows.
+4. Domain navigation has one obvious authority; no confusing duplicate IED/domain selector.
+5. Normal/high-DPI screenshots at 100%, 125%, 150% show no clipping/wrapping regression.
+6. Existing golden SCD still opens, navigates, saves safely, and diagnostics remain source-linked.
 
-Secondary/expert views:
-`Model Tree | XML`
+If this gate passes, merge #5. If it fails, only the minimum acceptance-blocker fix remains on #5.
 
-Desktop must never walk XML to invent IEC meaning. Every enabled workspace must be backed by an Engine projector and tests.
+## Audit: unfinished product work
 
-## Implemented workspaces
+The current product is a strong inspection baseline, **not yet a final system configuration tool**.
 
-### IED Overview
-- default landing context is an IED, not the SCL root;
-- manufacturer/description;
-- AP / LD / LN / DataSet / Report / GOOSE / Setting Group counts;
-- dense per-IED Declared Services table;
-- raw Services parameters plus conservative interpretation of limits, booleans and Fix/Conf/Dyn modes;
-- unknown/future Services entries remain visible as uninterpreted declarations;
-- Services rows navigate to authoritative source nodes;
-- vendor Private XML stays preserved but out of the primary engineering navigation.
+### Reliability/performance — partial
 
-### Network
-- SubNetwork and network type;
-- ConnectedAP;
-- IED/AP;
-- IP, subnet, gateway;
-- OSI AP-title/AE-qualifier retained when present;
-- shared source navigation.
+- selected detail projections are now asynchronous, but IED-scoped catalog refresh still invokes multiple projectors synchronously;
+- multiple workspace projectors independently scan `SemanticIndex.Nodes`, causing repeated O(N) scans on IED changes;
+- Setting projection is cancellable but still rebuilds resolved Data Model per LN and can repeat type traversal;
+- leak tests prove important collectability properties, but rapid open/navigate/cancel/close stress is not yet a release gate;
+- timing tests exist, but hot workspace allocation/latency profiling is incomplete.
 
-### GOOSE / GSSE
-- Communication/GSE is a typed semantic object;
-- deterministic Communication/GSE ↔ GSEControl binding via IED + LD + control name;
-- GOOSE vs GSSE remains distinct;
-- bound DataSet and FCDA member signals;
-- MAC / network APPID / VLAN / priority;
-- MinTime / MaxTime;
-- ExtRef subscribers matched by source signal identity;
-- no guessed srcCBName/control-block relation.
+Owner: issue #8.
 
-### DataSets
-- IED-scoped DataSet catalog;
-- LD / LN / DataSet;
-- member and usage counts;
-- FCDA member LD / LN / DO / DA / FC / reference;
-- shared source navigation.
+### Standards authority — incomplete
 
-### Reports & Logs
-- BRCB vs URCB;
-- DataSet;
-- rptID;
-- confRev;
-- bufTime / intgPd;
-- RptEnabled max;
-- readable TrgOps;
-- readable OptFields.
+- `SclSchemaRevision` currently exposes raw Version/Revision/Release strings;
+- no typed edition/namespace profile maps the current SCL Edition 2.2 baseline;
+- default schema provider is deliberately unavailable;
+- no legally sourced XSD/rule pack is configured;
+- IEC TS 61850-6-3:2025 machine-processable rules are not integrated;
+- edition-specific rule governance needs a single provider architecture.
 
-### Data Model
-- IED-scoped LD/LN selector;
-- LN → LNodeType → DO → DOType → DA/SDO → DAType/BDA resolution;
-- DOI/SDI/DAI instance overlay;
-- CDC / FC / bType / configured value / type ID / description;
-- row source points at the instance when present, otherwise at the type definition;
-- bounded instance/template consistency validation for DOI/SDI/DAI;
-- duplicate template-member ambiguity is never guessed;
-- cached type contexts preserve fast-validation performance on large repeated models.
+Owner: issue #9.
 
-### Setting Groups
-- SettingControl metadata;
-- FC=SG leaf values derived from the resolved Data Model;
-- structured settings such as `setMag.f`;
-- sibling units/multiplier join;
-- min/max/step join using the same nested leaf suffix;
-- no unit or semantic guess from DAI names.
+### Semantic/index completeness — partial
 
-## Important real-fixture details
+Strong coverage exists for current M3 domains, but remaining work includes:
+- deep Substation/VoltageLevel/Bay/ConductingEquipment/connectivity semantics when real fixture evidence is available;
+- complete engineer-facing Sampled Values workflow;
+- deeper Log/Inputs/ExtRef consistency;
+- EnumType/value normalization and additional data-model semantics;
+- hot-query typed indexes by kind/IED/LD/LN instead of repeated full scans;
+- explicit evaluation of newer engineering-file concepts without pretending unsupported roles are understood.
 
-- golden SCD contains 5 IEDs;
-- 72 DataSets;
-- 315 ReportControls;
-- 6 GSEControls;
-- 24 ExtRefs;
-- 2 SettingControls;
-- one BCUGE GSEControl is `type="GSSE"` and therefore has no Ethernet Communication/GSE endpoint;
-- the golden SCD has **no `<Substation>` section**.
+Owner: issue #10.
 
-Do not add a fake/empty Substation workspace just to complete a tab list.
+### Safe engineering mutations — largely not implemented
 
-## Stable safety boundaries retained
+The intentionally narrow mutation policy still allows only proven-safe property editing. DataSet surgery, RCB engineering, GOOSE/SMV/Communication editing, identity rename/delete and deterministic quick fixes remain locked.
 
-- preservation-oriented syntax document remains authoritative;
-- stable SclNodeHandle and source spans;
-- typed reference graph and Where Used;
-- unresolved/ambiguous reference diagnostics;
-- revision-safe validation workers;
-- transaction/undo/redo/save guarantees;
-- generic XML mutation remains forbidden in Desktop;
-- only the previously approved safe property edit policy remains open;
-- identity rename/delete, DataSet surgery, RCB surgery, broad communication editing and merge remain locked.
+Owner: issue #11.
 
-## Current limits
+### Diff/extract/export/merge — not implemented as production workflow
 
-- M3A0 is a read/inspect engineering-workspace milestone, not complete IEC 61850 semantic validation.
-- Data Model currently shows configured raw values; enum ordinal/text normalization can be expanded later.
-- Setting Group units are only shown when represented/resolvable.
-- GOOSE subscriber projection matches source signal identity; deeper service-type diagnostics belong to M3A.
-- SMV communication endpoint engineering workspace is not yet implemented.
-- Substation primary-system semantics are deferred until a real fixture exists.
-- schema provider remains explicit/legal-source dependent.
-- visual quality still requires manual Windows/high-DPI acceptance on the golden SCD.
+Semantic diff, IED extraction, file-role-aware export preflight and deterministic multi-file merge remain roadmap work.
 
-## M3A1 + M3A2 implemented
+Owner: issue #12.
 
-### Diagnostics slice 1
+### Interoperability evidence — incomplete
 
-Problems/validation coverage:
-- `SCL-ENG-GOOSE-0001..0004`: missing GOOSE endpoint/address/MAC/network APPID;
-- `SCL-ENG-SMV-0001..0004`: missing SMV endpoint/address/MAC/network APPID;
-- typed `Communication/SMV → SampledValueControl` reference binding.
+Current evidence proves internal parsing/semantics/tests and some real-file behavior. It does **not** prove broad multi-vendor tool interoperability or formal IEC 61850 engineering-tool conformance.
 
-### Deep Data Model consistency
+Need a versioned fixture matrix, cross-tool import/export evidence, runtime checks where available, and an IEC 61850-10/UCA readiness plan.
 
-- `SCL-SEM-MODEL-0001`: DOI absent from resolved LNodeType;
-- `SCL-SEM-MODEL-0002`: SDI absent from resolved type context;
-- `SCL-SEM-MODEL-0003`: DAI absent from resolved type context;
-- `SCL-SEM-MODEL-0004`: duplicate template member ambiguity, no guessing;
-- `SCL-SEM-MODEL-0005`: SDI targets non-Struct leaf;
-- `SCL-SEM-MODEL-0006`: DAI targets structured SDO/DA/BDA;
-- unresolved type edges remain `SCL-REF-*` root causes rather than producing duplicate downstream noise;
-- 10,000-LN shared-type fast-validation performance guard is green.
+Owner: issue #13.
 
-### Declared Services interpretation
+### Final UX/release — partial
 
-- actual per-IED `<Services>` children are projected; no hard-coded checklist;
-- categories and raw declarations are shown in IED Overview;
-- `Fix / Conf / Dyn` are rendered as Fixed / Configurable / Dynamic;
-- `max`, `maxAttributes`, `modify`, `fixPrefix`, `fixLnInst` remain literal declared properties;
-- unknown/future/vendor service elements stay visible and source-linked;
-- UI explicitly distinguishes SCL declaration from runtime verification.
+The station-first shell is moving in the correct direction, but final multi-DPI acceptance, accessibility/keyboard polish, release packaging/supportability and evidence-scoped product claims remain.
 
-Services consistency diagnostics:
-- `SCL-ENG-SERVICE-0001`: explicit GOOSE count exceeds declared GOOSE max;
-- `SCL-ENG-SERVICE-0002`: explicit GSSE count exceeds declared GSSE max;
-- `SCL-ENG-SERVICE-0003`: SampledValueControl count exceeds declared SMV max;
-- untyped GSEControl is not silently inferred to be GOOSE.
+Owner: issue #14.
 
-See:
-- `docs/testing/M3A_DIAGNOSTICS_ACCEPTANCE.md`;
-- `docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md`.
+## Finalization control plane
 
-## M3UX1 + M3UX2 workstation refinement implemented
+Master issue: #7
 
-M3UX1 established the compact three-pane desktop shell. M3UX2 uses real Windows screenshots to correct the remaining web/dashboard behavior:
-- engineering workspace selector is forced to one horizontal row;
-- tab names are stable and short; volatile counts no longer cause wrapping;
-- Overview is a compact IED summary plus full-height Services grid;
-- Settings has an explicit no-SettingControl state instead of a blank page;
-- Problems can be filtered by severity, domain, and text while preserving source navigation;
-- Inspector exposes Type/Value/Path/Source/Namespace as bordered property rows with wrapping/tooltips;
-- Data Model gives hierarchy/name more width without increasing total table width;
-- central engineering tables use subtle horizontal row separators.
+Lane issues:
+- #8 P0 Reliability & performance
+- #9 P1 Standards authority / edition-rule providers
+- #10 P2 Semantic/index completeness
+- #11 P3 Safe SCL surgery
+- #12 P4 Diff/export/merge
+- #13 P5 Interoperability evidence
+- #14 P6 Final UX/release
 
-See `docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md`.
+Read `docs/continuation/FINALIZATION_MASTER_PLAN.md` for dependencies, parallelism and acceptance rules.
 
-## M3UX3 engineer mental-workspace finishing implemented
+## Work that must NOT be redone
 
-M3UX3 finishes navigation coherence without changing IEC semantics:
-- compact IED context selector + persistent engineering workspace navigator in Project Explorer;
-- persistent center breadcrumb for IED/domain/object context;
-- Problems/Search/Where Used automatically activate the relevant engineering workspace;
-- Reports directly exposes members of its deterministically resolved bound DataSet;
-- Data Model gains Desktop-only expand/collapse while preserving the authoritative Engine projection;
-- LN selector width is rebalanced for engineering identity rather than prose;
-- Network is scoped consistently to the selected IED;
-- Ctrl+F is functional;
-- roadmap-only disabled controls/tabs are hidden until implemented.
+Do not restart these from scratch:
+- authoritative syntax + node-handle model;
+- reference graph and ambiguity policy;
+- session revision model;
+- bounded latest-wins worker primitive;
+- transaction/undo/redo/atomic save boundary;
+- existing semantic projectors/tests;
+- shared selection/navigation;
+- M3 engineering information architecture.
 
-See `docs/testing/M3UX3_ENGINEER_WORKSPACE_ACCEPTANCE.md`.
+Improve measured bottlenecks in place. A rewrite requires profiler/test evidence that the current architecture cannot meet a release requirement.
 
-## M3UX4 IEDScout-style visual workflow finishing implemented
+## Next-thread startup protocol
 
-Real M3UX3 Windows screenshots were used as the evidence for M3UX4:
-- Problems dock collapses by default instead of permanently consuming the viewport;
-- the left Engineer navigator is the single primary domain selector;
-- engineering breadcrumbs replace raw XML-shaped center paths;
-- Network/GOOSE/DataSets/Data Model/Settings expose active objects in the left navigator;
-- center panes for those domains are inspection-first rather than repeating their master catalog;
-- Reports intentionally keeps its long control catalog in the center;
-- Network selected-endpoint detail, compact Inspector rows, DataSet/Settings column fixes and micro-glyphs improve scan speed;
-- Error/Warning/Info counts are explicit.
+A new coding thread should begin with:
 
-See `docs/testing/M3UX4_VISUAL_WORKFLOW_ACCEPTANCE.md`.
+```
+@GitHub repo masarray/arscl-studio
+Read AGENTS.md, docs/continuation/HANDOFF.md,
+docs/continuation/FINALIZATION_MASTER_PLAN.md,
+and the exact GitHub issue I am assigning.
+Audit current authority before coding.
+Do not create a second authority or redo completed work.
+Keep the branch buildable, obey the CI budget, and finish the issue acceptance criteria.
+```
 
-## Next visual gate
-
-Before merging PR #5, run the M3UX4 Windows artifact on the golden SCD and provide screenshots of Overview, Network, GOOSE, DataSets, Reports, Data Model, Settings and expanded Problems at normal/high DPI.
-
-Audit specifically:
-1. one obvious navigation source with no confusing duplicate domain bar;
-2. object selection in the left navigator feels natural for Network/GOOSE/DataSets/Data Model/Settings;
-3. Reports remains efficient for dozens of RCBs;
-4. center inspection area no longer wastes space on duplicate catalogs;
-5. Problems collapsed/expanded interaction feels natural;
-6. engineering breadcrumb remains readable while raw path stays available in Inspector;
-7. no clipping/wrapping regression at 100%, 125% and 150% DPI.
-
-Only after that visual gate passes should work return to M3A3 edition-aware rule/schema-provider evolution. Broad SCL surgery remains locked.
+First action is the PR #5 acceptance gate. After #5 merges, start parallel work only according to issue #7 dependency lanes.

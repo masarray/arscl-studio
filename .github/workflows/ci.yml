@@ -4,25 +4,28 @@ on:
   push:
     branches:
       - main
-      - foundation/**
-      - feature/**
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-jobs:
-  build-test:
-    name: Build & test (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - windows-latest
-          - macos-latest
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-    runs-on: ${{ matrix.os }}
+jobs:
+  pr-fast:
+    name: PR fast gate (ubuntu)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -40,7 +43,47 @@ jobs:
         run: dotnet build ArSclStudio.sln --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test ArSclStudio.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx" --logger "console;verbosity=detailed"
+        run: dotnet test ArSclStudio.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx" --logger "console;verbosity=normal"
+
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-failure-evidence-ubuntu
+          path: tests/**/TestResults/*.trx
+          if-no-files-found: ignore
+
+  qualification:
+    name: Qualification (${{ matrix.os }})
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore ArSclStudio.sln
+
+      - name: Build
+        run: dotnet build ArSclStudio.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test ArSclStudio.sln --configuration Release --no-build --logger "trx;LogFileName=test-results.trx" --logger "console;verbosity=normal"
 
       - name: Upload test evidence
         if: always()
@@ -48,6 +91,7 @@ jobs:
         with:
           name: test-evidence-${{ matrix.os }}
           path: tests/**/TestResults/*.trx
+          if-no-files-found: warn
 
       - name: Publish Windows desktop
         if: runner.os == 'Windows'

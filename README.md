@@ -11,7 +11,7 @@ The product direction combines:
 
 ## Status
 
-**M3A0–M3A2 IEC 61850 engineering workstation + M3UX4 desktop finishing**
+**M3A0–M3A2 IEC 61850 engineering workstation + M3UX5 reliability/workflow baseline**
 
 The current M3 branch provides Engine-backed engineering workspaces for:
 - IED Overview
@@ -48,11 +48,11 @@ Implemented engineering depth includes:
 - object-aware left engineering navigator
 - inspection-first center panes and engineering breadcrumbs
 
-The golden real-SCD engineering baseline is implemented and CI-green. PR #5 remains draft only because the final Windows/high-DPI visual acceptance gate for M3UX4 is still pending.
+The golden real-SCD engineering baseline is implemented and CI-green. PR #5 is scope-frozen pending the M3UX5 Windows/high-DPI + former-crash-path acceptance gate. The remaining product program is tracked by master issue #7 and lane issues #8-#14.
 
 Broad destructive SCL surgery remains intentionally locked. Identity rename/delete, DataSet surgery, RCB surgery, broad Communication editing, merge, and target-aware export continue in later milestones after explicit reference-impact and validation coverage exists.
 
-See [M3UX4 acceptance](docs/testing/M3UX4_VISUAL_WORKFLOW_ACCEPTANCE.md), [M3A2 acceptance](docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md), and [current handoff](docs/continuation/HANDOFF.md) for exact scope and verification evidence.
+See [finalization master plan](docs/continuation/FINALIZATION_MASTER_PLAN.md), [standards baseline](docs/standards/IEC61850_STANDARDS_BASELINE.md), [M3UX4 acceptance](docs/testing/M3UX4_VISUAL_WORKFLOW_ACCEPTANCE.md), [M3A2 acceptance](docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md), and [current handoff](docs/continuation/HANDOFF.md).
 
 ## Architecture
 

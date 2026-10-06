@@ -241,3 +241,21 @@ Every milestone has:
 
 If a risky feature blocks a milestone, isolate it behind an interface/feature flag and complete the rest. Do not leave the repository unbuildable while experimenting.
 
+
+
+## Finalization program (2026-10-06)
+
+The M0-M3 history above remains valid, but the remaining program is now governed by GitHub issue #7 and `docs/continuation/FINALIZATION_MASTER_PLAN.md`.
+
+Important standards correction: the SCL standards lane must include IEC 61850-6 consolidated **Edition 2.2 (2024)**. The earlier roadmap wording that stopped at Edition 2.1 is no longer sufficient.
+
+Execution lanes:
+- #8 P0 reliability/performance hardening;
+- #9 P1 standards authority / edition-schema-rule providers;
+- #10 P2 semantic/index completeness;
+- #11 P3 safe SCL surgery;
+- #12 P4 semantic diff/extract/export/merge;
+- #13 P5 interoperability evidence;
+- #14 P6 final UX/release.
+
+PR #5 is scope-frozen at the M3UX5 acceptance stage. After it merges, do not create another mega-branch. Use bounded issue branches/PRs and the CI budget defined in AGENTS.md.
