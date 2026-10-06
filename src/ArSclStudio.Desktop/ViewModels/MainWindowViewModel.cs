@@ -5,6 +5,7 @@ using ArSclStudio.Engine.Navigation;
 using ArSclStudio.Engine.Search;
 using ArSclStudio.Engine.Workers;
 using ArSclStudio.Scl.Identity;
+using ArSclStudio.Scl.Semantics;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ArSclStudio.Desktop.ViewModels;
@@ -17,6 +18,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     private readonly Dictionary<SclNodeHandle, ExplorerRow> _xmlIndex = [];
     private readonly HashSet<SclNodeHandle> _engineeringExpanded = [];
     private readonly HashSet<SclNodeHandle> _xmlExpanded = [];
+    private ProblemRow[] _allProblems = [];
 
     private CancellationTokenSource? _searchDebounce;
     private bool _synchronizingSelection;
@@ -170,6 +172,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         });
         SearchResults = Array.Empty<SclSearchResultProjection>();
         SearchResultsHeader = "Search Results";
+        RefreshIedWorkspace(state);
+        RefreshEngineeringWorkspaces(state, forceIedRefresh: true);
         DocumentDisplayName = state.DisplayName;
         IsDirty = _session.IsDirty;
         ChangeRows = _session.ChangeJournal.SelectMany(entry => entry.Changes.Select(change =>
@@ -221,6 +225,41 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     [ObservableProperty]
     private ProblemRow? _selectedProblemRow;
+
+    [ObservableProperty]
+    private string _problemFilterText = string.Empty;
+
+    [ObservableProperty]
+    private string _selectedProblemSeverityFilter = "All severities";
+
+    [ObservableProperty]
+    private string _selectedProblemDomainFilter = "All domains";
+
+    public IReadOnlyList<string> ProblemSeverityFilters { get; } =
+    [
+        "All severities",
+        "Blocker",
+        "Error",
+        "Warning",
+        "Info"
+    ];
+
+    public IReadOnlyList<string> ProblemDomainFilters { get; } =
+    [
+        "All domains",
+        "Reference",
+        "Semantic",
+        "Engineering",
+        "Schema",
+        "Xml",
+        "Compatibility",
+        "Runtime"
+    ];
+
+    public string ProblemsHeader =>
+        Problems.Count == _allProblems.Length
+            ? $"Problems ({Problems.Count})"
+            : $"Problems ({Problems.Count}/{_allProblems.Length})";
 
     [ObservableProperty]
     private IReadOnlyList<SclReferenceProjection> _whereUsedRows =
@@ -277,6 +316,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
     [ObservableProperty]
     private string _detailPath = string.Empty;
+
+    [ObservableProperty]
+    private string _engineeringBreadcrumb = string.Empty;
 
     [ObservableProperty]
     private string _detailSource = string.Empty;
@@ -340,7 +382,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                     ChangeRows = Array.Empty<ChangeRow>();
                     PublishDocument(result.State);
                     PublishDiagnostics(result.Diagnostics, result.State);
-                    _selectionService.Select(result.State.Syntax.RootHandle);
+                    _selectionService.Select(
+                        SelectedIedWorkspace?.Handle ??
+                        result.State.Syntax.RootHandle);
                     await RefreshValidationAsync(cancellationToken);
                     StatusText =
                         $"Loaded {result.State.Syntax.IndexedNodeCount:N0} XML nodes • " +
@@ -493,6 +537,21 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         search?.Cancel();
 
+        var engineeringDetailCancellation = Interlocked.Exchange(
+            ref _engineeringDetailLoadCancellation,
+            null);
+
+        engineeringDetailCancellation?.Cancel();
+
+        try
+        {
+            await _engineeringDetailLoadTask;
+        }
+        catch (OperationCanceledException)
+        {
+            // The owned latest-wins engineering detail task was cancelled.
+        }
+
         _selectionService.SelectionChanged -= SelectionChanged;
         _selectionService.Clear();
 
@@ -503,8 +562,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         EngineeringRows = Array.Empty<ExplorerRow>();
         XmlRows = Array.Empty<ExplorerRow>();
+        IedWorkspaceRows = Array.Empty<SclIedWorkspaceProjection>();
+        SelectedIedWorkspace = null;
+        OnPropertyChanged(nameof(IedWorkspaceHeader));
+        ClearEngineeringWorkspaces();
+        _allProblems = [];
         Problems = Array.Empty<ProblemRow>();
         SelectedProblemRow = null;
+        OnPropertyChanged(nameof(ProblemsHeader));
         WhereUsedRows = Array.Empty<SclReferenceProjection>();
         SearchResults = Array.Empty<SclSearchResultProjection>();
 
@@ -518,12 +583,22 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
     partial void OnSelectedXmlRowChanged(ExplorerRow? value) =>
         SelectFromRow(value);
 
+    partial void OnProblemFilterTextChanged(string value) =>
+        ApplyProblemFilters();
+
+    partial void OnSelectedProblemSeverityFilterChanged(string value) =>
+        ApplyProblemFilters();
+
+    partial void OnSelectedProblemDomainFilterChanged(string value) =>
+        ApplyProblemFilters();
+
     partial void OnSelectedProblemRowChanged(ProblemRow? value)
     {
         if (!_synchronizingSelection &&
             value is not null &&
             !value.Node.IsNone)
         {
+            ActivateEngineeringWorkspaceForExternalNavigation(value.Node);
             _selectionService.Select(value.Node);
         }
     }
@@ -534,6 +609,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             value is not null &&
             !value.Source.IsNone)
         {
+            ActivateEngineeringWorkspaceForExternalNavigation(value.Source);
             _selectionService.Select(value.Source);
         }
     }
@@ -544,6 +620,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             value is not null &&
             !value.Handle.IsNone)
         {
+            ActivateEngineeringWorkspaceForExternalNavigation(value.Handle);
             _selectionService.Select(value.Handle);
         }
     }
@@ -558,6 +635,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
         RefreshEngineeringProjection(state);
         RefreshXmlProjection(state);
+        RefreshIedWorkspace(state);
+        RefreshEngineeringWorkspaces(state, forceIedRefresh: true);
 
         SearchResults = Array.Empty<SclSearchResultProjection>();
         SearchResultsHeader = "Search Results";
@@ -601,16 +680,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         SclDocumentState? state = null)
     {
         SelectedProblemRow = null;
+
         if (diagnostics.Count == 0)
         {
+            _allProblems = [];
             Problems = Array.Empty<ProblemRow>();
             ProblemSummary = "No diagnostics";
+            OnPropertyChanged(nameof(ProblemsHeader));
             return;
         }
 
         var rows = new ProblemRow[diagnostics.Count];
         var errors = 0;
         var warnings = 0;
+        var info = 0;
 
         for (var i = 0; i < diagnostics.Count; i++)
         {
@@ -632,10 +715,60 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             {
                 warnings++;
             }
+            else
+            {
+                info++;
+            }
         }
 
-        Problems = rows;
-        ProblemSummary = $"{errors} Errors  •  {warnings} Warnings";
+        _allProblems = rows;
+        ProblemSummary =
+            $"{errors} Errors  •  {warnings} Warnings  •  {info} Info";
+        ApplyProblemFilters();
+    }
+
+    private void ApplyProblemFilters()
+    {
+        if (_allProblems.Length == 0)
+        {
+            Problems = Array.Empty<ProblemRow>();
+            SelectedProblemRow = null;
+            OnPropertyChanged(nameof(ProblemsHeader));
+            return;
+        }
+
+        var severity = SelectedProblemSeverityFilter;
+        var domain = SelectedProblemDomainFilter;
+        var query = ProblemFilterText.Trim();
+
+        var filtered = _allProblems.Where(row =>
+            (string.Equals(
+                 severity,
+                 "All severities",
+                 StringComparison.Ordinal) ||
+             string.Equals(
+                 row.Severity,
+                 severity,
+                 StringComparison.OrdinalIgnoreCase)) &&
+            (string.Equals(
+                 domain,
+                 "All domains",
+                 StringComparison.Ordinal) ||
+             string.Equals(
+                 row.Domain,
+                 domain,
+                 StringComparison.OrdinalIgnoreCase)) &&
+            (query.Length == 0 ||
+             row.Code.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             row.Domain.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             row.ObjectName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             row.Message.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+             row.Source.Contains(query, StringComparison.OrdinalIgnoreCase)))
+            .ToArray();
+
+        Problems = filtered;
+        SelectedProblemRow = null;
+        OnPropertyChanged(nameof(ProblemsHeader));
     }
 
     private void SelectFromRow(ExplorerRow? row)
@@ -706,6 +839,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             SelectedEngineeringRow =
                 _engineeringIndex.GetValueOrDefault(args.SelectedNode);
 
+            SynchronizeIedWorkspaceSelection(state, args.SelectedNode);
+            SynchronizeEngineeringWorkspaceSelection(state, args.SelectedNode);
+            SynchronizeEngineeringNavigationSelection(args.SelectedNode);
+            EngineeringBreadcrumb = BuildEngineeringBreadcrumb(
+                state,
+                args.SelectedNode);
+
             SelectedXmlRow =
                 _xmlIndex.GetValueOrDefault(args.SelectedNode);
 
@@ -718,6 +858,90 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
         {
             _synchronizingSelection = false;
         }
+    }
+
+    private string BuildEngineeringBreadcrumb(
+        SclDocumentState state,
+        SclNodeHandle selected)
+    {
+        var parts = new List<string>(5);
+
+        if (!string.IsNullOrWhiteSpace(SelectedIedWorkspace?.Name))
+        {
+            parts.Add(SelectedIedWorkspace.Name);
+        }
+
+        var logicalDevice = FindSelfOrAncestorName(
+            state,
+            selected,
+            SclSemanticKind.LogicalDevice);
+
+        if (!string.IsNullOrWhiteSpace(logicalDevice) &&
+            !parts.Contains(logicalDevice, StringComparer.Ordinal))
+        {
+            parts.Add(logicalDevice);
+        }
+
+        var logicalNode = FindSelfOrAncestorName(
+            state,
+            selected,
+            SclSemanticKind.LogicalNodeZero,
+            SclSemanticKind.LogicalNode);
+
+        if (!string.IsNullOrWhiteSpace(logicalNode) &&
+            !parts.Contains(logicalNode, StringComparer.Ordinal))
+        {
+            parts.Add(logicalNode);
+        }
+
+        var workspace = SelectedEngineeringWorkspaceName;
+
+        if (!string.IsNullOrWhiteSpace(workspace))
+        {
+            parts.Add(workspace);
+        }
+
+        if (state.SemanticIndex.TryGetNode(selected, out var node) &&
+            node is not null &&
+            node.Kind is not (
+                SclSemanticKind.Ied or
+                SclSemanticKind.LogicalDevice or
+                SclSemanticKind.LogicalNodeZero or
+                SclSemanticKind.LogicalNode) &&
+            !string.IsNullOrWhiteSpace(node.DisplayName) &&
+            !parts.Contains(node.DisplayName, StringComparer.Ordinal))
+        {
+            parts.Add(node.DisplayName);
+        }
+
+        return string.Join(" › ", parts);
+    }
+
+    private static string FindSelfOrAncestorName(
+        SclDocumentState state,
+        SclNodeHandle selected,
+        params SclSemanticKind[] kinds)
+    {
+        if (state.SemanticIndex.TryGetNode(selected, out var selectedNode) &&
+            selectedNode is not null &&
+            kinds.Contains(selectedNode.Kind))
+        {
+            return selectedNode.DisplayName;
+        }
+
+        for (var i = 0; i < kinds.Length; i++)
+        {
+            if (state.SemanticIndex.TryFindAncestor(
+                    selected,
+                    kinds[i],
+                    out var ancestor) &&
+                ancestor is not null)
+            {
+                return ancestor.DisplayName;
+            }
+        }
+
+        return string.Empty;
     }
 
     private bool ExpandSemanticAncestors(

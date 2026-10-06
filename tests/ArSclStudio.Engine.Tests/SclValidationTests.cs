@@ -188,6 +188,545 @@ public sealed class SclValidationTests
         }
     }
 
+    [TestMethod]
+    public async Task FastValidationReportsGooseEndpointAndDataModelEngineeringFindings()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="PUB">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="" lnType="LT_LLN0">
+                        <GSEControl name="GOOSE_CB"
+                                    type="GOOSE"
+                                    appID="PUB/LD0/LLN0/GOOSE_CB" />
+                      </LN0>
+                      <LN lnClass="XCBR" inst="1" lnType="LT_XCBR">
+                        <DOI name="VendorOnly">
+                          <DAI name="stVal"><Val>true</Val></DAI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_LLN0" lnClass="LLN0" />
+                <LNodeType id="LT_XCBR" lnClass="XCBR">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="stVal" fc="ST" bType="Dbpos" />
+                </DOType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var goose = result.Value.Diagnostics.Single(
+                diagnostic => diagnostic.Code == "SCL-ENG-GOOSE-0001");
+
+            Assert.AreEqual(DiagnosticDomain.Engineering, goose.Domain);
+            Assert.AreEqual(DiagnosticSeverity.Warning, goose.Severity);
+            Assert.IsTrue(goose.SourceSpan.IsKnown);
+            Assert.AreEqual<DocumentRevision?>(open.State.Revision, goose.Revision);
+            StringAssert.Contains(goose.Message, "GOOSE_CB");
+            StringAssert.Contains(goose.Message, "no Communication/GSE endpoint");
+
+            var model = result.Value.Diagnostics.Single(
+                diagnostic => diagnostic.Code == "SCL-SEM-MODEL-0001");
+
+            Assert.AreEqual(DiagnosticDomain.Semantic, model.Domain);
+            Assert.AreEqual(DiagnosticSeverity.Warning, model.Severity);
+            Assert.IsTrue(model.SourceSpan.IsKnown);
+            StringAssert.Contains(model.Message, "VendorOnly");
+            StringAssert.Contains(model.Message, "XCBR1");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task FastValidationAcceptsCompleteGooseEndpointWithoutEngineeringWarnings()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <Communication>
+                <SubNetwork name="StationLAN" type="8-MMS">
+                  <ConnectedAP iedName="PUB" apName="P1">
+                    <GSE ldInst="LD0" cbName="GOOSE_CB">
+                      <Address>
+                        <P type="MAC-Address">01-0C-CD-01-00-01</P>
+                        <P type="APPID">1001</P>
+                      </Address>
+                    </GSE>
+                  </ConnectedAP>
+                </SubNetwork>
+              </Communication>
+
+              <IED name="PUB">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="" lnType="LT_LLN0">
+                        <GSEControl name="GOOSE_CB"
+                                    type="GOOSE"
+                                    appID="PUB/LD0/LLN0/GOOSE_CB" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_LLN0" lnClass="LLN0" />
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            Assert.IsFalse(result.Value.Diagnostics.Any(
+                diagnostic =>
+                    diagnostic.Code.StartsWith(
+                        "SCL-ENG-GOOSE-",
+                        StringComparison.Ordinal)));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task FastValidationReportsMissingSmvEndpointWithoutConfusingSmvIdWithNetworkAppId()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="MU_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="MU">
+                      <LN0 lnClass="LLN0" inst="">
+                        <DataSet name="Samples" />
+                        <SampledValueControl name="MSVCB01"
+                                             datSet="Samples"
+                                             smvID="MU_A/MU/LLN0/MSVCB01"
+                                             smpRate="80"
+                                             nofASDU="2" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var smv = result.Value.Diagnostics.Single(
+                diagnostic => diagnostic.Code == "SCL-ENG-SMV-0001");
+
+            Assert.AreEqual(DiagnosticDomain.Engineering, smv.Domain);
+            Assert.AreEqual(DiagnosticSeverity.Warning, smv.Severity);
+            Assert.IsTrue(smv.SourceSpan.IsKnown);
+            StringAssert.Contains(smv.Message, "MSVCB01");
+            StringAssert.Contains(smv.Message, "no Communication/SMV endpoint");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task FastValidationAcceptsDeepResolvedDoiSdiDaiInstanceChain()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="CTRL">
+                      <LN lnClass="CSWI" inst="1" lnType="LT_CSWI">
+                        <DOI name="Pos">
+                          <SDI name="origin">
+                            <DAI name="orCat"><Val>bay-control</Val></DAI>
+                            <SDI name="orIdent">
+                              <DAI name="station"><Val>HMI01</Val></DAI>
+                            </SDI>
+                          </SDI>
+                          <SDI name="Oper">
+                            <DAI name="ctlNum"><Val>7</Val></DAI>
+                          </SDI>
+                          <DAI name="ctlModel">
+                            <Val>sbo-with-enhanced-security</Val>
+                          </DAI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_CSWI" lnClass="CSWI">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="origin" fc="ST" bType="Struct" type="DAT_ORIGIN" />
+                  <SDO name="Oper" type="DOT_OPER" />
+                  <DA name="ctlModel" fc="CF" bType="Enum" type="ENUM_CTL" />
+                </DOType>
+
+                <DOType id="DOT_OPER" cdc="ACT">
+                  <DA name="ctlNum" fc="CO" bType="INT8U" />
+                </DOType>
+
+                <DAType id="DAT_ORIGIN">
+                  <BDA name="orCat" bType="Enum" type="ENUM_ORCAT" />
+                  <BDA name="orIdent" bType="Struct" type="DAT_IDENT" />
+                </DAType>
+
+                <DAType id="DAT_IDENT">
+                  <BDA name="station" bType="VisString64" />
+                </DAType>
+
+                <EnumType id="ENUM_CTL">
+                  <EnumVal ord="4">sbo-with-enhanced-security</EnumVal>
+                </EnumType>
+                <EnumType id="ENUM_ORCAT">
+                  <EnumVal ord="2">bay-control</EnumVal>
+                </EnumType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            Assert.IsFalse(result.Value.Diagnostics.Any(
+                diagnostic =>
+                    diagnostic.Code.StartsWith(
+                        "SCL-SEM-MODEL-",
+                        StringComparison.Ordinal)));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task FastValidationReportsUnknownAndStructurallyInvalidNestedInstances()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="CTRL">
+                      <LN lnClass="CSWI" inst="1" lnType="LT_CSWI">
+                        <DOI name="Pos">
+                          <SDI name="UnknownStruct">
+                            <DAI name="x"><Val>1</Val></DAI>
+                          </SDI>
+                          <DAI name="UnknownLeaf"><Val>1</Val></DAI>
+                          <SDI name="ctlModel">
+                            <DAI name="x"><Val>1</Val></DAI>
+                          </SDI>
+                          <DAI name="origin"><Val>bad</Val></DAI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_CSWI" lnClass="CSWI">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="origin" fc="ST" bType="Struct" type="DAT_ORIGIN" />
+                  <DA name="ctlModel" fc="CF" bType="Enum" type="ENUM_CTL" />
+                </DOType>
+                <DAType id="DAT_ORIGIN">
+                  <BDA name="orCat" bType="Enum" type="ENUM_ORCAT" />
+                </DAType>
+                <EnumType id="ENUM_CTL">
+                  <EnumVal ord="0">status-only</EnumVal>
+                </EnumType>
+                <EnumType id="ENUM_ORCAT">
+                  <EnumVal ord="0">not-supported</EnumVal>
+                </EnumType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var codes = result.Value.Diagnostics
+                .Where(diagnostic =>
+                    diagnostic.Code.StartsWith(
+                        "SCL-SEM-MODEL-",
+                        StringComparison.Ordinal))
+                .Select(diagnostic => diagnostic.Code)
+                .ToArray();
+
+            CollectionAssert.Contains(codes, "SCL-SEM-MODEL-0002");
+            CollectionAssert.Contains(codes, "SCL-SEM-MODEL-0003");
+            CollectionAssert.Contains(codes, "SCL-SEM-MODEL-0005");
+            CollectionAssert.Contains(codes, "SCL-SEM-MODEL-0006");
+
+            var structuredAsLeaf = result.Value.Diagnostics.Single(
+                diagnostic => diagnostic.Code == "SCL-SEM-MODEL-0006");
+
+            StringAssert.Contains(structuredAsLeaf.Message, "origin");
+            Assert.IsTrue(structuredAsLeaf.SourceSpan.IsKnown);
+            Assert.AreEqual<DocumentRevision?>(
+                open.State?.Revision,
+                structuredAsLeaf.Revision);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task FastValidationDoesNotGuessDuplicateTemplateMember()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="CTRL">
+                      <LN lnClass="CSWI" inst="1" lnType="LT_CSWI">
+                        <DOI name="Pos">
+                          <DAI name="stVal"><Val>on</Val></DAI>
+                        </DOI>
+                      </LN>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+
+              <DataTypeTemplates>
+                <LNodeType id="LT_CSWI" lnClass="CSWI">
+                  <DO name="Pos" type="DOT_POS" />
+                </LNodeType>
+                <DOType id="DOT_POS" cdc="DPC">
+                  <DA name="stVal" fc="ST" bType="Dbpos" />
+                  <DA name="stVal" fc="ST" bType="BOOLEAN" />
+                </DOType>
+              </DataTypeTemplates>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var ambiguous = result.Value.Diagnostics.Single(
+                diagnostic => diagnostic.Code == "SCL-SEM-MODEL-0004");
+
+            Assert.AreEqual(DiagnosticDomain.Semantic, ambiguous.Domain);
+            StringAssert.Contains(ambiguous.Message, "stVal");
+            StringAssert.Contains(
+                ambiguous.Explanation ?? string.Empty,
+                "did not guess");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task FastValidationReportsExplicitPublisherCountsBeyondDeclaredServiceLimits()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <Services>
+                  <GOOSE max="1" />
+                  <GSSE max="0" />
+                  <SMV max="0" />
+                </Services>
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="">
+                        <GSEControl name="GOOSE_1" type="GOOSE" />
+                        <GSEControl name="GOOSE_2" type="GOOSE" />
+                        <GSEControl name="GSSE_1" type="GSSE" />
+                        <GSEControl name="UNSPECIFIED" />
+                        <SampledValueControl name="MSVCB01" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+            Assert.IsNotNull(open.State);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            var goose = result.Value.Diagnostics.Single(
+                diagnostic =>
+                    diagnostic.Code ==
+                    "SCL-ENG-SERVICE-0001");
+
+            StringAssert.Contains(
+                goose.Message,
+                "publisher count 2");
+            StringAssert.Contains(
+                goose.Message,
+                "maximum 1");
+            Assert.IsTrue(goose.SourceSpan.IsKnown);
+
+            var gsse = result.Value.Diagnostics.Single(
+                diagnostic =>
+                    diagnostic.Code ==
+                    "SCL-ENG-SERVICE-0002");
+
+            StringAssert.Contains(
+                gsse.Message,
+                "publisher count 1");
+            StringAssert.Contains(
+                gsse.Message,
+                "maximum 0");
+
+            var smv = result.Value.Diagnostics.Single(
+                diagnostic =>
+                    diagnostic.Code ==
+                    "SCL-ENG-SERVICE-0003");
+
+            StringAssert.Contains(
+                smv.Message,
+                "publisher count 1");
+            StringAssert.Contains(
+                smv.Message,
+                "maximum 0");
+
+            Assert.AreEqual(
+                3,
+                result.Value.Diagnostics.Count(
+                    diagnostic =>
+                        diagnostic.Code.StartsWith(
+                            "SCL-ENG-SERVICE-",
+                            StringComparison.Ordinal)));
+
+            StringAssert.Contains(
+                goose.Explanation ?? string.Empty,
+                "explicit publisher identities");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [TestMethod]
+    public async Task FastValidationDoesNotInferUntypedGseControlAgainstGooseLimit()
+    {
+        var path = await CreateTempFileAsync("""
+            <SCL xmlns="http://www.iec.ch/61850/2003/SCL">
+              <IED name="IED_A">
+                <Services>
+                  <GOOSE max="0" />
+                </Services>
+                <AccessPoint name="P1">
+                  <Server>
+                    <LDevice inst="LD0">
+                      <LN0 lnClass="LLN0" inst="">
+                        <GSEControl name="UNSPECIFIED" />
+                      </LN0>
+                    </LDevice>
+                  </Server>
+                </AccessPoint>
+              </IED>
+            </SCL>
+            """);
+
+        try
+        {
+            await using var session = new SclDocumentSession();
+            var open = await session.OpenFileAsync(path);
+            Assert.IsTrue(open.Succeeded);
+
+            var result = await session.ValidateFastAsync();
+            Assert.IsNotNull(result.Value);
+
+            Assert.IsFalse(
+                result.Value.Diagnostics.Any(
+                    diagnostic =>
+                        diagnostic.Code ==
+                        "SCL-ENG-SERVICE-0001"));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static async Task<string> CreateTempFileAsync(string content)
     {
         var path = Path.Combine(

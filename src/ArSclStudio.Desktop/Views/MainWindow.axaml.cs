@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using ArSclStudio.Desktop.ViewModels;
@@ -21,12 +22,27 @@ public sealed partial class MainWindow : Window
         ]
     };
 
+    private const double ExpandedBottomDockHeight = 210;
     private bool _closeConfirmed;
     private bool _closeRequested;
+    private bool _bottomDockExpanded;
 
     public MainWindow()
     {
         InitializeComponent();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+
+        if (e.Key == Key.F &&
+            e.KeyModifiers.HasFlag(KeyModifiers.Control))
+        {
+            SearchBox.Focus();
+            SearchBox.SelectAll();
+            e.Handled = true;
+        }
     }
 
     protected override async void OnClosing(WindowClosingEventArgs e)
@@ -167,6 +183,30 @@ public sealed partial class MainWindow : Window
         });
     }
 
+    private void BottomDockToggleClick(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        SetBottomDockExpanded(!_bottomDockExpanded);
+    }
+
+    private void ProblemsDockClick(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        BottomDockTabs.SelectedIndex = 0;
+        SetBottomDockExpanded(true);
+    }
+
+    private void SetBottomDockExpanded(bool expanded)
+    {
+        _bottomDockExpanded = expanded;
+        BottomDock.Height = expanded ? ExpandedBottomDockHeight : 29;
+        BottomDockTabs.IsVisible = expanded;
+        BottomDockSplitter.IsVisible = expanded;
+        BottomDockToggle.Content = expanded ? "▾" : "▴";
+    }
+
     private async void SearchTextChanged(
         object? sender,
         TextChangedEventArgs e)
@@ -180,6 +220,12 @@ public sealed partial class MainWindow : Window
         try
         {
             await viewModel.SearchAsync(textBox.Text);
+
+            if (!string.IsNullOrWhiteSpace(textBox.Text))
+            {
+                BottomDockTabs.SelectedIndex = 1;
+                SetBottomDockExpanded(true);
+            }
         }
         catch (ObjectDisposedException)
         {
@@ -195,6 +241,18 @@ public sealed partial class MainWindow : Window
             DataContext is MainWindowViewModel viewModel)
         {
             viewModel.ToggleEngineering(row);
+            e.Handled = true;
+        }
+    }
+
+    private void DataModelToggleClick(
+        object? sender,
+        RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: DataModelDisplayRow row } &&
+            DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.ToggleDataModelRow(row);
             e.Handled = true;
         }
     }

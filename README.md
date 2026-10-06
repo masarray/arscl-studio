@@ -11,29 +11,48 @@ The product direction combines:
 
 ## Status
 
-**M2A Transaction Kernel & Safe Property Editing**
+**M3A0–M3A2 IEC 61850 engineering workstation + M3UX5 reliability/workflow baseline**
 
-Current viewer capabilities include:
-- secure real SCL loading
-- deep lazy Engineering and XML navigation
-- IED / AccessPoint / Server / LDevice / LN0 / LN
-- DataSet / FCDA
-- Report / Log / GOOSE / Sampled Value control blocks
-- Inputs / ExtRef / setting-group control
-- DOI / SDI / DAI
-- DataTypeTemplates and typed type-reference chains
-- Communication / ConnectedAP semantic relationships
-- typed forward/reverse reference graph
-- functional Where Used
-- debounced/coalesced semantic search
-- semantic source paths and source line/column
-- large-model lazy projection regression gates
+The current M3 branch provides Engine-backed engineering workspaces for:
+- IED Overview
+- Network
+- GOOSE / GSSE
+- DataSets
+- Reports & Logs
+- Data Model
+- Setting Groups
 
-Editing now supports safe IED descriptions through Engine transactions, compound edits, rollback, undo/redo, bounded Changes history and verified atomic Save/Save As. The Desktop includes dirty-state prompts; the CLI uses the same transaction path.
+Secondary expert/source views remain:
+- Model Tree
+- XML
 
-This does not yet provide full IEC/schema validation or destructive SCL surgery. See [M2A acceptance](docs/testing/M2A_ACCEPTANCE.md) and [handoff](docs/continuation/HANDOFF.md) for exact scope and verification status.
+Implemented engineering depth includes:
+- secure real SCL loading for ICD/IID/CID/SCD/SSD/SED
+- deep lazy semantic and XML navigation
+- typed forward/reverse reference graph and Where Used
+- semantic search with cancellation/coalescing/stale-result protection
+- transaction kernel with undo/redo and verified atomic Save / Save As
+- source-linked reference and engineering diagnostics
+- Communication/GSE and SMV endpoint semantics
+- LN → LNodeType → DO → DOType → DA/SDO → DAType/BDA resolution
+- DOI/SDI/DAI instance-value overlay and consistency diagnostics
+- SettingControl / FC=SG engineering projection
+- per-IED declared Services projection and conservative consistency checks
+- compact three-pane Avalonia engineering desktop with virtualized large-model views
+- compact selected-IED + engineering-domain navigator
+- workspace-aware Problems/Search/Where Used navigation
+- Reports bound-DataSet member inspection
+- collapsible Data Model inspection
+- selected-IED Network scope
+- collapsed diagnostics dock with explicit Error/Warning/Info counts
+- object-aware left engineering navigator
+- inspection-first center panes and engineering breadcrumbs
 
-The next milestone is **M2B — Validation & Reference Diagnostics**.
+The golden real-SCD engineering baseline is implemented and CI-green. PR #5 is scope-frozen pending the M3UX5 Windows/high-DPI + former-crash-path acceptance gate. The remaining product program is tracked by master issue #7 and lane issues #8-#14.
+
+Broad destructive SCL surgery remains intentionally locked. Identity rename/delete, DataSet surgery, RCB surgery, broad Communication editing, merge, and target-aware export continue in later milestones after explicit reference-impact and validation coverage exists.
+
+See [finalization master plan](docs/continuation/FINALIZATION_MASTER_PLAN.md), [standards baseline](docs/standards/IEC61850_STANDARDS_BASELINE.md), [M3UX4 acceptance](docs/testing/M3UX4_VISUAL_WORKFLOW_ACCEPTANCE.md), [M3A2 acceptance](docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md), and [current handoff](docs/continuation/HANDOFF.md).
 
 ## Architecture
 
@@ -95,7 +114,6 @@ dotnet run --project src/ArSclStudio.Cli -- probe path/to/station.scd
 
 ## Engineering quality
 
-The repository treats secure XML handling, canonical identity, reference ambiguity, cancellation, worker coalescing, memory ownership, source traceability, lazy virtualization, round-trip fidelity, and deterministic IEC semantics as implementation requirements rather than late-stage cleanup.
+The repository treats secure XML handling, canonical identity, reference ambiguity, cancellation, worker coalescing, memory ownership, source traceability, lazy virtualization, round-trip fidelity, deterministic IEC semantics, and screenshot-driven workstation usability as implementation requirements rather than late-stage cleanup.
 
 See `AGENTS.md` for the full engineering contract.
-

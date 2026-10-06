@@ -32,7 +32,9 @@ public sealed class DescriptionEditorTests
         await vm.OpenFileAsync(fixture.Path);
         Assert.IsFalse(vm.CanUndo);
         Assert.AreEqual(0, vm.ChangeRows.Count);
-        Assert.AreEqual("SCL", vm.DetailTitle);
+        Assert.AreEqual("Relay_A", vm.DetailTitle);
+        Assert.IsNotNull(vm.SelectedIedWorkspace);
+        Assert.AreEqual("Relay_A", vm.SelectedIedWorkspace.Name);
     }
 
     [TestMethod]

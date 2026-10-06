@@ -6,5 +6,6 @@ public enum SclReferenceKind
     DataSetMember,
     TypeDefinition,
     CommunicationBinding,
+    CommunicationControlBinding,
     ExternalSource
 }

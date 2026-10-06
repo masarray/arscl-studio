@@ -66,14 +66,114 @@ The default schema provider is deliberately unavailable until a legally sourced 
 
 M1B already delivered the deep lazy browser, typed reference graph, Where Used and semantic search. M3 extends semantic **coverage and explanations** rather than rebuilding that foundation.
 
+### M3A0 — IEC 61850 workstation information architecture — implemented
+
+The corrective workstation layer now exposes real Engine-backed workspaces for:
+- IED overview;
+- Network;
+- GOOSE/GSSE;
+- DataSets;
+- Reports & Logs;
+- Data Model;
+- Setting Groups.
+
+Key semantic expansion delivered in M3A0:
+- Address/P network projection;
+- Communication/GSE semantic endpoints;
+- deterministic Communication/GSE ↔ GSEControl binding;
+- GOOSE DataSet/member/subscriber engineering projection;
+- LN → LNodeType → DO → DOType → DA/SDO → DAType/BDA model resolution;
+- DOI/SDI/DAI instance overlay;
+- SettingControl and FC=SG value/unit/bound projection.
+
+The current real golden SCD has no Substation section, so ARSCL does not expose a fake Substation workspace merely to complete the UI.
+
+See:
+- `docs/ux/IEC61850_WORKSTATION_INFORMATION_ARCHITECTURE.md`;
+- `docs/testing/REAL_SCD_ENGINEERING_WORKSPACE_ACCEPTANCE.md`;
+- `docs/testing/M3A0_ACCEPTANCE.md`.
+
+### M3A — semantic/engineering diagnostics & remaining coverage — slices 1-2 implemented
+
 Acceptance:
-- complete Substation hierarchy coverage: VoltageLevel, Bay, ConductingEquipment, Terminal and LNode placement;
-- richer Communication semantics including P-address parameters and GSE/SMV endpoint linkage;
-- supported-services interpretation;
-- deeper DOI/SDI/DAI ↔ type-template resolution;
-- model/reference/engineering diagnostics for newly covered semantics;
-- edition-aware rule/schema provider evolution using legally sourced assets;
-- contextual engineering explanations without moving IEC logic into Desktop.
+- typed GOOSE endpoint engineering diagnostics: implemented;
+- Communication/SMV typed endpoint linkage: implemented;
+- SMV endpoint engineering diagnostics: implemented;
+- deep DOI/SDI/DAI ↔ type-template consistency with ambiguity-safe resolution: implemented;
+- cached type-context performance guard for large repeated instance models: implemented;
+- per-IED Services projection and conservative Fix/Conf/Dyn/limit interpretation: implemented;
+- unknown/future Services declarations preserved as uninterpreted, source-linked rows: implemented;
+- explicit GOOSE/GSSE/SMV publisher counts vs literal Services max diagnostics: implemented;
+- add edition-aware rule/schema-provider evolution using legally sourced assets;
+- expand contextual engineering explanations and diagnostic grouping without moving IEC logic into Desktop;
+- add additional cross-domain rules only when their semantics are proven by specification/evidence;
+- add Substation → VoltageLevel → Bay → ConductingEquipment → Terminal/LNode placement only when a real fixture is available;
+- preserve all M1B/M2A/M2B/M3A0/M3A1/M3A2 regression and performance gates.
+
+M3A2 acceptance evidence:
+- `docs/testing/M3A2_MODEL_SERVICES_ACCEPTANCE.md`.
+
+Broad destructive editing remains locked until the affected domain has explicit reference-impact and validation coverage.
+
+### M3UX1 — engineering desktop density & inspection workflow — implemented
+
+This visual/interaction slice corrects the remaining dashboard/web-like presentation without changing IEC semantics:
+- compact docked Project Explorer / engineering work area / Inspector;
+- dense IED rows instead of card-like entries;
+- compact workspace tabs and command strip;
+- Data Model column reallocation and true depth indentation;
+- property-grid-style Inspector and compact Where Used;
+- vertically resizable Problems/Search/Changes dock;
+- no loss of list virtualization or shared selection semantics.
+
+Manual Windows/high-DPI screenshot acceptance remains the merge gate. See `docs/testing/M3UX1_ENGINEERING_DESKTOP_ACCEPTANCE.md`.
+
+### M3UX2 — screenshot-driven workstation refinement — implemented
+
+Windows screenshots of M3UX1 identified remaining web/dashboard behavior. M3UX2 delivers:
+- forced single-line engineering workspace selector with stable short task names;
+- compact Overview summary + full-height Services table;
+- explicit Setting Groups empty-state;
+- severity/domain/text filtering in Problems with preserved source navigation;
+- true property-grid Inspector rows including Namespace and long-value tooltips;
+- Data Model hierarchy-width prioritization;
+- shared subtle row separators for engineering tables.
+
+Evidence: `docs/testing/M3UX2_SCREENSHOT_REFINEMENT_ACCEPTANCE.md`.
+
+### M3UX3 — engineer mental-workspace finishing — implemented
+
+This finishing slice closes the remaining navigation/context gap without rebuilding the M3 shell:
+- compact selected-IED context + left engineering workspace navigator;
+- persistent IED/domain/object breadcrumb;
+- workspace-aware Problems/Search/Where Used navigation;
+- Reports bound-DataSet member inspection;
+- Desktop-only collapsible Data Model projection;
+- selected-IED Network scope;
+- functional Ctrl+F;
+- removal of roadmap-only disabled controls from the active workspace.
+
+All Engine semantic boundaries, virtualization, SclNodeHandle navigation, and mutation locks remain intact.
+
+Evidence: `docs/testing/M3UX3_ENGINEER_WORKSPACE_ACCEPTANCE.md`.
+
+### M3UX4 — IEDScout-style visual workflow finishing — implemented
+
+Real Windows screenshots drive this final M3 visual slice:
+- diagnostics dock collapsed by default;
+- single primary engineering-domain navigation surface;
+- engineering breadcrumb rather than raw XML-shaped center path;
+- object-aware left navigation for Network/GOOSE/DataSets/Data Model/Setting Groups;
+- inspection-first center panes;
+- long Reports catalog deliberately retained as a center table;
+- Network selected-endpoint details;
+- DataSet/Setting Group clipping corrections;
+- compact Inspector values with tooltips;
+- small engineering glyphs and explicit Error/Warning/Info summary.
+
+No IEC semantic logic moved into Desktop.
+
+Evidence: `docs/testing/M3UX4_VISUAL_WORKFLOW_ACCEPTANCE.md`.
 
 ## M4 — SCL surgery
 
@@ -141,3 +241,21 @@ Every milestone has:
 
 If a risky feature blocks a milestone, isolate it behind an interface/feature flag and complete the rest. Do not leave the repository unbuildable while experimenting.
 
+
+
+## Finalization program (2026-10-06)
+
+The M0-M3 history above remains valid, but the remaining program is now governed by GitHub issue #7 and `docs/continuation/FINALIZATION_MASTER_PLAN.md`.
+
+Important standards correction: the SCL standards lane must include IEC 61850-6 consolidated **Edition 2.2 (2024)**. The earlier roadmap wording that stopped at Edition 2.1 is no longer sufficient.
+
+Execution lanes:
+- #8 P0 reliability/performance hardening;
+- #9 P1 standards authority / edition-schema-rule providers;
+- #10 P2 semantic/index completeness;
+- #11 P3 safe SCL surgery;
+- #12 P4 semantic diff/extract/export/merge;
+- #13 P5 interoperability evidence;
+- #14 P6 final UX/release.
+
+PR #5 is scope-frozen at the M3UX5 acceptance stage. After it merges, do not create another mega-branch. Use bounded issue branches/PRs and the CI budget defined in AGENTS.md.

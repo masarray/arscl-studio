@@ -268,3 +268,71 @@ At the end of each meaningful phase update docs/continuation/HANDOFF.md with:
 - next milestone and acceptance criteria
 
 Do not rely on conversation memory as project documentation.
+
+
+## Execution and collaboration contract
+
+These rules are mandatory for human and AI coding threads. The repository, not chat history, is the source of truth.
+
+### Work ownership
+
+- Start from GitHub issue #7 and claim exactly one bounded lane issue before coding.
+- One issue normally maps to one focused branch and one reviewable PR.
+- Do not continue the PR #5 mega-branch pattern after PR #5 is accepted. Main must return to small, independently reviewable slices.
+- Stacked PRs are allowed only when the dependency is explicit in both issues/PRs.
+- Before editing a shared hot file, inspect active issues/PRs that may own the same write set.
+- If another lane already owns the same authority, coordinate or wait; do not create a second implementation.
+- Each completed thread updates its issue and `docs/continuation/HANDOFF.md` with exact commit/PR, tests, known limits, and the next bounded action.
+
+### Anti-naive hot-path rules
+
+- Do not perform multiple whole-document or whole-semantic-index scans for one UI selection when a typed/revision-scoped index can answer the queries.
+- Do not rebuild the same resolved Data Model independently for every workspace if a revision-scoped projection/cache can be reused.
+- Do not put heavy projectors in property-change callbacks, UI event handlers, or synchronous selection paths.
+- Do not create `Task.Run` per IED, LN, DO, DA, row, or validation rule. CPU work must pass through the bounded session scheduler.
+- Do not use a coarse global lock where immutable snapshots/revision publication can provide deterministic ownership.
+- Long loops must observe cancellation at bounded intervals.
+- Latest-state work must have a stable work identity and latest-wins behavior. Must-run work must never be coalesced away.
+- Never publish background results without verifying session lifetime, source revision, and request/selection identity.
+- No unbounded process-lifetime cache. A cache must be bounded or owned by a document/revision and released on close.
+- Prefer one-pass construction of typed buckets/indexes over repeated LINQ/global scans in hot paths.
+- A proposed optimization must name the measured bottleneck and add timing/allocation evidence. Do not rewrite the DOM/model speculatively.
+
+### Interoperability evidence ladder
+
+The word "interoperable" has levels. Never claim a higher level from lower-level evidence.
+
+1. **Parse** — ARSCL can securely open the file.
+2. **Preserve** — round trip retains supported semantics and unknown/vendor content.
+3. **Validate** — applicable schema, semantic, reference, and engineering rules pass for the declared edition.
+4. **Cross-tool** — an independent engineering tool accepts the result and preserves intended engineering.
+5. **Runtime** — the configuration is verified against real IED/client/server behavior.
+6. **Formal conformance** — applicable IEC 61850-10/UCA conformance evidence exists.
+
+Every compatibility statement must state which level is actually proven.
+
+### Standards authority discipline
+
+- Public product pages, screenshots, field observations, and vendor manuals are evidence, not substitutes for normative IEC requirements.
+- Store standard identifier/version/namespace, rule identifier, clause reference where legally allowed, provenance, and confidence; do not copy restricted normative text.
+- Edition-specific behavior belongs in versioned rule/schema providers, not scattered conditionals in Desktop or random projectors.
+- IEC validity, engineering consistency, target compatibility, and runtime behavior remain separate diagnostic domains.
+- Unknown edition/vendor semantics remain explicit. Never silently downgrade, upgrade, normalize, or repair them.
+
+### CI budget contract
+
+CI is an engineering resource.
+
+- Ordinary PR commits run the fast gate once; do not trigger duplicate push + pull-request matrices.
+- Full Windows/Linux/macOS qualification and Windows self-contained publish run on main or explicit manual qualification, not on every feature-branch push.
+- Documentation-only changes do not require build/test CI unless they change workflow/build configuration.
+- New commits supersede obsolete PR validation runs; stale runs should be cancelled.
+- Do not create a commit only to "see CI" when the same check can be done in the active local/dev environment.
+- Batch tightly related edits and tests into a coherent commit before remote CI.
+- Benchmark/stress jobs should be manual/nightly/release gates unless they are cheap deterministic regression tests.
+- A green CI run is evidence for that exact commit only.
+
+See:
+- `docs/continuation/FINALIZATION_MASTER_PLAN.md`
+- `docs/standards/IEC61850_STANDARDS_BASELINE.md`
+- GitHub issue #7 and its lane issues #8-#14.

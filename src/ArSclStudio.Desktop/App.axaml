@@ -2,21 +2,77 @@
   x:Class="ArSclStudio.Desktop.App"
   xmlns="https://github.com/avaloniaui"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:conv="using:ArSclStudio.Desktop.Converters"
   RequestedThemeVariant="Default">
+
+  <Application.Resources>
+    <conv:DepthToIndentConverter x:Key="DepthToIndent" />
+  </Application.Resources>
 
   <Application.Styles>
     <FluentTheme />
     <Style Selector="Window">
-      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Menu">
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TabItem">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="Padding" Value="9,4" />
+      <Setter Property="Margin" Value="0" />
+    </Style>
+    <Style Selector="TabItem:selected">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Background" Value="{DynamicResource ThemeControlLowBrush}" />
+    </Style>
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="MinHeight" Value="24" />
+    </Style>
+    <Style Selector="ListBox.engineeringGrid > ListBoxItem">
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderLowBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="MinHeight" Value="28" />
     </Style>
     <Style Selector="Button.compact">
-      <Setter Property="MinHeight" Value="30" />
-      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="MinHeight" Value="27" />
+      <Setter Property="Padding" Value="9,3" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="Button.dockHeader">
+      <Setter Property="MinHeight" Value="22" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style Selector="Border.panel">
       <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderLowBrush}" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="Border.paneHeader">
+      <Setter Property="Background" Value="{DynamicResource ThemeControlLowBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderLowBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="Padding" Value="8,5" />
+    </Style>
+    <Style Selector="TextBlock.paneTitle">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.propertyName">
+      <Setter Property="Opacity" Value="0.68" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
+    <Style Selector="Border.summaryCell">
+      <Setter Property="BorderBrush" Value="{DynamicResource ThemeBorderLowBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,1,1" />
+      <Setter Property="Padding" Value="10,8" />
     </Style>
   </Application.Styles>
 </Application>
